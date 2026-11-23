@@ -1,0 +1,49 @@
+server {
+    listen 80;
+    server_name example.com;
+    root /var/www/deepseek;
+    index index.html index.php;
+
+    client_max_body_size 128m;
+
+    # 内部目录与参考仓库禁止直接访问
+    location ~ ^/(app|config|storage|database|docs|deploy|frontend|scripts)(/|$) {
+        deny all;
+        return 403;
+    }
+
+    location ~ /\.(git|gitignore|htaccess) {
+        deny all;
+        return 403;
+    }
+
+    # API 入口
+    location /api/ {
+        try_files $uri /index.php$is_args$args;
+    }
+
+    # 管理后台
+    location /admin/ {
+        try_files $uri $uri/ /admin/index.php$is_args$args;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+        fastcgi_read_timeout 900s;
+        fastcgi_buffering off;
+    }
+
+    location ~* ^/static/ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+}

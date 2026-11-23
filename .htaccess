@@ -1,0 +1,17 @@
+Options -Indexes
+RewriteEngine On
+
+# API 统一入口
+RewriteRule ^api/ index.php [L,QSA]
+
+# 已存在的文件/目录直接返回
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# SPA 回退
+RewriteRule ^ index.html [L]
+
+# 内部目录与杂物禁止访问
+RedirectMatch 403 ^/(app|config|storage|database|docs|deploy|frontend|scripts)(/|$)
+RedirectMatch 403 ^/\.(git|gitignore)

@@ -1,0 +1,32 @@
+# Apache 部署示例
+
+站点根目录必须指向本项目根目录。确保已启用 `mod_rewrite` 并允许 `.htaccess`：
+
+```apache
+<VirtualHost *:80>
+    ServerName example.com
+    DocumentRoot /var/www/deepseek
+
+    <Directory /var/www/deepseek>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # 建议在 HTTPS 下运行
+</VirtualHost>
+```
+
+仓库根目录的 `.htaccess` 已包含：
+
+- `/api/*` 重写到 `index.php`；
+- 静态文件与 `/admin/` 直接访问；
+- 其余路径回退到 `index.html`；
+- 禁止访问 `app/ config/ storage/ database/ docs/ deploy/ frontend/ scripts/`。
+
+PHP 配置建议：
+
+```ini
+upload_max_filesize = 128M
+post_max_size = 128M
+max_execution_time = 900
+```
