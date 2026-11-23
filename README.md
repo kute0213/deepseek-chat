@@ -36,7 +36,7 @@
 
 ## 环境要求
 
-- PHP 8.1+（需要 `pdo_mysql`、`curl`、`mbstring`、`fileinfo`）
+- PHP 8.1+（需要 `pdo_mysql`、`curl`、`mbstring`、`zip`；无需 `fileinfo`）
 - MySQL 5.7+ / MariaDB 10.4+
 - Node.js 20+、pnpm 9+（仅构建前端需要）
 

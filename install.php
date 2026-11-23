@@ -20,7 +20,6 @@ $checks = [
     'curl' => extension_loaded('curl'),
     'zip' => extension_loaded('zip'),
     'mbstring' => extension_loaded('mbstring'),
-    'fileinfo' => extension_loaded('fileinfo'),
     'config/ 可写' => is_writable($root . '/config'),
     'storage/ 可写' => is_writable($root . '/storage'),
 ];

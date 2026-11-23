@@ -72,9 +72,31 @@ final class DeepSeekClient
             throw new HttpError('未选择文件', 400);
         }
         $mime = (string) ($file['type'] ?? '');
-        if ($mime === '' && function_exists('finfo_open')) {
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mime = $finfo ? (string) finfo_file($finfo, $tmp) : '';
+        if ($mime === '') {
+            $ext = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+            $mime = match ($ext) {
+                'png', 'apng' => 'image/png',
+                'jpg', 'jpeg', 'jpe', 'jfif', 'pjpeg', 'pjp' => 'image/jpeg',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                'bmp', 'dib' => 'image/bmp',
+                'svg', 'svgz' => 'image/svg+xml',
+                'ico', 'cur' => 'image/x-icon',
+                'tif', 'tiff' => 'image/tiff',
+                'avif', 'avifs' => 'image/avif',
+                'pdf' => 'application/pdf',
+                'doc' => 'application/msword',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xls' => 'application/vnd.ms-excel',
+                'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'ppt' => 'application/vnd.ms-powerpoint',
+                'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                'txt', 'md', 'markdown', 'csv', 'tsv', 'log', 'ini', 'conf', 'yaml', 'yml',
+                'js', 'mjs', 'cjs', 'jsx', 'ts', 'tsx', 'css', 'scss', 'less', 'html', 'htm',
+                'xml', 'json', 'py', 'java', 'c', 'h', 'cpp', 'hpp', 'cs', 'go', 'rs', 'rb',
+                'php', 'sh', 'bash', 'zsh', 'sql' => 'text/plain',
+                default => 'application/octet-stream',
+            };
         }
         $fields = [];
         if ($purpose !== null && $purpose !== '') {
