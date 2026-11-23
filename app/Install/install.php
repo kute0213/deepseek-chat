@@ -23,8 +23,7 @@ $checks = [
     'curl' => extension_loaded('curl'),
     'zip' => extension_loaded('zip'),
     'mbstring' => extension_loaded('mbstring'),
-    'config/ 可写' => is_writable($root . '/config'),
-    'storage/ 可写' => is_writable($root . '/storage'),
+    'uploads/ 可写' => is_writable($root . '/uploads'),
 ];
 
 $defaults = [
@@ -106,11 +105,15 @@ if (!$installed && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             'snowflake_worker_id' => $workerId,
             'debug' => false,
         ];
-        $configPath = $root . '/config/config.php';
+        $configDir = $root . '/uploads/config';
+        if (!is_dir($configDir) && !mkdir($configDir, 0775, true) && !is_dir($configDir)) {
+            throw new RuntimeException('无法创建 uploads/config 目录');
+        }
+        $configPath = $configDir . '/config.php';
         $content = "<?php\n\ndeclare(strict_types=1);\n\nreturn " . var_export($config, true) . ";\n";
         $tmp = $configPath . '.tmp';
         if (file_put_contents($tmp, $content) === false || !rename($tmp, $configPath)) {
-            throw new RuntimeException('无法写入 config/config.php，请检查目录权限');
+            throw new RuntimeException('无法写入 uploads/config/config.php，请检查目录权限');
         }
         @chmod($configPath, 0640);
 
@@ -146,8 +149,8 @@ if (!$installed && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
 
         $lock = "installed_at=" . date('c') . "\nworker_id={$workerId}\n";
-        if (file_put_contents($root . '/config/installed.lock', $lock) === false) {
-            throw new RuntimeException('无法写入 config/installed.lock');
+        if (file_put_contents($configDir . '/installed.lock', $lock) === false) {
+            throw new RuntimeException('无法写入 uploads/config/installed.lock');
         }
 
         $done = true;
@@ -203,8 +206,8 @@ function e(string $value): string
 <?php if ($installed): ?>
     <div class="card">
         <h2>系统已安装</h2>
-        <p class="success">检测到 <code>config/installed.lock</code>，安装向导已锁定。</p>
-        <p>如需重新安装，请先删除 <code>config/config.php</code> 与 <code>config/installed.lock</code>。</p>
+        <p class="success">检测到 <code>uploads/config/installed.lock</code>，安装向导已锁定。</p>
+        <p>如需重新安装，请先删除 <code>uploads/config/config.php</code> 与 <code>uploads/config/installed.lock</code>。</p>
     </div>
 <?php elseif ($done): ?>
     <div class="card">
@@ -213,7 +216,7 @@ function e(string $value): string
             <p>数据库与管理员账号已创建。</p>
             <p>用户端：<a href="/">/</a><br>管理后台：<a href="/admin/login.php">/admin/login.php</a></p>
             <p>管理员用户名：<code><?= e($form['admin_user']) ?></code></p>
-            <p style="color:var(--danger)">安装向导已锁定。如需重新安装，请删除 <code>config/config.php</code> 与 <code>config/installed.lock</code>。</p>
+            <p style="color:var(--danger)">安装向导已锁定。如需重新安装，请删除 <code>uploads/config/config.php</code> 与 <code>uploads/config/installed.lock</code>。</p>
         </div>
     </div>
 <?php else: ?>

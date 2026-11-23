@@ -14,6 +14,11 @@ if ($path === '/') {
     return true;
 }
 
+if (str_starts_with($path, '/uploads')) {
+    http_response_code(403);
+    return true;
+}
+
 if (is_file($root . $path)) {
     return false;
 }

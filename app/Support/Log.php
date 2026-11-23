@@ -7,7 +7,7 @@ final class Log
 {
     public static function write(string $channel, string $message): void
     {
-        $dir = APP_ROOT . '/storage/logs';
+        $dir = APP_ROOT . '/uploads/logs';
         if (!is_dir($dir)) {
             @mkdir($dir, 0775, true);
         }

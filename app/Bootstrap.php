@@ -26,7 +26,7 @@ final class Bootstrap
             }
         });
 
-        Config::load(APP_ROOT . '/config/config.php');
+        Config::load(APP_ROOT . '/uploads/config/config.php');
         date_default_timezone_set('Asia/Shanghai');
         header_remove('X-Powered-By');
 

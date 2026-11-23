@@ -30,6 +30,6 @@ final class Config
 
     public static function installed(): bool
     {
-        return is_file(APP_ROOT . '/config/installed.lock');
+        return is_file(APP_ROOT . '/uploads/config/installed.lock');
     }
 }
