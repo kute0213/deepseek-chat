@@ -54,7 +54,13 @@ export const setUnauthorizedHandler = (handler: () => void) => {
  * 首次遇到时改用入口查询参数重试，并在本次页面内沿用。
  */
 const isApiPath = (url: string) => url.startsWith('/api/')
-const queryRouteUrl = (url: string) => `/index.php?_r=${encodeURIComponent(url)}`
+/** 查询参数必须留在查询串里，不能编进 _r，否则服务端会把 ?limit=... 当成路径的一部分。 */
+const queryRouteUrl = (url: string) => {
+  const index = url.indexOf('?')
+  const path = index === -1 ? url : url.slice(0, index)
+  const query = index === -1 ? '' : url.slice(index + 1)
+  return `/index.php?_r=${encodeURIComponent(path)}${query ? `&${query}` : ''}`
+}
 const isHtmlResponse = (response: Response) =>
   (response.headers.get('Content-Type') ?? '').includes('text/html')
 let queryRoute = false

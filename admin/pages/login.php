@@ -7,11 +7,15 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>管理登录</title>
+    <title>管理登录 - DeepSeekChat</title>
     <link rel="stylesheet" href="/admin/assets/admin.css">
 </head>
 <body class="login-body">
 <form class="login-card" method="post" action="/admin/">
+    <div class="login-brand">
+        <img class="brand-mark" src="/admin/assets/deepseek-logo.png" alt="" width="44" height="44">
+        <span class="brand-name">DeepSeek</span>
+    </div>
     <h1>管理控制台</h1>
     <p class="muted">请使用管理员账号登录</p>
     <?php if ($flashError !== null): ?>

@@ -14,9 +14,18 @@ final class Request
     {
         // 未配置伪静态时，前端会通过 index.php?_r=/api/... 访问
         $route = $_GET['_r'] ?? null;
-        $path = is_string($route) && str_starts_with($route, '/')
-            ? $route
-            : (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/');
+        if (is_string($route) && str_starts_with($route, '/')) {
+            // 兼容误把查询串整体编进 _r 的旧链接：拆出查询参数，避免 limit 等被当作路径
+            $parts = parse_url($route);
+            $path = is_array($parts) ? (string) ($parts['path'] ?? '/') : $route;
+            $query = is_array($parts) ? (string) ($parts['query'] ?? '') : '';
+            if ($query !== '') {
+                parse_str($query, $extra);
+                $_GET += $extra;
+            }
+        } else {
+            $path = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
+        }
         return $path !== '/' ? rtrim($path, '/') : '/';
     }
 

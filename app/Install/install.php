@@ -171,37 +171,185 @@ function e(string $value): string
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>安装 DeepSeekChat</title>
 <style>
-    :root { color-scheme: light dark; --brand:#4d6bfe; --bg:#f7f8fc; --panel:#fff; --text:#1a1c23; --muted:#667085; --line:#e4e7ec; --danger:#d92d20; --ok:#12805c; }
-    @media (prefers-color-scheme: dark) { :root { --bg:#111318; --panel:#191c22; --text:#e7e9ee; --muted:#98a2b3; --line:#2a2f3a; } }
+    :root {
+        color-scheme: light dark;
+        --brand: #4d6bfe;
+        --brand-strong: #3f5be6;
+        --brand-soft: rgba(77, 107, 254, 0.1);
+        --bg: #ffffff;
+        --panel: #ffffff;
+        --text: #1f2329;
+        --muted: #8a8f99;
+        --line: #ececee;
+        --line-strong: #e2e3e7;
+        --danger: #e5484d;
+        --ok: #1a9d63;
+        --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 12px 32px rgba(16, 24, 40, .05);
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg: #191a1c;
+            --panel: #202124;
+            --text: #e8eaed;
+            --muted: #9aa0a6;
+            --line: #2e3035;
+            --line-strong: #3a3d43;
+            --danger: #ef6b6b;
+            --ok: #43c78d;
+            --shadow: 0 1px 2px rgba(0, 0, 0, .24), 0 16px 40px rgba(0, 0, 0, .28);
+        }
+    }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--text); }
-    .wrap { max-width: 760px; margin: 48px auto; padding: 0 20px; }
-    h1 { font-size: 26px; margin: 0 0 6px; }
-    .sub { color: var(--muted); margin: 0 0 24px; }
-    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; margin-bottom: 18px; }
-    h2 { font-size: 16px; margin: 0 0 14px; }
-    .checks { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:8px; padding:0; margin:0; list-style:none; }
-    .checks li { display:flex; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font-size:13px; }
-    .ok { color: var(--ok); font-weight:600; }
-    .bad { color: var(--danger); font-weight:600; }
-    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    html, body { min-height: 100%; }
+    body {
+        position: relative;
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+            "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+    body::before {
+        position: fixed;
+        top: -220px;
+        left: 50%;
+        width: min(780px, 120vw);
+        height: min(780px, 120vw);
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(77, 107, 254, .14), rgba(77, 107, 254, 0) 66%);
+        content: "";
+        transform: translateX(-50%);
+        pointer-events: none;
+    }
+    .top {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 28px 20px 0;
+    }
+    .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text);
+        font-size: 18px;
+        font-weight: 650;
+        letter-spacing: -.02em;
+        text-decoration: none;
+    }
+    .brand img { width: 30px; height: 30px; object-fit: contain; }
+    .tag {
+        padding: 2px 10px;
+        border-radius: 999px;
+        background: var(--brand-soft);
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .wrap {
+        position: relative;
+        max-width: 760px;
+        margin: 26px auto 64px;
+        padding: 0 20px;
+    }
+    h1 { margin: 0 0 6px; font-size: 28px; font-weight: 650; letter-spacing: -.02em; }
+    .sub { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
+    .card {
+        margin-bottom: 16px;
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+    }
+    h2 { margin: 0 0 14px; font-size: 15px; font-weight: 600; }
+    .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; }
+    .checks li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 9px 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-size: 13px;
+    }
+    .ok { color: var(--ok); font-weight: 600; }
+    .bad { color: var(--danger); font-weight: 600; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
-    label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
-    input[type=text], input[type=password], input[type=number] { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--text); font-size:14px; }
-    input:focus { outline:2px solid color-mix(in srgb, var(--brand) 35%, transparent); border-color: var(--brand); }
-    .checkbox { display:flex; align-items:center; gap:8px; margin-top:26px; color:var(--text); font-size:14px; }
-    button { margin-top:22px; width:100%; padding:12px 16px; border:0; border-radius:10px; background:var(--brand); color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
-    button:hover { filter:brightness(1.05); }
-    .error { background: color-mix(in srgb, var(--danger) 10%, transparent); color:var(--danger); padding:12px 14px; border-radius:10px; font-size:14px; margin-bottom:16px; }
-    .success { color: var(--ok); font-size:15px; line-height:1.8; }
-    code { background: color-mix(in srgb, var(--brand) 10%, transparent); padding:2px 6px; border-radius:6px; }
-    a { color: var(--brand); }
+    label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 13px; }
+    input[type=text], input[type=password], input[type=number] {
+        width: 100%;
+        height: 40px;
+        padding: 0 12px;
+        border: 1px solid var(--line-strong);
+        border-radius: 10px;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        font-size: 14px;
+        outline: none;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+    .checkbox { display: flex; align-items: center; gap: 8px; margin-top: 20px; color: var(--text); font-size: 14px; }
+    button {
+        width: 100%;
+        height: 44px;
+        margin-top: 6px;
+        border: 0;
+        border-radius: 12px;
+        background: var(--brand);
+        color: #fff;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .15s ease, transform .1s ease;
+    }
+    button:hover { background: var(--brand-strong); }
+    button:active { transform: scale(.995); }
+    .error {
+        margin-bottom: 16px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--danger) 10%, transparent);
+        color: var(--danger);
+        font-size: 14px;
+    }
+    .success { color: var(--ok); font-size: 15px; line-height: 1.8; }
+    code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: var(--brand-soft);
+        color: var(--brand);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+    }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    @media (max-width: 480px) {
+        .top { padding-top: 20px; }
+        h1 { font-size: 24px; }
+    }
 </style>
 </head>
 <body>
-<div class="wrap">
-    <h1>DeepSeekChat 安装向导</h1>
-    <p class="sub">配置 MySQL 连接并初始化站点，仅需一次。</p>
+<header class="top">
+    <a class="brand" href="/">
+        <img src="/admin/assets/deepseek-logo.png" alt="" width="30" height="30">
+        DeepSeekChat
+    </a>
+    <span class="tag">安装向导</span>
+</header>
+<main class="wrap">
+    <h1>欢迎使用 DeepSeekChat</h1>
+    <p class="sub">配置 MySQL 连接与站点信息，只需完成一次。</p>
 
 <?php if ($installed): ?>
     <div class="card">
@@ -256,6 +404,6 @@ function e(string $value): string
         <button type="submit">开始安装</button>
     </form>
 <?php endif; ?>
-</div>
+</main>
 </body>
 </html>
