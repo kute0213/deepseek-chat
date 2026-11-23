@@ -109,6 +109,21 @@ final class UserService
         $stmt->execute([Auth::passwordHash($password), (int) floor(microtime(true) * 1000), $userId]);
     }
 
+    /** 修改用户名：校验格式与唯一性，返回新用户名 */
+    public static function rename(string $userId, string $username): string
+    {
+        if (!preg_match('/^[A-Za-z0-9_]{3,32}$/', $username)) {
+            throw new HttpError('用户名需为 3-32 位字母、数字或下划线', 422);
+        }
+        $existing = self::findByUsername($username);
+        if ($existing !== null && (string) $existing['id'] !== $userId) {
+            throw new HttpError('用户名已存在', 409);
+        }
+        $stmt = Database::pdo()->prepare('UPDATE users SET username = ?, updated_ms = ? WHERE id = ?');
+        $stmt->execute([$username, (int) floor(microtime(true) * 1000), $userId]);
+        return $username;
+    }
+
     public static function saveApiKey(string $userId, string $key): string
     {
         $mask = Auth::maskKey($key);

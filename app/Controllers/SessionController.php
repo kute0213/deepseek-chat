@@ -14,7 +14,16 @@ final class SessionController
     public function index(array $params, Request $request): void
     {
         $user = Auth::requireUser();
-        Response::json(['sessions' => SessionStore::summaries((string) $user['id'])]);
+        $limit = (int) ($request->query('limit') ?? 30);
+        $cursor = (string) ($request->query('cursor') ?? '');
+        $beforeUpdated = null;
+        $beforeId = null;
+        // 游标格式：<updatedMs>_<sessionId>
+        if ($cursor !== '' && preg_match('/^([0-9]{1,16})_([0-9]{1,20})$/', $cursor, $m)) {
+            $beforeUpdated = (int) $m[1];
+            $beforeId = $m[2];
+        }
+        Response::json(SessionStore::summaries((string) $user['id'], $limit, $beforeUpdated, $beforeId));
     }
 
     public function show(array $params, Request $request): void

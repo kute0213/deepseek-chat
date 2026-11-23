@@ -9,19 +9,47 @@ use PDO;
 
 final class SessionStore
 {
-    public static function summaries(string $userId): array
-    {
-        $stmt = Database::pdo()->prepare(
-            'SELECT id, title, created_ms, updated_ms FROM sessions WHERE user_id = ? ORDER BY updated_ms DESC'
-        );
-        $stmt->execute([$userId]);
+    /**
+     * 按更新时间倒序分页返回会话摘要，配合前端滚动加载，避免一次拉取全部记录。
+     *
+     * @return array{sessions: array<int, array>, nextCursor: ?string}
+     */
+    public static function summaries(
+        string $userId,
+        int $limit = 30,
+        ?int $beforeUpdated = null,
+        ?string $beforeId = null
+    ): array {
+        $limit = max(1, min(100, $limit));
+        $sql = 'SELECT id, title, created_ms, updated_ms FROM sessions WHERE user_id = ?';
+        $args = [$userId];
+        // 键集分页：用 (updated_ms, id) 作为游标，避免数据变动时 OFFSET 跳页或重复
+        if ($beforeUpdated !== null && $beforeId !== null) {
+            $sql .= ' AND (updated_ms < ? OR (updated_ms = ? AND id < ?))';
+            $args[] = $beforeUpdated;
+            $args[] = $beforeUpdated;
+            $args[] = $beforeId;
+        }
+        $sql .= ' ORDER BY updated_ms DESC, id DESC LIMIT ' . ($limit + 1);
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->execute($args);
         $rows = $stmt->fetchAll();
-        return array_map(static fn (array $row): array => [
+        $hasMore = count($rows) > $limit;
+        if ($hasMore) {
+            array_pop($rows);
+        }
+        $sessions = array_map(static fn (array $row): array => [
             'id' => (string) $row['id'],
             'title' => (string) $row['title'],
             'createdAt' => (int) $row['created_ms'],
             'updatedAt' => (int) $row['updated_ms'],
         ], $rows);
+        $nextCursor = null;
+        if ($hasMore && $sessions !== []) {
+            $last = $sessions[count($sessions) - 1];
+            $nextCursor = $last['updatedAt'] . '_' . $last['id'];
+        }
+        return ['sessions' => $sessions, 'nextCursor' => $nextCursor];
     }
 
     public static function load(string $userId, string $sessionId): ?array

@@ -41,9 +41,22 @@ const putFile = async (file: StoredFile): Promise<void> => {
   })
 }
 
-export const loadSessionSummaries = async (): Promise<SessionSummary[]> => {
-  const { sessions } = await requestJson<{ sessions: SessionSummary[] }>('/api/sessions', 'GET')
-  return sessions
+/** 会话摘要分页：nextCursor 为空表示已到末页 */
+export type SessionPage = {
+  sessions: SessionSummary[]
+  nextCursor: string | null
+}
+
+export const loadSessionSummaries = async (
+  cursor?: string | null,
+  limit = 30
+): Promise<SessionPage> => {
+  const query = new URLSearchParams({ limit: String(limit) })
+  if (cursor) {
+    query.set('cursor', cursor)
+  }
+  const page = await requestJson<SessionPage>(`/api/sessions?${query.toString()}`, 'GET')
+  return { sessions: page.sessions ?? [], nextCursor: page.nextCursor ?? null }
 }
 
 export const loadSession = async (id: string): Promise<Session | undefined> => {
@@ -124,14 +137,18 @@ export const updateStagingFileTypes = async (types: ReadonlyMap<string, string>)
 }
 
 /**
- * 导入完成：服务端在单个事务中清空并替换全部会话，逐个重排为雪花 ID 后返回新列表。
+ * 导入完成：服务端在单个事务中清空并替换全部会话，逐个重排为雪花 ID 后返回首页摘要与总数。
  */
-export const commitStaging = async (): Promise<SessionSummary[]> => {
-  const { sessions } = await requestJson<{ sessions: SessionSummary[] }>(
+export const commitStaging = async (): Promise<SessionPage & { total: number }> => {
+  const page = await requestJson<SessionPage & { total: number }>(
     '/api/history/staging/commit',
     'POST'
   )
-  return sessions
+  return {
+    sessions: page.sessions ?? [],
+    nextCursor: page.nextCursor ?? null,
+    total: page.total ?? page.sessions?.length ?? 0,
+  }
 }
 
 /** 保存失败不打断对话，只在控制台留痕 */

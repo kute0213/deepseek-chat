@@ -20,13 +20,29 @@ use App\Support\Config;
 
 Bootstrap::boot();
 
-if (!Config::installed()) {
-    header('Location: /install.php');
+$path = App\Support\Request::path();
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+// 安装向导：文件位于 app/Install，这里统一分发，未安装时其它路径都会被引导过来
+if ($path === '/install' || $path === '/install.php') {
+    require __DIR__ . '/app/Install/install.php';
     exit;
 }
 
-$path = App\Support\Request::path();
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+if (!Config::installed()) {
+    header('Location: /install');
+    exit;
+}
+
+// 静态页面：服务协议与 404
+if ($method === 'GET' && ($path === '/terms' || $path === '/terms.html')) {
+    HomePage::renderView('terms.html');
+    exit;
+}
+if ($method === 'GET' && $path === '/404') {
+    HomePage::renderView('404.html', 404);
+    exit;
+}
 
 // 非 API 的 GET 请求由 PHP 输出前端页面，注入站点名称与公开配置
 if ($method === 'GET' && !str_starts_with($path, '/api/')) {
@@ -45,6 +61,7 @@ $router->post('/api/auth/logout', [AuthController::class, 'logout']);
 $router->get('/api/auth/me', [AuthController::class, 'me']);
 
 $router->post('/api/account/password', [AccountController::class, 'changePassword']);
+$router->post('/api/account/username', [AccountController::class, 'renameUsername']);
 $router->post('/api/account/api-key', [AccountController::class, 'saveApiKey']);
 $router->delete('/api/account/api-key', [AccountController::class, 'deleteApiKey']);
 $router->get('/api/account/balance', [AccountController::class, 'balance']);

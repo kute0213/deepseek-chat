@@ -9,6 +9,18 @@ namespace App\Services;
  */
 final class HomePage
 {
+    /** 输出 app/Views 下的静态页面（服务协议、404 等） */
+    public static function renderView(string $file, int $status = 200): void
+    {
+        $path = dirname(__DIR__) . '/Views/' . $file;
+        if (!is_file($path)) {
+            throw new \RuntimeException('页面不存在：' . $file);
+        }
+        http_response_code($status);
+        header('Content-Type: text/html; charset=utf-8');
+        readfile($path);
+    }
+
     public static function render(): void
     {
         $file = dirname(__DIR__, 2) . '/index.html';

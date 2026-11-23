@@ -34,6 +34,19 @@ final class AccountController
         Response::json(['ok' => true]);
     }
 
+    public function renameUsername(array $params, Request $request): void
+    {
+        $user = Auth::requireUser();
+        $body = $request->json();
+        $username = trim((string) ($body['username'] ?? ''));
+        if ($username === (string) $user['username']) {
+            Response::json(['ok' => true, 'username' => $username]);
+            return;
+        }
+        $updated = UserService::rename((string) $user['id'], $username);
+        Response::json(['ok' => true, 'username' => $updated]);
+    }
+
     public function saveApiKey(array $params, Request $request): void
     {
         $user = Auth::requireUser();

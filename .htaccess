@@ -1,6 +1,6 @@
 Options -Indexes
 DirectoryIndex index.php index.html
-ErrorDocument 404 /404.html
+ErrorDocument 404 /index.php?_r=/404
 
 # 导入历史与附件上传需要更大的请求体（mod_php 环境）
 <IfModule mod_php.c>
@@ -14,6 +14,11 @@ RewriteEngine On
 
 # API 统一入口
 RewriteRule ^api/ index.php [L,QSA]
+
+# 安装向导、服务协议与 404 页面（实际文件位于 app/ 下，由 index.php 统一输出）
+RewriteRule ^install(?:\.php)?$ index.php [L,QSA]
+RewriteRule ^terms(?:\.html)?$ index.php [L,QSA]
+RewriteRule ^404(?:\.html)?$ index.php?_r=/404 [L,QSA]
 
 # 已存在的文件/目录直接返回
 RewriteCond %{REQUEST_FILENAME} -f [OR]

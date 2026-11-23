@@ -73,6 +73,10 @@ type ChatState = {
   importingHistory: boolean
   /** 仅列表元数据，按 updatedAt 降序；流式消息更新不会改变此数组。 */
   sessions: SessionSummary[]
+  /** 下一页摘要的游标；null 表示已全部加载 */
+  nextCursor: string | null
+  /** 正在加载下一页摘要 */
+  loadingMore: boolean
   sessionCache: Record<string, Session>
   sessionLoadErrors: Record<string, boolean>
   sessionSaveErrors: Record<string, boolean>
@@ -87,6 +91,8 @@ export const useChatStore = create<ChatState>(() => ({
   initError: false,
   importingHistory: false,
   sessions: [],
+  nextCursor: null,
+  loadingMore: false,
   sessionCache: {},
   sessionLoadErrors: {},
   sessionSaveErrors: {},
@@ -122,6 +128,7 @@ const streamFlushes = new Map<string, () => void>()
 let accessSequence = 0
 let historyEpoch = 0
 let initTask: Promise<void> | undefined
+let loadMoreTask: Promise<void> | undefined
 const sessionLoads = new Map<string, { promise: Promise<void> }>()
 
 const touchSession = (id: string) => sessionAccess.set(id, ++accessSequence)
@@ -301,7 +308,7 @@ export const initChat = (loggedIn: boolean): Promise<void> => {
     return Promise.resolve()
   }
   if (!loggedIn) {
-    set({ ready: true, initError: false, sessions: [] })
+    set({ ready: true, initError: false, sessions: [], nextCursor: null })
     return Promise.resolve()
   }
   if (initTask) {
@@ -311,9 +318,13 @@ export const initChat = (loggedIn: boolean): Promise<void> => {
   set({ initError: false })
   initTask = (async () => {
     try {
-      const summaries = await db.loadSessionSummaries()
+      const page = await db.loadSessionSummaries()
       if (epoch === historyEpoch) {
-        set({ ready: true, sessions: sortSessions(summaries) })
+        set({
+          ready: true,
+          sessions: sortSessions(page.sessions),
+          nextCursor: page.nextCursor,
+        })
       }
     } catch (error) {
       if (epoch === historyEpoch) {
@@ -329,6 +340,49 @@ export const initChat = (loggedIn: boolean): Promise<void> => {
   return initTask
 }
 
+/**
+ * 加载下一页会话摘要：只在已初始化且仍有游标时触发，并发调用合并为同一请求。
+ * 滚动到底部时由侧边栏自动调用。
+ */
+export const loadMoreSessions = (): Promise<void> => {
+  const state = get()
+  if (!state.ready || state.loadingMore || state.nextCursor === null) {
+    return Promise.resolve()
+  }
+  if (loadMoreTask) {
+    return loadMoreTask
+  }
+  const epoch = historyEpoch
+  const cursor = state.nextCursor
+  set({ loadingMore: true })
+  loadMoreTask = (async () => {
+    try {
+      const page = await db.loadSessionSummaries(cursor)
+      if (epoch === historyEpoch) {
+        set((current) => {
+          const seen = new Set(current.sessions.map((session) => session.id))
+          const merged = [...current.sessions]
+          for (const summary of page.sessions) {
+            if (!seen.has(summary.id)) {
+              seen.add(summary.id)
+              merged.push(summary)
+            }
+          }
+          return { sessions: sortSessions(merged), nextCursor: page.nextCursor }
+        })
+      }
+    } catch (error) {
+      db.reportStorageError('read more sessions')(error)
+    } finally {
+      loadMoreTask = undefined
+      if (epoch === historyEpoch) {
+        set({ loadingMore: false })
+      }
+    }
+  })()
+  return loadMoreTask
+}
+
 /** 退出登录或会话失效时清空内存状态，避免下一个账号看到上一个账号的数据 */
 export const resetChat = (keepDrafts = false): void => {
   historyEpoch++
@@ -336,6 +390,7 @@ export const resetChat = (keepDrafts = false): void => {
     controller.abort()
   }
   initTask = undefined
+  loadMoreTask = undefined
   sessionLoads.clear()
   sessionAccess.clear()
   unsavedSessions.clear()
@@ -349,6 +404,8 @@ export const resetChat = (keepDrafts = false): void => {
     initError: false,
     importingHistory: false,
     sessions: [],
+    nextCursor: null,
+    loadingMore: false,
     sessionCache: {},
     sessionLoadErrors: {},
     sessionSaveErrors: {},
@@ -445,10 +502,10 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
     sessionLoads.clear()
     await waitForIdle()
     await db.clearStaging()
-    let summaries: SessionSummary[]
+    let page: Awaited<ReturnType<typeof db.commitStaging>>
     try {
       await write()
-      summaries = await db.commitStaging()
+      page = await db.commitStaging()
     } catch (error) {
       await db.clearStaging().catch(db.reportStorageError('clear unfinished history replacement'))
       throw error
@@ -460,13 +517,15 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
     set({
       ready: true,
       initError: false,
-      sessions: sortSessions(summaries),
+      sessions: sortSessions(page.sessions),
+      nextCursor: page.nextCursor,
+      loadingMore: false,
       sessionCache: {},
       sessionLoadErrors: {},
       sessionSaveErrors: {},
       activeId: null,
     })
-    return summaries.length
+    return page.total
   } finally {
     set({ importingHistory: false })
     retrySaveSessions()

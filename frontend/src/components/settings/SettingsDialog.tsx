@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   IconDarkOutline16,
   IconDataOutline16,
@@ -16,7 +16,7 @@ import {
   exportHistory,
   importHistory,
 } from '../../services/chat/backup.js'
-import { changePassword, logout, useAuth } from '../../services/auth.js'
+import { changePassword, logout, renameUsername, useAuth } from '../../services/auth.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { useChatStore } from '../../services/chat/store.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
@@ -105,6 +105,7 @@ const SettingsContent = () => {
               <ThemeSetting />
               <LocaleSetting />
               <TtsVoiceSetting />
+              <DeepSeekPlatformSetting />
               <LocationSetting />
             </>
           ) : !user ? (
@@ -139,6 +140,86 @@ const SettingsContent = () => {
       {historyImport.file ? <ImportConfirm historyImport={historyImport} /> : null}
       {historyDelete.opened ? <DeleteAllConfirm historyDelete={historyDelete} /> : null}
     </>
+  )
+}
+
+/** 用户名：用户可自行修改，服务端校验格式与唯一性 */
+const UsernameSetting = () => {
+  const t = useTranslate()
+  const user = useAuth((state) => state.user)
+  const [value, setValue] = useState(user?.username ?? '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [changed, setChanged] = useState(false)
+
+  // 登录态更新后（例如重命名成功）同步输入框
+  useEffect(() => {
+    setValue(user?.username ?? '')
+  }, [user?.username])
+
+  const submit = async () => {
+    if (busy) {
+      return
+    }
+    const username = value.trim()
+    setError(null)
+    setChanged(false)
+    if (!/^[A-Za-z0-9_]{3,32}$/.test(username)) {
+      setError(t('accountUsernameInvalid'))
+      return
+    }
+    if (username === user?.username) {
+      return
+    }
+    setBusy(true)
+    try {
+      await renameUsername(username)
+      setChanged(true)
+      showToast({ key: 'accountUsernameChanged' })
+    } catch (cause) {
+      setError(
+        cause instanceof Error && cause.message ? cause.message : t('accountUsernameInvalid')
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className={styles.cell}>
+      <div className={styles.label}>{t('accountUsername')}</div>
+      <div className={styles.accountForm}>
+        <input
+          className={styles.accountInput}
+          value={value}
+          maxLength={32}
+          spellCheck={false}
+          autoComplete="username"
+          onChange={(event) => {
+            setValue(event.target.value)
+            setChanged(false)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+              void submit()
+            }
+          }}
+        />
+        {error ? <div className={styles.error}>{error}</div> : null}
+        {changed && !error ? (
+          <div className={styles.description}>{t('accountUsernameChanged')}</div>
+        ) : null}
+        <Button
+          variant="outlined"
+          size="m"
+          className={styles.accountSubmit}
+          disabled={busy || !value.trim() || value.trim() === user?.username}
+          onClick={() => void submit()}
+        >
+          {t('accountSaveUsername')}
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -186,11 +267,7 @@ const AccountSetting = () => {
 
   return (
     <>
-      <SettingCell
-        label={t('accountUsername')}
-        status={null}
-        action={<span className={styles.accountValue}>{user?.username ?? ''}</span>}
-      />
+      <UsernameSetting />
       <div className={styles.cell}>
         <div className={styles.label}>{t('accountChangePassword')}</div>
         <div className={styles.accountForm}>
@@ -340,6 +417,30 @@ const useHistoryDelete = () => {
     },
     confirm,
   }
+}
+
+/** 通用设置里的开放平台入口：外链管理 API Key、充值与用量 */
+const DeepSeekPlatformSetting = () => {
+  const t = useTranslate()
+  return (
+    <SettingCell
+      label={t('settingsDeepSeekPlatform')}
+      description={t('settingsDeepSeekPlatformDescription')}
+      status={null}
+      action={
+        <Button
+          variant="outlined"
+          size="m"
+          className={styles.cellButton}
+          onClick={() =>
+            window.open('https://platform.deepseek.com/api_keys', '_blank', 'noopener,noreferrer')
+          }
+        >
+          {t('settingsDeepSeekPlatformOpen')}
+        </Button>
+      }
+    />
+  )
 }
 
 const LocationSetting = () => {

@@ -4,13 +4,14 @@
 
 ## 功能
 
-- 自建账号系统：注册、登录、退出、修改密码；用户、会话、消息 ID 全部使用雪花算法。
-- 图形验证码：注册、登录与管理后台登录均需输入 4 位验证码，统一由 `Captcha` 服务生成 / 校验 / 销毁，一次性消费、5 分钟过期。
-- 服务协议：`/terms.html` 独立页面，登录 / 注册时必须勾选「已阅读并同意服务协议」。
+- 自建账号系统：注册、登录、退出、修改密码、修改用户名；用户、会话、消息 ID 全部使用雪花算法。
+- 图形验证码：注册与登录在提交表单后弹出统一验证码弹窗，管理后台登录保留内嵌验证码；统一由 `Captcha` 服务生成 / 校验 / 销毁，一次性消费、5 分钟过期。
+- 服务协议：`/terms` 独立页面（兼容 `/terms.html`），登录 / 注册时必须勾选「已阅读并同意服务协议」。
 - 未登录也可以直接进入聊天页面；发送消息、上传附件或使用语音时提示登录，并在设置中打开登录 / 注册页，登录后草稿保留。
 - API Key 由用户在设置中填写，**明文保存在服务器数据库**，由服务端代理聊天、附件、语音等全部 DeepSeek 请求。
 - 与官方一致的聊天体验：流式回复、深度思考、智能搜索、分支切换、消息编辑/重试、附件上传、图片预览、语音输入与朗读。
-- 会话与附件保存在服务器：支持多设备登录，历史会话列表、重命名、删除、清空。
+- 会话与附件保存在服务器：支持多设备登录，历史会话列表按游标分页、滚动到底自动加载更多，支持重命名、删除、清空。
+- 通用设置提供「DeepSeek 开放平台」入口，可直接跳转管理 API Key、充值与查看用量。
 - 支持官方格式聊天记录 ZIP 导入（导入即彻底覆盖服务器上的全部会话与附件），导入过程带进度条，并兼容不带索引的旧版归档；支持导出。
 - 完整管理后台：用户管理、用户详情（全部字段含明文 API Key、密码哈希、会话与附件统计）、角色 / 状态权限调整、会话查看、站点设置、操作日志、CSV 导出。
 
@@ -18,18 +19,17 @@
 
 ```text
 .
-├── index.php              # 入口：PHP 输出首页 + API 路由
-├── install.php            # 安装向导（配置数据库、创建管理员）
-├── router.php             # PHP 内置服务器路由（开发用）
-├── 404.html               # 404 页面（DeepSeek 风格，支持深色模式）
-├── terms.html             # 服务协议页面
+├── index.php              # 入口：PHP 输出首页 + API 路由 + 安装/协议/404 分发
 ├── .user.ini              # PHP-FPM/CGI 上传与执行时间限制
 ├── index.html             # 前端构建产物（由 frontend 构建生成）
 ├── static/                # 前端构建产物
 ├── app/                   # 业务代码
 │   ├── Controllers/       # API 控制器
 │   ├── Services/          # 会话、附件、导入、验证码、首页渲染、后台数据
-│   └── Support/           # 配置、数据库、认证、雪花、请求响应
+│   ├── Support/           # 配置、数据库、认证、雪花、请求响应
+│   ├── Views/             # 服务端静态页面（404、服务协议）
+│   ├── Install/           # 安装向导（由 index.php 分发到 /install）
+│   └── Dev/               # PHP 内置服务器开发路由
 ├── admin/                 # 服务端渲染管理后台（/admin/）
 ├── config/                # 配置目录（config.php 由安装向导生成，不入库）
 ├── database/schema.sql    # 数据表结构
@@ -51,7 +51,7 @@
    - 若面板提供“运行目录”选项，留空或填 `/`，**不要**设为 `/public`、`/frontend` 等子目录。
    - 前端产物与接口都使用 `/static`、`/api` 等根路径，因此必须部署在域名根目录；如需部署到子目录，需同步修改前端 `publicPath` 与接口前缀。
 2. 确保 `config/` 与 `storage/` 可写。
-3. 浏览器访问 `/install.php`，填写 MySQL 地址、库名、账号密码，创建管理员账号。
+3. 浏览器访问 `/install`，填写 MySQL 地址、库名、账号密码，创建管理员账号。
    - 安装程序会自动建库、建表、生成 `config/config.php` 与 `config/installed.lock`。
    - 若数据库已存在同名库，请确认使用空库或备份后继续。
 4. 安装完成后访问 `/` 即可直接进入聊天；未登录时发送消息会引导在设置中登录 / 注册。管理员访问 `/admin/` 登录后台。
@@ -71,8 +71,8 @@ pnpm build
 开发调试（可选）：
 
 ```bash
-# 终端 1：后端（必须带 router.php，否则 /api 路由会 404）
-php -S 127.0.0.1:8080 router.php
+# 终端 1：后端（必须带开发路由，否则 /api 路由会 404）
+php -S 127.0.0.1:8080 app/Dev/router.php
 
 # 终端 2：前端热更新，/api 与 /admin 自动代理到 8080
 cd frontend && pnpm dev
@@ -96,7 +96,7 @@ server {
     index index.php index.html;
 
     client_max_body_size 128m;
-    error_page 404 /404.html;
+    error_page 404 /404;
 
     location ~ ^/(app|config|storage|database|docs|frontend|scripts)(/|$) { deny all; }
     location ~ ^/\.(git|gitignore) { deny all; }
@@ -121,13 +121,13 @@ server {
 2. **默认首页顺序**：`/` 必须由 `index.php` 输出（PHP 会注入站点信息）。Apache 已由 `.htaccess` 的 `DirectoryIndex index.php index.html` 处理；Nginx 必须配置 `index index.php index.html;`，否则 `/` 会直接返回未经注入的 `index.html`。
 3. **Apache 重写**：启用 `mod_rewrite`，并允许 `.htaccess`（`AllowOverride All`）；否则 `/api/*`、无扩展名的前端路由会 404。
 4. **Nginx 重写**：`location /` 必须有 `try_files $uri $uri/ /index.php$is_args$args;`。
-5. **PHP 内置服务器**：必须使用 `php -S 127.0.0.1:8080 router.php` 启动，不能省略 `router.php`。
+5. **PHP 内置服务器**：必须使用 `php -S 127.0.0.1:8080 app/Dev/router.php` 启动，不能省略路由脚本。
 6. 若只有安装页可访问：确认 `index.html` 与 `static/` 已上传，且没有把应用部署在子目录。
 7. 前端已做兼容：当 `/api/*` 返回 404 或 HTML 时，会自动改用 `/index.php?_r=/api/...` 重试；仍建议配置标准伪静态，便于日志与缓存管理。
 
 ## 错误页
 
-根目录 `404.html` 为自包含页面，沿用官方浅色/深色配色与品牌蓝。Apache 通过 `.htaccess` 的 `ErrorDocument` 生效；Nginx 需配置 `error_page 404 /404.html;`；开发用的 `router.php` 对缺失的静态资源返回该页面。
+`app/Views/404.html` 为自包含页面，沿用官方浅色/深色配色与品牌蓝，由 `index.php` 路由 `/404` 输出。Apache 通过 `.htaccess` 的 `ErrorDocument 404 /index.php?_r=/404` 生效；Nginx 需配置 `error_page 404 /404;`；开发用的 `app/Dev/router.php` 会把缺失路径交给 `index.php` 处理。
 
 ## 管理后台
 

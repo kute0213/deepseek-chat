@@ -1,12 +1,12 @@
 import clsx from 'clsx'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
 import { IconPanelLeftOutline16, IconSettingsOutline16, IconUserOutline16, NewChatIcon } from '../base/icons.js'
 import { setSiderCollapsed } from '../../services/settings.js'
 import { useSite } from '../../services/site.js'
 import { useAuth } from '../../services/auth.js'
 import { groupSessions } from '../../services/chat/sessionGroups.js'
-import { newChat, removeSession, useChatStore } from '../../services/chat/store.js'
+import { newChat, loadMoreSessions, removeSession, useChatStore } from '../../services/chat/store.js'
 import type { SessionSummary } from '../../services/chat/types.js'
 import { Button } from '../base/Button.js'
 import { IconButton } from '../base/IconButton.js'
@@ -24,6 +24,10 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   const username = useAuth((state) => state.user?.username)
   const sessions = useChatStore((state) => state.sessions)
   const activeId = useChatStore((state) => state.activeId)
+  const hasMore = useChatStore((state) => state.nextCursor !== null)
+  const loadingMore = useChatStore((state) => state.loadingMore)
+  const listRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
   const [now, setNow] = useState(Date.now)
   const groups = useMemo(() => groupSessions(sessions, now, t), [sessions, now, t])
   const [deleting, setDeleting] = useState<SessionSummary | null>(null)
@@ -52,6 +56,24 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
       window.removeEventListener('focus', refresh)
     }
   }, [])
+
+  // 列表滚动到底部时自动加载下一页摘要；换页后会话数量变化会重新观察
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || !hasMore) {
+      return
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMoreSessions()
+        }
+      },
+      { root: listRef.current, rootMargin: '160px' }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore, sessions.length])
 
   return (
     <div className={clsx(styles.sider, mobile && styles.mobile)}>
@@ -86,7 +108,7 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
         {t('newChat')}
       </button>
       <div className={styles.listWrap}>
-        <div className={styles.list}>
+        <div ref={listRef} className={styles.list}>
           {groups.map((group) => (
             <div key={group.key} className={styles.section}>
               <div className={styles.sectionHeader}>{group.label}</div>
@@ -100,6 +122,11 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
               ))}
             </div>
           ))}
+          {hasMore ? (
+            <div ref={sentinelRef} className={styles.loadMore}>
+              {loadingMore ? t('sessionListLoadingMore') : null}
+            </div>
+          ) : null}
         </div>
       </div>
       <div className={styles.bottom}>

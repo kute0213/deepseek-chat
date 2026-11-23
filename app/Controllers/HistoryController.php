@@ -108,7 +108,6 @@ final class HistoryController
     public function commit(array $params, Request $request): void
     {
         $user = Auth::requireUser();
-        $sessions = ImportService::commit((string) $user['id']);
-        Response::json(['sessions' => $sessions]);
+        Response::json(ImportService::commit((string) $user['id']));
     }
 }

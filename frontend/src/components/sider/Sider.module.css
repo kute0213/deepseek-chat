@@ -104,6 +104,16 @@
   }
 }
 
+.loadMore {
+  min-height: 24px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+  text-align: center;
+  user-select: none;
+}
+
 .sectionHeader {
   position: sticky;
   top: 0;

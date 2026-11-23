@@ -1,13 +1,16 @@
 <?php
 declare(strict_types=1);
 
-require __DIR__ . '/app/Bootstrap.php';
+require_once dirname(__DIR__, 2) . '/app/Bootstrap.php';
 
 use App\Bootstrap;
 use App\Support\Config;
 use App\Support\Snowflake;
 
-Bootstrap::boot();
+// 经由 index.php 进入时已启动过引导流程，避免重复注册
+if (!defined('APP_ROOT')) {
+    Bootstrap::boot();
+}
 
 $root = APP_ROOT;
 $installed = Config::installed();
@@ -210,7 +213,7 @@ function e(string $value): string
             <p>数据库与管理员账号已创建。</p>
             <p>用户端：<a href="/">/</a><br>管理后台：<a href="/admin/login.php">/admin/login.php</a></p>
             <p>管理员用户名：<code><?= e($form['admin_user']) ?></code></p>
-            <p style="color:var(--danger)">请立即删除根目录下的 <code>install.php</code>，避免被再次访问。</p>
+            <p style="color:var(--danger)">安装向导已锁定。如需重新安装，请删除 <code>config/config.php</code> 与 <code>config/installed.lock</code>。</p>
         </div>
     </div>
 <?php else: ?>
@@ -223,7 +226,7 @@ function e(string $value): string
         </ul>
     </div>
 
-    <form method="post" action="install.php">
+    <form method="post" action="/install">
         <div class="card">
             <h2>MySQL 连接</h2>
             <?php if ($error !== null): ?><div class="error"><?= e($error) ?></div><?php endif; ?>

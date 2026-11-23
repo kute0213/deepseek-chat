@@ -9,7 +9,7 @@ use App\Support\Snowflake;
 
 final class ImportService
 {
-    /** @return array<int, array> 新会话摘要 */
+    /** @return array{sessions: array<int, array>, nextCursor: ?string, total: int} 新会话首页摘要 */
     public static function commit(string $userId): array
     {
         set_time_limit(0);
@@ -169,7 +169,7 @@ final class ImportService
         }
         FileStore::removeDir(FileStore::stagingDir($userId));
 
-        return SessionStore::summaries($userId);
+        return SessionStore::summaries($userId, 30) + ['total' => count($prepared)];
     }
 
     /**

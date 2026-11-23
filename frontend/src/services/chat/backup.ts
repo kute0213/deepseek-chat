@@ -19,19 +19,24 @@ const backupFileName = (date: Date) => `deepseek_data-${formatDate(date)}.zip`
 /** 导出为历史会话导出格式的 ZIP，可再次导入。 */
 export const exportHistory = (): Promise<{ name: string; blob: Blob }> =>
   enqueueBackup(async () => {
-    // 列表和已加载内容保留导出开始时的快照；未打开的会话逐条读取，不填满详情缓存。
-    const { sessions, sessionCache } = useChatStore.getState()
+    // 导出需要全部会话：先复用已加载的详情缓存，其余逐页拉取摘要并按需读取，不填满详情缓存。
+    const { sessionCache } = useChatStore.getState()
     async function* readSessions(): AsyncGenerator<Session> {
-      for (const summary of sessions) {
-        const session = Object.hasOwn(sessionCache, summary.id)
-          ? sessionCache[summary.id]
-          : await db.loadSession(summary.id)
-        if (!session) {
-          throw new Error(`History session disappeared during export: ${summary.id}`)
+      let cursor: string | null = null
+      do {
+        const page = await db.loadSessionSummaries(cursor)
+        for (const summary of page.sessions) {
+          const session = Object.hasOwn(sessionCache, summary.id)
+            ? sessionCache[summary.id]
+            : await db.loadSession(summary.id)
+          if (!session) {
+            throw new Error(`History session disappeared during export: ${summary.id}`)
+          }
+          // 详情读取期间可能重命名，归档标题与开始时的列表保持一致。
+          yield { ...session, ...summary }
         }
-        // 详情读取期间可能重命名，归档标题与开始时的列表保持一致。
-        yield { ...session, ...summary }
-      }
+        cursor = page.nextCursor
+      } while (cursor)
     }
     const { exportArchive } = await import('./history/exportArchive.js')
     const now = new Date()

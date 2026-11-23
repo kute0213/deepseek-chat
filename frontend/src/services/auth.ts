@@ -121,3 +121,16 @@ export const changePassword = async (
     newPassword,
   })
 }
+
+/** 修改用户名；服务端校验格式与唯一性，成功后同步本地用户信息 */
+export const renameUsername = async (username: string): Promise<string> => {
+  const result = await requestJson<{ ok: boolean; username: string }>(
+    '/api/account/username',
+    'POST',
+    { username }
+  )
+  useAuth.setState((state) =>
+    state.user ? { user: { ...state.user, username: result.username } } : state
+  )
+  return result.username
+}
