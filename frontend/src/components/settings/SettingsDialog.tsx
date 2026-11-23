@@ -35,6 +35,7 @@ import { Modal } from '../base/Modal.js'
 import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
+import { AuthPanel } from './AuthPanel.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
 import styles from './Settings.module.css'
 
@@ -60,6 +61,7 @@ const sections: { value: SettingsSection; label: TranslationKey; icon: ReactNode
 const SettingsContent = () => {
   const t = useTranslate()
   const isMobile = useIsMobile()
+  const user = useAuth((state) => state.user)
   // 打开时按调用方指定的分组选中，之后在弹窗内切换
   const [section, setSection] = useState(() => useSettingsDialog.getState().section)
   // 切换分组不丢失正在输入的 API Key 与导入状态
@@ -68,6 +70,7 @@ const SettingsContent = () => {
   const historyDelete = useHistoryDelete()
   const replacingHistory = useChatStore((state) => state.importingHistory)
   const historyBusy = historyImport.busy || historyDelete.busy || replacingHistory
+  const visibleSections = user ? sections : sections.filter((item) => item.value !== 'data')
   return (
     <>
       <Modal
@@ -82,7 +85,7 @@ const SettingsContent = () => {
         }}
       >
         <div role="tablist" className={styles.navigation}>
-          {sections.map((item) => (
+          {visibleSections.map((item) => (
             <button
               key={item.value}
               type="button"
@@ -92,7 +95,7 @@ const SettingsContent = () => {
               onClick={() => setSection(item.value)}
             >
               {item.icon}
-              {t(item.label)}
+              {t(item.value === 'account' && !user ? 'authLoginRegister' : item.label)}
             </button>
           ))}
         </div>
@@ -104,6 +107,8 @@ const SettingsContent = () => {
               <TtsVoiceSetting />
               <LocationSetting />
             </>
+          ) : !user ? (
+            <AuthPanel />
           ) : section === 'account' ? (
             <AccountSetting />
           ) : (

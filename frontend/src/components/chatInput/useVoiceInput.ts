@@ -3,6 +3,7 @@ import type { TranslationMessage } from '../../i18n/index.js'
 import { transcribe } from '../../services/api/speech.js'
 import { startRecording, type Recording } from '../../services/speech/recorder.js'
 import { showToast } from '../base/toastState.js'
+import { ensureApiKey } from '../settings/settingsDialogState.js'
 
 export type VoiceInputStatus = 'idle' | 'recording' | 'transcribing'
 
@@ -97,6 +98,9 @@ export const useVoiceInput = (onText: (text: string) => void) => {
 
   const toggle = useCallback(async () => {
     if (!AVAILABLE) {
+      return
+    }
+    if (status === 'idle' && !ensureApiKey()) {
       return
     }
     if (status === 'recording') {

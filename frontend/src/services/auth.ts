@@ -55,7 +55,7 @@ export const login = async (username: string, password: string): Promise<void> =
     username,
     password,
   })
-  resetChat()
+  resetChat(true)
   applyUser(user)
 }
 
@@ -64,7 +64,7 @@ export const register = async (username: string, password: string): Promise<void
     username,
     password,
   })
-  resetChat()
+  resetChat(true)
   applyUser(user)
 }
 

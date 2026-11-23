@@ -37,8 +37,14 @@ final class SiteSettings
 
     public static function publicInfo(): array
     {
+        $siteName = self::get('site_name', 'DeepSeekChat');
+        // 旧安装的默认站点名迁移为新品牌名
+        if ($siteName === 'DeepSeek') {
+            $siteName = 'DeepSeekChat';
+            self::set('site_name', $siteName);
+        }
         return [
-            'siteName' => self::get('site_name', 'DeepSeek'),
+            'siteName' => $siteName,
             'allowRegister' => self::get('allow_register', '1') === '1',
             'announcement' => self::get('announcement', ''),
             'maxUploadMb' => (int) self::get('max_upload_mb', '64'),

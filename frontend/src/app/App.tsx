@@ -3,7 +3,6 @@ import { useTranslate } from '../i18n/index.js'
 import { useSettings } from '../services/settings.js'
 import { initAuth, useAuth } from '../services/auth.js'
 import { loadSite, useSite } from '../services/site.js'
-import { AuthScreen } from '../components/auth/AuthScreen.js'
 import { useIsMobile, useMobileViewport, usePreventPageScroll } from './viewport.js'
 import {
   bindChatPersistence,
@@ -17,7 +16,6 @@ import { closeSearchPanel } from '../components/search/searchPanelState.js'
 import { SessionView } from '../components/session/SessionView.js'
 import { MobileHeader } from '../components/session/MobileHeader.js'
 import { Welcome } from '../components/session/Welcome.js'
-import { ensureApiKey } from '../components/settings/settingsDialogState.js'
 import { SettingsDialog } from '../components/settings/SettingsDialog.js'
 import { Toast } from '../components/base/Toast.js'
 import { showToast } from '../components/base/toastState.js'
@@ -53,15 +51,14 @@ export const App = () => {
       </div>
     )
   }
-  if (!user) {
-    return <AuthScreen />
-  }
-  return <ChatApp key={user.id} />
+  // 未登录也可以直接进入聊天，发送消息时再引导登录
+  return <ChatApp key={user?.id ?? 'guest'} />
 }
 
 const ChatApp = () => {
   const t = useTranslate()
   const isMobile = useIsMobile()
+  const loggedIn = useAuth((state) => state.user !== null)
   const locale = useSettings((state) => state.locale)
   // 移动端侧边栏以独立抽屉管理开合状态
   const siderCollapsed = useSettings((state) => state.siderCollapsed) && !isMobile
@@ -101,10 +98,8 @@ const ChatApp = () => {
   useEffect(closeMobileSider, [activeId, isMobile])
 
   useEffect(() => {
-    void initChat()
-    // 首次打开先在设置里输入 API Key
-    ensureApiKey()
-  }, [])
+    void initChat(loggedIn)
+  }, [loggedIn])
 
   return (
     <>
@@ -141,7 +136,7 @@ const ChatApp = () => {
                       size="m"
                       onClick={() => {
                         if (!ready) {
-                          void initChat()
+                          void initChat(loggedIn)
                         } else if (activeId !== null) {
                           selectSession(activeId)
                         }

@@ -14,7 +14,7 @@ export const en = {
     'Chats or attachments have not been saved to the server. Retry before closing this page.',
   sessionDeleteFailed: 'Unable to delete this chat. Please try again.',
   settings: 'Settings',
-  appName: 'API usage demo',
+  appName: 'DeepSeekChat',
   deleteSessionModalContentTitle: 'Delete chat?',
   deleteSessionWithFilesDescription:
     'This chat and its uploaded files will be permanently deleted and cannot be recovered. Delete this chat?',
@@ -116,6 +116,12 @@ export const en = {
   accountMenu: 'Account',
   authLogin: 'Sign in',
   authRegister: 'Sign up',
+  authLoginRegister: 'Sign in / Sign up',
+  authPanelIntro:
+    'Sign in to save chats, use attachments and voice, and continue on other devices.',
+  authLoginRequired: 'Please sign in before sending messages.',
+  authLoginSuccess: 'Signed in',
+  authRegisterSuccess: 'Account created',
   authUsername: 'Username',
   authPassword: 'Password',
   authConfirmPassword: 'Confirm password',
@@ -130,6 +136,9 @@ export const en = {
   avatarMenuSettingsDialogThemeSelectDarkOption: 'Dark',
   avatarMenuSettingsDialogThemeSelectSystemOption: 'System',
   apiKeyStart: 'Enter an API Key to get started',
+  apiKeyRequired: 'Enter your API key first.',
+  apiRouteMissing:
+    'API request failed (HTTP {status}). Check that the server routes /api or has URL rewriting enabled.',
   apiKeyEdit: 'Edit API Key',
   apiKeyPlaceholder: 'Enter API Key',
   apiKeyVerifying: 'Verifying...',

@@ -12,7 +12,11 @@ final class Request
 
     public static function path(): string
     {
-        $path = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
+        // 未配置伪静态时，前端会通过 index.php?_r=/api/... 访问
+        $route = $_GET['_r'] ?? null;
+        $path = is_string($route) && str_starts_with($route, '/')
+            ? $route
+            : (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/');
         return $path !== '/' ? rtrim($path, '/') : '/';
     }
 

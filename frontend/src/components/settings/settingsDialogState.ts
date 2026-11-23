@@ -1,10 +1,11 @@
 import { create } from 'zustand'
 import { useAuth } from '../../services/auth.js'
+import { showToast } from '../base/toastState.js'
 
 /** 设置弹窗的分组：通用设置 / 账号 / 数据管理 */
 export type SettingsSection = 'general' | 'account' | 'data'
 
-/** 设置弹窗：侧边栏底部、没有 API Key 时的操作与 401 提示都可以打开；section 为打开时选中的分组 */
+/** 设置弹窗：侧边栏底部、登录入口与 401 提示都可以打开；section 为打开时选中的分组 */
 export const useSettingsDialog = create(() => ({
   open: false,
   section: 'general' as SettingsSection,
@@ -15,11 +16,21 @@ export const openSettings = (section: SettingsSection) =>
 
 export const closeSettings = () => useSettingsDialog.setState({ open: false })
 
-/** 没有 API Key 时打开设置并选中 API Key 所在的「数据管理」，返回是否已有 Key */
+/**
+ * 需要账号的操作统一走这里：未登录时提示并打开设置里的登录 / 注册。
+ * 已登录但没有 API Key 时打开数据管理，返回是否可以直接继续。
+ */
 export const ensureApiKey = () => {
-  if (useAuth.getState().user?.hasApiKey) {
+  const user = useAuth.getState().user
+  if (!user) {
+    openSettings('account')
+    showToast({ key: 'authLoginRequired' })
+    return false
+  }
+  if (user.hasApiKey) {
     return true
   }
   openSettings('data')
+  showToast({ key: 'apiKeyRequired' })
   return false
 }

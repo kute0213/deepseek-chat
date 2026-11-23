@@ -60,7 +60,7 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
         <IconButton
           size="m"
           icon={<IconUserOutline16 />}
-          tooltip={username ?? t('accountMenu')}
+          tooltip={username ?? t('authLoginRegister')}
           tooltipPlacement="bottom"
           onClick={() => openSettings('account')}
         />

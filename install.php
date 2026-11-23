@@ -30,7 +30,7 @@ $defaults = [
     'db_name' => 'deepseek_chat',
     'db_user' => 'deepseek',
     'db_pass' => '',
-    'site_name' => 'DeepSeek',
+    'site_name' => 'DeepSeekChat',
     'api_base' => 'https://api.deepseek.com',
     'allow_register' => '1',
     'admin_user' => 'admin',
@@ -130,7 +130,7 @@ if (!$installed && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
 
         $settings = [
-            'site_name' => $form['site_name'] !== '' ? $form['site_name'] : 'DeepSeek',
+            'site_name' => $form['site_name'] !== '' ? $form['site_name'] : 'DeepSeekChat',
             'allow_register' => $form['allow_register'],
             'api_base_url' => rtrim($form['api_base'], '/'),
             'announcement' => '',
@@ -163,7 +163,7 @@ function e(string $value): string
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>安装 DeepSeek 网页版</title>
+<title>安装 DeepSeekChat</title>
 <style>
     :root { color-scheme: light dark; --brand:#4d6bfe; --bg:#f7f8fc; --panel:#fff; --text:#1a1c23; --muted:#667085; --line:#e4e7ec; --danger:#d92d20; --ok:#12805c; }
     @media (prefers-color-scheme: dark) { :root { --bg:#111318; --panel:#191c22; --text:#e7e9ee; --muted:#98a2b3; --line:#2a2f3a; } }
@@ -194,7 +194,7 @@ function e(string $value): string
 </head>
 <body>
 <div class="wrap">
-    <h1>DeepSeek 网页版安装向导</h1>
+    <h1>DeepSeekChat 安装向导</h1>
     <p class="sub">配置 MySQL 连接并初始化站点，仅需一次。</p>
 
 <?php if ($installed): ?>

@@ -295,8 +295,13 @@ const settleInterrupted = (session: Session): Session => {
   }
 }
 
-export const initChat = (): Promise<void> => {
+/** 登录后加载服务端会话；未登录时直接进入空聊天，所有账号操作再引导登录 */
+export const initChat = (loggedIn: boolean): Promise<void> => {
   if (get().ready) {
+    return Promise.resolve()
+  }
+  if (!loggedIn) {
+    set({ ready: true, initError: false, sessions: [] })
     return Promise.resolve()
   }
   if (initTask) {
@@ -325,7 +330,7 @@ export const initChat = (): Promise<void> => {
 }
 
 /** 退出登录或会话失效时清空内存状态，避免下一个账号看到上一个账号的数据 */
-export const resetChat = (): void => {
+export const resetChat = (keepDrafts = false): void => {
   historyEpoch++
   for (const controller of Object.values(get().streaming)) {
     controller.abort()
@@ -336,7 +341,9 @@ export const resetChat = (): void => {
   unsavedSessions.clear()
   pendingFiles.clear()
   deletingSessions.clear()
-  clearAllDrafts()
+  if (!keepDrafts) {
+    clearAllDrafts()
+  }
   set({
     ready: false,
     initError: false,
@@ -468,7 +475,7 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
     if (activeId !== null) {
       void ensureSessionLoaded(activeId)
     } else if (!ready) {
-      void initChat()
+      void initChat(true)
     }
   }
 }

@@ -33,7 +33,7 @@ const isErrorBody = (value: unknown): value is ErrorBody =>
   typeof value === 'object' &&
   value !== null &&
   'error' in value &&
-  typeof (value as { error?: { message?: unknown } }).error?.message === 'string'
+  typeof (value as ErrorBody).error?.message === 'string'
 
 let csrfToken: string | null = null
 
@@ -49,10 +49,27 @@ export const setUnauthorizedHandler = (handler: () => void) => {
   unauthorizedHandler = handler
 }
 
+/**
+ * 部分服务器（如未配置伪静态的 Nginx）会把 /api/* 直接当作静态路径返回 404。
+ * 首次遇到时改用入口查询参数重试，并在本次页面内沿用。
+ */
+const isApiPath = (url: string) => url.startsWith('/api/')
+const queryRouteUrl = (url: string) => `/index.php?_r=${encodeURIComponent(url)}`
+const isHtmlResponse = (response: Response) =>
+  (response.headers.get('Content-Type') ?? '').includes('text/html')
+let queryRoute = false
+
 const readErrorResponse = async (
   response: Response,
   kind: 'http' | 'protocol' = 'http'
 ): Promise<ApiError> => {
+  if (kind === 'http' && response.status === 404) {
+    const contentType = response.headers.get('Content-Type') ?? ''
+    if (contentType.includes('text/html')) {
+      void response.body?.cancel()
+      return new ApiError('http', { key: 'apiRouteMissing', params: { status: 404 } }, 404)
+    }
+  }
   const text = await response.text().catch(() => '')
   let message = text || response.statusText
   try {
@@ -66,6 +83,17 @@ const readErrorResponse = async (
   return new ApiError(kind, message, response.status)
 }
 
+const send = async (url: string, init: RequestInit): Promise<Response> => {
+  try {
+    return await fetch(url, init)
+  } catch (error) {
+    if (init.signal?.aborted) {
+      throw error
+    }
+    throw new ApiError('network', error instanceof Error ? error.message : String(error))
+  }
+}
+
 /** 同源请求：自动带 Cookie 与 CSRF 头，非 2xx 统一抛出 ApiError */
 export const request = async (url: string, init: RequestInit = {}): Promise<Response> => {
   const method = (init.method ?? 'GET').toUpperCase()
@@ -73,14 +101,18 @@ export const request = async (url: string, init: RequestInit = {}): Promise<Resp
   if (csrfToken && method !== 'GET' && method !== 'HEAD') {
     headers.set('X-CSRF-Token', csrfToken)
   }
-  let response: Response
-  try {
-    response = await fetch(url, { ...init, headers, credentials: 'same-origin' })
-  } catch (error) {
-    if (init.signal?.aborted) {
-      throw error
+  const options: RequestInit = { ...init, headers, credentials: 'same-origin' }
+  let response = await send(queryRoute && isApiPath(url) ? queryRouteUrl(url) : url, options)
+  if (
+    !queryRoute &&
+    isApiPath(url) &&
+    (response.status === 404 || (response.ok && isHtmlResponse(response)))
+  ) {
+    void response.body?.cancel()
+    response = await send(queryRouteUrl(url), options)
+    if (response.ok && !isHtmlResponse(response)) {
+      queryRoute = true
     }
-    throw new ApiError('network', error instanceof Error ? error.message : String(error))
   }
   if (!response.ok) {
     if (response.status === 401) {
@@ -99,5 +131,10 @@ export const requestJson = async <T>(url: string, method: string, body?: unknown
       ? {}
       : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
   })
+  const contentType = response.headers.get('Content-Type') ?? ''
+  if (!contentType.includes('application/json')) {
+    void response.body?.cancel()
+    throw new ApiError('protocol', { key: 'apiRouteMissing', params: { status: response.status } })
+  }
   return (await response.json()) as T
 }
