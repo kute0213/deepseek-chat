@@ -36,7 +36,7 @@
 ├── docs/                  # 项目实现计划
 ├── frontend/              # 官方前端源码（独立构建）
 ├── scripts/               # 官方 demo 参考仓库（不提交 Git）
-└── storage/               # 运行期附件与日志（不入库）
+└── uploads/               # 运行期数据（不入库）：attachments/{用户ID}/{附件ID}、staging/{用户ID}/、logs/
 ```
 
 ## 环境要求
@@ -50,7 +50,7 @@
 1. 将网站根目录指向本项目根目录（包含 `index.php` 的那一层，不是 `frontend/`）。
    - 若面板提供“运行目录”选项，留空或填 `/`，**不要**设为 `/public`、`/frontend` 等子目录。
    - 前端产物与接口都使用 `/static`、`/api` 等根路径，因此必须部署在域名根目录；如需部署到子目录，需同步修改前端 `publicPath` 与接口前缀。
-2. 确保 `config/` 与 `storage/` 可写。
+2. 确保 `config/` 与 `uploads/` 可写。
 3. 浏览器访问 `/install`，填写 MySQL 地址、库名、账号密码，创建管理员账号。
    - 安装程序会自动建库、建表、生成 `config/config.php` 与 `config/installed.lock`。
    - 若数据库已存在同名库，请确认使用空库或备份后继续。
@@ -86,7 +86,7 @@ cd frontend && pnpm dev
 - 所有写接口校验 `Origin` 与 `X-CSRF-Token`；登录失败有频率限制。
 - 登录 / 注册与后台登录均校验图形验证码：答案仅存 SHA-256，校验后立即销毁，5 分钟过期，错误一次即失效。
 - 登录 / 注册必须勾选同意服务协议（`/terms.html`），服务端仍会校验账号、密码与验证码。
-- 建议生产环境只启用 HTTPS，并限制 `storage/`、`config/`、`app/` 的直接访问。Apache 由根目录 `.htaccess` 自动处理；Nginx 参考：
+- 建议生产环境只启用 HTTPS，并限制 `uploads/`、`config/`、`app/` 的直接访问。Apache 由根目录 `.htaccess` 自动处理；Nginx 参考：
 
 ```nginx
 server {
@@ -98,7 +98,7 @@ server {
     client_max_body_size 128m;
     error_page 404 /404;
 
-    location ~ ^/(app|config|storage|database|docs|frontend|scripts)(/|$) { deny all; }
+    location ~ ^/(app|config|uploads|database|docs|frontend|scripts)(/|$) { deny all; }
     location ~ ^/\.(git|gitignore) { deny all; }
 
     location /api/ { try_files $uri /index.php$is_args$args; }

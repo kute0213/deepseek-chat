@@ -1,11 +1,11 @@
 # 参考仓库：不上传 GitHub、不保存 Git
 /scripts/
 
-# 安装与运行期数据
+# 安装与运行期数据（上传附件、暂存、日志）
 /config/config.php
 /config/installed.lock
-/storage/*
-!/storage/.gitkeep
+/uploads/*
+!/uploads/.gitkeep
 
 # 前端依赖
 /frontend/node_modules/

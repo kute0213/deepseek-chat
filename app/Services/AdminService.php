@@ -169,7 +169,7 @@ final class AdminService
             $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
             $stmt->execute([$userId]);
         });
-        FileStore::removeDir(FileStore::userDir($userId));
+        FileStore::removeDir(FileStore::attachmentDir($userId));
         FileStore::removeDir(FileStore::stagingDir($userId));
     }
 

@@ -8,19 +8,24 @@ use App\Support\HttpError;
 
 final class FileStore
 {
-    public static function userDir(string $userId): string
+    /**
+     * 上传目录按「用途 / 用户 ID / 文件 ID」严格分层：
+     * uploads/attachments/{userId}/{fileId}
+     * uploads/staging/{userId}/{fileId}
+     */
+    public static function attachmentDir(string $userId): string
     {
-        return APP_ROOT . '/storage/uploads/' . $userId;
+        return APP_ROOT . '/uploads/attachments/' . $userId;
     }
 
     public static function stagingDir(string $userId): string
     {
-        return APP_ROOT . '/storage/staging/' . $userId;
+        return APP_ROOT . '/uploads/staging/' . $userId;
     }
 
     public static function path(string $userId, string $fileId): string
     {
-        return self::userDir($userId) . '/' . $fileId;
+        return self::attachmentDir($userId) . '/' . $fileId;
     }
 
     public static function assertId(string $fileId): void
@@ -39,7 +44,7 @@ final class FileStore
     public static function putFromRequest(string $userId, string $fileId, string $name, string $mime, bool $isImage): array
     {
         self::assertId($fileId);
-        $dir = self::userDir($userId);
+        $dir = self::attachmentDir($userId);
         if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
             throw new HttpError('无法创建附件目录', 500);
         }

@@ -24,7 +24,7 @@ $checks = [
     'zip' => extension_loaded('zip'),
     'mbstring' => extension_loaded('mbstring'),
     'config/ 可写' => is_writable($root . '/config'),
-    'storage/ 可写' => is_writable($root . '/storage'),
+    'uploads/ 可写' => is_writable($root . '/uploads'),
 ];
 
 $defaults = [

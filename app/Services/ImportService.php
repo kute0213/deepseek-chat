@@ -86,7 +86,7 @@ final class ImportService
         $stmt->execute([$userId]);
         $stagingFiles = $stmt->fetchAll();
 
-        $uploadDir = FileStore::userDir($userId);
+        $uploadDir = FileStore::attachmentDir($userId);
         if (!is_dir($uploadDir) && !mkdir($uploadDir, 0775, true) && !is_dir($uploadDir)) {
             throw new HttpError('无法创建附件目录', 500);
         }
