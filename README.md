@@ -18,6 +18,7 @@
 ├── index.php              # API 路由入口
 ├── install.php            # 安装向导（配置数据库、创建管理员）
 ├── router.php             # PHP 内置服务器路由（开发用）
+├── 404.html               # 404 页面（DeepSeek 风格，支持深色模式）
 ├── index.html             # 前端构建产物（由 frontend 构建生成）
 ├── static/                # 前端构建产物
 ├── app/                   # 业务代码
@@ -25,9 +26,8 @@
 │   ├── Services/          # 会话、附件、导入、DeepSeek 代理、后台数据
 │   └── Support/           # 配置、数据库、认证、雪花、请求响应
 ├── admin/                 # 服务端渲染管理后台（/admin/）
-├── config/                # 配置（config.php 由安装向导生成，不入库）
+├── config/                # 配置目录（config.php 由安装向导生成，不入库）
 ├── database/schema.sql    # 数据表结构
-├── deploy/                # Nginx / Apache 部署示例
 ├── docs/                  # 项目实现计划
 ├── frontend/              # 官方前端源码（独立构建）
 ├── scripts/               # 官方 demo 参考仓库（不提交 Git）
@@ -57,7 +57,7 @@ pnpm install
 pnpm build
 ```
 
-构建产物直接输出到项目根目录的 `index.html` 与 `static/`，与 PHP 接口同源部署，无需额外配置跨域。
+构建产物直接输出到项目根目录的 `index.html` 与 `static/`，与 PHP 接口同源部署，无需额外配置跨域。`pnpm build` 会先清理旧的 `static/css`、`static/js`、`static/media`，避免残留过期产物。
 
 开发调试（可选）：
 
@@ -75,7 +75,30 @@ cd frontend && pnpm dev
 - 所有 DeepSeek 请求都由服务端 cURL 转发，Key 不会下发到浏览器。
 - 登录态使用随机 32 字节 Token（Cookie `ds_token`，HttpOnly + SameSite=Lax），数据库只保存 SHA-256 摘要。
 - 所有写接口校验 `Origin` 与 `X-CSRF-Token`；登录失败有频率限制。
-- 建议生产环境只启用 HTTPS，并限制 `storage/`、`config/`、`app/` 的直接访问（`.htaccess` 已内置规则，Nginx 见 `deploy/nginx.conf.example`）。
+- 建议生产环境只启用 HTTPS，并限制 `storage/`、`config/`、`app/` 的直接访问。Apache 由根目录 `.htaccess` 自动处理；Nginx 参考：
+
+```nginx
+error_page 404 /404.html;
+
+location ~ ^/(app|config|storage|database|docs|frontend|scripts)(/|$) { deny all; }
+location ~ ^/\.(git|gitignore) { deny all; }
+
+location /api/ { try_files $uri /index.php$is_args$args; }
+location /admin/ { try_files $uri $uri/ /admin/index.php$is_args$args; }
+location / { try_files $uri $uri/ /index.html; }
+
+location ~ \.php$ {
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+    fastcgi_read_timeout 900s;
+    fastcgi_buffering off;
+}
+```
+
+## 错误页
+
+根目录 `404.html` 为自包含页面，沿用官方浅色/深色配色与品牌蓝。Apache 通过 `.htaccess` 的 `ErrorDocument` 生效；Nginx 需配置 `error_page 404 /404.html;`；开发用的 `router.php` 对缺失的静态资源返回该页面。
 
 ## 管理后台
 

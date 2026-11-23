@@ -1,4 +1,5 @@
 Options -Indexes
+ErrorDocument 404 /404.html
 RewriteEngine On
 
 # API 统一入口
@@ -9,9 +10,13 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
+# 缺失的静态资源直接 404，交给 ErrorDocument
+RewriteCond %{REQUEST_URI} \.[A-Za-z0-9]{1,8}$
+RewriteRule ^ - [R=404,L]
+
 # SPA 回退
 RewriteRule ^ index.html [L]
 
 # 内部目录与杂物禁止访问
-RedirectMatch 403 ^/(app|config|storage|database|docs|deploy|frontend|scripts)(/|$)
+RedirectMatch 403 ^/(app|config|storage|database|docs|frontend|scripts)(/|$)
 RedirectMatch 403 ^/\.(git|gitignore)

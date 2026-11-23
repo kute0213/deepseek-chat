@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#191a1c" media="(prefers-color-scheme: dark)">
+<title>页面不存在 · DeepSeek</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --text: #1f2329;
+    --muted: #6b7280;
+    --brand: #4d6bfe;
+    --brand-strong: #3f5be6;
+    --brand-soft: rgba(77, 107, 254, 0.28);
+    --border: rgba(15, 23, 42, 0.12);
+    --hover: rgba(15, 23, 42, 0.04);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #191a1c;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --brand: #6b85ff;
+      --brand-strong: #8ea3ff;
+      --brand-soft: rgba(107, 133, 255, 0.3);
+      --border: rgba(255, 255, 255, 0.14);
+      --hover: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top { padding: 28px 40px; }
+
+  .brand {
+    display: inline-block;
+    color: var(--brand);
+    font-size: 20px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+
+  .main {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 24px 64px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .glow {
+    position: absolute;
+    width: min(560px, 90vw);
+    height: min(560px, 90vw);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(77, 107, 254, 0.18), rgba(77, 107, 254, 0) 68%);
+    filter: blur(8px);
+    pointer-events: none;
+  }
+
+  .code {
+    position: relative;
+    margin: 0 0 6px;
+    font-size: clamp(88px, 17vw, 152px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.06em;
+    background: linear-gradient(180deg, var(--brand), var(--brand-soft));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  h1 {
+    position: relative;
+    margin: 0;
+    font-size: clamp(20px, 3vw, 26px);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .desc {
+    position: relative;
+    max-width: 420px;
+    margin: 12px 0 0;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .actions {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 32px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 22px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  }
+
+  .btn:hover { background: var(--hover); }
+  .btn:active { transform: scale(0.98); }
+
+  .btn.primary {
+    border-color: transparent;
+    background: var(--brand);
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .btn.primary:hover { background: var(--brand-strong); }
+  .btn.primary:active { transform: scale(0.98); }
+
+  .btn:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  .foot {
+    padding: 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  @media (max-width: 480px) {
+    .top { padding: 22px 20px; }
+    .main { padding-bottom: 48px; }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .code, h1, .desc, .actions {
+      animation: rise 0.4s ease both;
+    }
+    h1 { animation-delay: 0.05s; }
+    .desc { animation-delay: 0.1s; }
+    .actions { animation-delay: 0.15s; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/">DeepSeek</a>
+</header>
+<main class="main">
+  <div class="glow" aria-hidden="true"></div>
+  <p class="code" aria-hidden="true">404</p>
+  <h1>页面不存在</h1>
+  <p class="desc">你访问的页面可能已被移动或删除，请检查链接是否正确。</p>
+  <div class="actions">
+    <a class="btn primary" href="/">返回首页</a>
+    <button class="btn" type="button" id="back">返回上一页</button>
+  </div>
+</main>
+<footer class="foot">DeepSeek · 智能助手</footer>
+<script>
+  document.getElementById('back').addEventListener('click', function () {
+    if (history.length > 1) {
+      history.back()
+    } else {
+      location.href = '/'
+    }
+  })
+</script>
+</body>
+</html>

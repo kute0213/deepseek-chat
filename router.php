@@ -3,19 +3,34 @@ declare(strict_types=1);
 
 $path = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
 
-if ($path === '/') {
+$html = static function (string $file, int $status = 200): bool {
+    http_response_code($status);
     header('Content-Type: text/html; charset=utf-8');
-    readfile(__DIR__ . '/index.html');
+    readfile(__DIR__ . $file);
     return true;
+};
+
+if ($path === '/') {
+    return $html('/index.html');
 }
 
 if (is_file(__DIR__ . $path)) {
     return false;
 }
 
-if (str_starts_with($path, '/admin/') || $path === '/admin') {
+if ($path === '/admin' || str_starts_with($path, '/admin/')) {
     require __DIR__ . '/admin/index.php';
     return true;
 }
 
-require __DIR__ . '/index.php';
+if (str_starts_with($path, '/api/')) {
+    require __DIR__ . '/index.php';
+    return true;
+}
+
+// 缺失的静态资源返回 404 页面，其余路径交给前端路由
+if (preg_match('#\.[A-Za-z0-9]{1,8}$#', $path)) {
+    return $html('/404.html', 404);
+}
+
+return $html('/index.html');
