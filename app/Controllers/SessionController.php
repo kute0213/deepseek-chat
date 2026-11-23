@@ -33,14 +33,26 @@ final class SessionController
         if ($session === null) {
             throw new HttpError('会话不存在', 404);
         }
-        Response::json($session);
+        $limit = $request->query('limit');
+        if ($limit === null || $limit === '') {
+            Response::json($session);
+            return;
+        }
+        $before = $request->query('before');
+        $page = SessionStore::page($session, $before !== '' ? $before : null, (int) $limit);
+        Response::json($page['session'] + [
+            'hasMore' => $page['hasMore'],
+            'nextCursor' => $page['hasMore'] ? (string) ($page['session']['messages'][0]['id'] ?? '') : null,
+        ]);
     }
 
     public function save(array $params, Request $request): void
     {
         $user = Auth::requireUser();
         $session = $request->json();
-        SessionStore::save((string) $user['id'], (string) $params['id'], $session);
+        $partial = !empty($session['partialMessages']);
+        unset($session['partialMessages']);
+        SessionStore::save((string) $user['id'], (string) $params['id'], $session, $partial);
         Response::json(['ok' => true]);
     }
 

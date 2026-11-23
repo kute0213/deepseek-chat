@@ -4,6 +4,8 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  /* 由脚本在插入更早消息后手动保持位置，避免浏览器锚定与手动调整叠加 */
+  overflow-anchor: none;
   scrollbar-gutter: stable both-edges;
   scrollbar-color: var(--scroll-color) transparent;
 }
@@ -24,6 +26,7 @@
     flex-direction: column;
     min-height: 0;
     overflow-y: auto;
+    overflow-anchor: none;
     overscroll-behavior-y: contain;
     scrollbar-color: var(--scroll-color) transparent;
   }

@@ -64,7 +64,46 @@ final class SessionStore
         return is_array($data) ? $data : null;
     }
 
-    public static function save(string $userId, string $sessionId, array $session): void
+    /**
+     * 消息分页：不传 $before 返回最近 $limit 条，传 $before 返回它之前的 $limit 条。
+     * 仍有更早消息时，把窗口首条消息作为临时根节点，保证前端能沿 selectedChildId 渲染。
+     *
+     * @return array{session: array, hasMore: bool}
+     */
+    public static function page(array $session, ?string $before, int $limit): array
+    {
+        $limit = max(1, min(50, $limit));
+        $messages = array_values(array_filter(
+            is_array($session['messages'] ?? null) ? $session['messages'] : [],
+            static fn ($message): bool => is_array($message)
+        ));
+        $end = count($messages);
+        if ($before !== null && $before !== '') {
+            $index = null;
+            foreach ($messages as $position => $message) {
+                if ((string) ($message['id'] ?? '') === $before) {
+                    $index = $position;
+                    break;
+                }
+            }
+            // 游标对应消息已被删除时直接结束，避免重复返回同一页
+            if ($index === null) {
+                $session['messages'] = [];
+                return ['session' => $session, 'hasMore' => false];
+            }
+            $end = $index;
+        }
+        $start = max(0, $end - $limit);
+        $slice = array_slice($messages, $start, $end - $start);
+        $hasMore = $start > 0;
+        $session['messages'] = $slice;
+        if ($hasMore && $slice !== []) {
+            $session['rootMessageId'] = (string) $slice[0]['id'];
+        }
+        return ['session' => $session, 'hasMore' => $hasMore];
+    }
+
+    public static function save(string $userId, string $sessionId, array $session, bool $partial = false): void
     {
         if (!preg_match('/^[0-9]{1,20}$/', $sessionId)) {
             throw new HttpError('会话 ID 非法', 400);
@@ -88,11 +127,18 @@ final class SessionStore
         $title = mb_substr((string) ($session['title'] ?? ''), 0, 200);
 
         $pdo = Database::pdo();
-        $stmt = $pdo->prepare('SELECT user_id FROM sessions WHERE id = ?');
+        $stmt = $pdo->prepare('SELECT user_id, data FROM sessions WHERE id = ?');
         $stmt->execute([$sessionId]);
         $existing = $stmt->fetch();
         if ($existing && (string) $existing['user_id'] !== $userId) {
             throw new HttpError('会话不存在', 404);
+        }
+        // 分页打开后只持有部分消息，保存时与库内完整消息合并，避免覆盖更早的历史
+        if ($partial && $existing) {
+            $previous = json_decode((string) $existing['data'], true);
+            if (is_array($previous)) {
+                $session = self::mergeMessages($previous, $session);
+            }
         }
         if (!$existing) {
             $limit = (int) SiteSettings::get('max_sessions_per_user', '0');
@@ -190,6 +236,43 @@ final class SessionStore
             $stmt->execute([$userId, $sessionId]);
         });
         self::cleanupOrphans($userId);
+    }
+
+    /**
+     * 把分页窗口内的消息覆盖到库内完整消息上：同 ID 用新版本替换，新消息追加到末尾；
+     * 根节点沿用库内值，防止分页窗口的临时根覆盖真实根。
+     */
+    private static function mergeMessages(array $previous, array $incoming): array
+    {
+        $merged = [];
+        $positions = [];
+        $previousMessages = is_array($previous['messages'] ?? null) ? $previous['messages'] : [];
+        foreach ($previousMessages as $message) {
+            if (!is_array($message) || !isset($message['id'])) {
+                continue;
+            }
+            $positions[(string) $message['id']] = count($merged);
+            $merged[] = $message;
+        }
+        $incomingMessages = is_array($incoming['messages'] ?? null) ? $incoming['messages'] : [];
+        foreach ($incomingMessages as $message) {
+            if (!is_array($message) || !isset($message['id'])) {
+                continue;
+            }
+            $id = (string) $message['id'];
+            if (array_key_exists($id, $positions)) {
+                $merged[$positions[$id]] = $message;
+            } else {
+                $positions[$id] = count($merged);
+                $merged[] = $message;
+            }
+        }
+        $incoming['messages'] = $merged;
+        $root = $previous['rootMessageId'] ?? null;
+        if (is_string($root) && $root !== '') {
+            $incoming['rootMessageId'] = $root;
+        }
+        return $incoming;
     }
 
     public static function cleanupOrphans(string $userId): void

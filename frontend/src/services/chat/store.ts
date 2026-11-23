@@ -45,6 +45,8 @@ const MODEL: ChatModel = 'deepseek-flash'
 const SYSTEM_PROMPT = '该助手为DeepSeek，由深度求索公司创造。'
 /** 保留最近打开的详情；当前会话、生成中及尚未成功保存的会话不淘汰。 */
 const SESSION_CACHE_LIMIT = 5
+/** 打开会话时先加载的最近消息数，向上滚动再按同样数量加载更早消息。 */
+const MESSAGE_PAGE_SIZE = 10
 /** 安全审核固定开启，所有请求都走扩展模式 */
 const SAFETY_CHECK = { level: 'high' } as const
 /** 服务端判定 file_id 失效后，重新补传并重发的最多次数（不含首次请求） */
@@ -78,6 +80,8 @@ type ChatState = {
   /** 正在加载下一页摘要 */
   loadingMore: boolean
   sessionCache: Record<string, Session>
+  /** 每个会话的消息分页状态；hasMore 表示还能向上加载更早的消息 */
+  messagePages: Record<string, { hasMore: boolean; cursor: string | null; loading: boolean }>
   sessionLoadErrors: Record<string, boolean>
   sessionSaveErrors: Record<string, boolean>
   /** null 表示新对话（欢迎页） */
@@ -94,6 +98,7 @@ export const useChatStore = create<ChatState>(() => ({
   nextCursor: null,
   loadingMore: false,
   sessionCache: {},
+  messagePages: {},
   sessionLoadErrors: {},
   sessionSaveErrors: {},
   activeId: null,
@@ -130,6 +135,7 @@ let historyEpoch = 0
 let initTask: Promise<void> | undefined
 let loadMoreTask: Promise<void> | undefined
 const sessionLoads = new Map<string, { promise: Promise<void> }>()
+const olderLoads = new Map<string, Promise<void>>()
 
 const touchSession = (id: string) => sessionAccess.set(id, ++accessSequence)
 
@@ -153,10 +159,15 @@ const trimSessionCache = () => {
     sessionAccess.delete(id)
   }
   if (evicted.size > 0) {
+    const messagePages = { ...state.messagePages }
+    for (const id of evicted) {
+      delete messagePages[id]
+    }
     set({
       sessionCache: Object.fromEntries(
         Object.entries(state.sessionCache).filter(([id]) => !evicted.has(id))
       ),
+      messagePages,
     })
   }
 }
@@ -202,8 +213,10 @@ const persist = (sessionId: string) => {
     }
     const epoch = historyEpoch
     const files = pendingFiles.get(sessionId)
+    // 只加载了最近一页消息时交给服务端合并，避免覆盖更早的历史
+    const partial = get().messagePages[sessionId]?.hasMore === true
     void db
-      .saveSession(session, files)
+      .saveSession(session, files, partial)
       .then(() => {
         if (epoch !== historyEpoch || !getSession(sessionId)) {
           return
@@ -392,6 +405,7 @@ export const resetChat = (keepDrafts = false): void => {
   initTask = undefined
   loadMoreTask = undefined
   sessionLoads.clear()
+  olderLoads.clear()
   sessionAccess.clear()
   unsavedSessions.clear()
   pendingFiles.clear()
@@ -407,6 +421,7 @@ export const resetChat = (keepDrafts = false): void => {
     nextCursor: null,
     loadingMore: false,
     sessionCache: {},
+    messagePages: {},
     sessionLoadErrors: {},
     sessionSaveErrors: {},
     activeId: null,
@@ -429,7 +444,7 @@ const ensureSessionLoaded = (id: string): Promise<void> => {
   sessionLoads.set(id, load)
   load.promise = (async () => {
     try {
-      const stored = await db.loadSession(id)
+      const stored = await db.loadSession(id, { limit: MESSAGE_PAGE_SIZE })
       if (epoch !== historyEpoch || sessionLoads.get(id) !== load) {
         return
       }
@@ -440,12 +455,19 @@ const ensureSessionLoaded = (id: string): Promise<void> => {
       if (!stored) {
         throw new Error(`Session ${id} is missing from local storage`)
       }
-      const settled = settleInterrupted(normalizeSession(stored))
+      const { hasMore, nextCursor, ...payload } = stored
+      const settled = settleInterrupted(normalizeSession(payload))
       // 读取期间可能已在列表重命名，保留最新元数据，不能让旧读取覆盖它。
       const session = sameSummary(settled, summary) ? settled : { ...settled, ...summary }
       touchSession(id)
-      set((state) => ({ sessionCache: { ...state.sessionCache, [id]: session } }))
-      if (session !== stored) {
+      set((state) => ({
+        sessionCache: { ...state.sessionCache, [id]: session },
+        messagePages: {
+          ...state.messagePages,
+          [id]: { hasMore: hasMore === true, cursor: nextCursor ?? null, loading: false },
+        },
+      }))
+      if (session !== payload) {
         persist(id)
       }
       trimSessionCache()
@@ -461,6 +483,162 @@ const ensureSessionLoaded = (id: string): Promise<void> => {
     }
   })()
   return load.promise
+}
+
+/**
+ * 向上滚动到顶部时加载更早的一页消息（10 条）；同一会话的并发请求合并为一次。
+ * 新消息拼在已有消息之前，根节点改用更早一页的根，保证分支链完整。
+ */
+export const loadOlderMessages = (sessionId: string): Promise<void> => {
+  const state = get()
+  const page = state.messagePages[sessionId]
+  if (!getSession(sessionId) || !page || !page.hasMore || page.loading || page.cursor === null) {
+    return Promise.resolve()
+  }
+  const pending = olderLoads.get(sessionId)
+  if (pending) {
+    return pending
+  }
+  const epoch = historyEpoch
+  const cursor = page.cursor
+  set((current) => ({
+    messagePages: { ...current.messagePages, [sessionId]: { ...page, loading: true } },
+  }))
+  const holder: { task?: Promise<void> } = {}
+  const task = (async () => {
+    try {
+      const older = await db.loadSession(sessionId, { limit: MESSAGE_PAGE_SIZE, before: cursor })
+      if (epoch !== historyEpoch) {
+        return
+      }
+      if (!older) {
+        set((current) => {
+          const currentPage = current.messagePages[sessionId]
+          return currentPage
+            ? {
+                messagePages: {
+                  ...current.messagePages,
+                  [sessionId]: { ...currentPage, loading: false },
+                },
+              }
+            : current
+        })
+        return
+      }
+      set((current) => {
+        const existing = current.sessionCache[sessionId]
+        if (!existing) {
+          return current
+        }
+        const seen = new Set(existing.messages.map((message) => message.id))
+        const merged = [
+          ...older.messages.filter((message) => !seen.has(message.id)),
+          ...existing.messages,
+        ]
+        return {
+          sessionCache: {
+            ...current.sessionCache,
+            [sessionId]: {
+              ...existing,
+              rootMessageId: older.rootMessageId ?? existing.rootMessageId,
+              messages: merged,
+            },
+          },
+          messagePages: {
+            ...current.messagePages,
+            [sessionId]: {
+              hasMore: older.hasMore === true,
+              cursor: older.nextCursor ?? null,
+              loading: false,
+            },
+          },
+        }
+      })
+    } catch (error) {
+      db.reportStorageError('read older messages')(error)
+      if (epoch === historyEpoch) {
+        set((current) => {
+          const currentPage = current.messagePages[sessionId]
+          return currentPage
+            ? {
+                messagePages: {
+                  ...current.messagePages,
+                  [sessionId]: { ...currentPage, loading: false },
+                },
+              }
+            : current
+        })
+      }
+    } finally {
+      if (olderLoads.get(sessionId) === holder.task) {
+        olderLoads.delete(sessionId)
+      }
+    }
+  })()
+  holder.task = task
+  olderLoads.set(sessionId, task)
+  return task
+}
+
+/**
+ * 发送、编辑或重新生成前取回完整历史：上游接口需要完整上下文，
+ * 以服务端顺序为基准合并本地未落盘的新消息与本地修改。
+ */
+const ensureFullHistory = async (sessionId: string): Promise<void> => {
+  const pending = olderLoads.get(sessionId)
+  if (pending) {
+    await pending
+  }
+  if (!get().messagePages[sessionId]?.hasMore) {
+    return
+  }
+  const local = getSession(sessionId)
+  if (!local) {
+    return
+  }
+  const full = await db.loadSession(sessionId)
+  if (!full) {
+    return
+  }
+  set((current) => {
+    const existing = current.sessionCache[sessionId] ?? local
+    const localById = new Map(existing.messages.map((message) => [message.id, message]))
+    const serverIds = new Set(full.messages.map((message) => message.id))
+    const merged = full.messages.map((message) => localById.get(message.id) ?? message)
+    for (const message of existing.messages) {
+      if (!serverIds.has(message.id)) {
+        merged.push(message)
+      }
+    }
+    return {
+      sessionCache: {
+        ...current.sessionCache,
+        [sessionId]: {
+          ...existing,
+          rootMessageId: full.rootMessageId ?? existing.rootMessageId,
+          messages: merged,
+        },
+      },
+      messagePages: {
+        ...current.messagePages,
+        [sessionId]: { hasMore: false, cursor: null, loading: false },
+      },
+    }
+  })
+}
+
+/** 完整历史就绪后，用会话的可见路径重建请求前缀，剔除当前问题及其后的待生成回复。 */
+const refreshRequestHistory = <T extends { history: Message[]; question: Message }>(
+  sessionId: string,
+  request: T
+): T => {
+  const session = getSession(sessionId)
+  if (!session) {
+    return request
+  }
+  const path = getVisibleMessages(session)
+  const index = path.findIndex((message) => message.id === request.question.id)
+  return index < 0 ? request : { ...request, history: path.slice(0, index) }
 }
 
 /** 等所有回复的收尾（落盘）完成 */
@@ -521,6 +699,7 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
       nextCursor: page.nextCursor,
       loadingMore: false,
       sessionCache: {},
+      messagePages: {},
       sessionLoadErrors: {},
       sessionSaveErrors: {},
       activeId: null,
@@ -618,6 +797,9 @@ const removeSessionData = async (id: string): Promise<boolean> => {
       ),
       sessionSaveErrors: Object.fromEntries(
         Object.entries(state.sessionSaveErrors).filter(([key]) => key !== id)
+      ),
+      messagePages: Object.fromEntries(
+        Object.entries(state.messagePages).filter(([key]) => key !== id)
       ),
       activeId: state.activeId === id ? null : state.activeId,
     }))
@@ -1097,6 +1279,13 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
   streamFlushes.set(sessionId, flush)
 
   try {
+    // 分页打开时先补齐完整历史，保证上游请求的上下文不被截断
+    try {
+      await ensureFullHistory(sessionId)
+    } catch (error) {
+      db.reportStorageError('read full session')(error)
+    }
+    request = refreshRequestHistory(sessionId, request)
     for (let attempt = 0; ; attempt += 1) {
       /** 附件补齐前出错属于上传失败，请求还没有发出 */
       let preparing = true

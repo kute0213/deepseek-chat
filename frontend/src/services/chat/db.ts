@@ -59,9 +59,28 @@ export const loadSessionSummaries = async (
   return { sessions: page.sessions ?? [], nextCursor: page.nextCursor ?? null }
 }
 
-export const loadSession = async (id: string): Promise<Session | undefined> => {
+/** 打开会话时分页返回的消息窗口：hasMore 表示还有更早的消息，nextCursor 用于继续加载。 */
+export type SessionMessagesPage = Session & { hasMore?: boolean; nextCursor?: string | null }
+
+export type LoadSessionOptions = { limit?: number; before?: string | null }
+
+export const loadSession = async (
+  id: string,
+  options?: LoadSessionOptions
+): Promise<SessionMessagesPage | undefined> => {
+  const params = new URLSearchParams()
+  if (options?.limit) {
+    params.set('limit', String(options.limit))
+  }
+  if (options?.before) {
+    params.set('before', options.before)
+  }
+  const query = params.toString()
   try {
-    return await requestJson<Session>(`/api/sessions/${encodeURIComponent(id)}`, 'GET')
+    return await requestJson<SessionMessagesPage>(
+      `/api/sessions/${encodeURIComponent(id)}${query ? `?${query}` : ''}`,
+      'GET'
+    )
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       return undefined
@@ -70,13 +89,20 @@ export const loadSession = async (id: string): Promise<Session | undefined> => {
   }
 }
 
-/** 先保存会话（登记附件引用），再上传原件；上传失败时保留会话，重试会再次提交 */
-export const saveSession = (session: Session, files: StoredFile[] = []): Promise<void> =>
+/**
+ * 先保存会话（登记附件引用），再上传原件；上传失败时保留会话，重试会再次提交。
+ * partial 表示本地只有分页窗口内的消息，服务端会与库内完整记录合并。
+ */
+export const saveSession = (
+  session: Session,
+  files: StoredFile[] = [],
+  partial = false
+): Promise<void> =>
   enqueueSave(session.id, async () => {
     await requestJson<{ ok: boolean }>(
       `/api/sessions/${encodeURIComponent(session.id)}`,
       'PUT',
-      session
+      partial ? { ...session, partialMessages: true } : session
     )
     for (const file of files) {
       await putFile(file)

@@ -105,7 +105,6 @@ const SettingsContent = () => {
               <ThemeSetting />
               <LocaleSetting />
               <TtsVoiceSetting />
-              <DeepSeekPlatformSetting />
               <LocationSetting />
             </>
           ) : !user ? (
@@ -115,6 +114,7 @@ const SettingsContent = () => {
           ) : (
             <>
               <ApiKeyField editor={apiKeyEditor} />
+              <DeepSeekPlatformSetting />
               <ImportHistory historyImport={historyImport} disabled={historyBusy} />
               <ExportHistory disabled={historyBusy} />
               <SettingCell
@@ -419,7 +419,7 @@ const useHistoryDelete = () => {
   }
 }
 
-/** 通用设置里的开放平台入口：外链管理 API Key、充值与用量 */
+/** 数据管理里 API Key 下方的开放平台入口：外链管理 API Key、充值与用量 */
 const DeepSeekPlatformSetting = () => {
   const t = useTranslate()
   return (
