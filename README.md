@@ -42,7 +42,9 @@
 
 ## 安装
 
-1. 将站点根目录指向本项目根目录（不是 `frontend/`）。
+1. 将网站根目录指向本项目根目录（包含 `index.php` 的那一层，不是 `frontend/`）。
+   - 若面板提供“运行目录”选项，留空或填 `/`，**不要**设为 `/public`、`/frontend` 等子目录。
+   - 前端产物与接口都使用 `/static`、`/api` 等根路径，因此必须部署在域名根目录；如需部署到子目录，需同步修改前端 `publicPath` 与接口前缀。
 2. 确保 `config/` 与 `storage/` 可写。
 3. 浏览器访问 `/install.php`，填写 MySQL 地址、库名、账号密码，创建管理员账号。
    - 安装程序会自动建库、建表、生成 `config/config.php` 与 `config/installed.lock`。
@@ -62,7 +64,7 @@ pnpm build
 开发调试（可选）：
 
 ```bash
-# 终端 1：后端
+# 终端 1：后端（必须带 router.php，否则 /api 路由会 404）
 php -S 127.0.0.1:8080 router.php
 
 # 终端 2：前端热更新，/api 与 /admin 自动代理到 8080
@@ -78,23 +80,39 @@ cd frontend && pnpm dev
 - 建议生产环境只启用 HTTPS，并限制 `storage/`、`config/`、`app/` 的直接访问。Apache 由根目录 `.htaccess` 自动处理；Nginx 参考：
 
 ```nginx
-error_page 404 /404.html;
+server {
+    listen 80;
+    server_name example.com;
+    root /var/www/deepseek;
+    index index.html index.php;
 
-location ~ ^/(app|config|storage|database|docs|frontend|scripts)(/|$) { deny all; }
-location ~ ^/\.(git|gitignore) { deny all; }
+    error_page 404 /404.html;
 
-location /api/ { try_files $uri /index.php$is_args$args; }
-location /admin/ { try_files $uri $uri/ /admin/index.php$is_args$args; }
-location / { try_files $uri $uri/ /index.html; }
+    location ~ ^/(app|config|storage|database|docs|frontend|scripts)(/|$) { deny all; }
+    location ~ ^/\.(git|gitignore) { deny all; }
 
-location ~ \.php$ {
-    include fastcgi_params;
-    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-    fastcgi_pass unix:/run/php/php8.2-fpm.sock;
-    fastcgi_read_timeout 900s;
-    fastcgi_buffering off;
+    location /api/ { try_files $uri /index.php$is_args$args; }
+    location /admin/ { try_files $uri $uri/ /admin/index.php$is_args$args; }
+    location / { try_files $uri $uri/ /index.html; }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+        fastcgi_read_timeout 900s;
+        fastcgi_buffering off;
+    }
 }
 ```
+
+## 访问全站 404 排查
+
+1. **站点根目录 / 运行目录**：根目录必须是含 `index.php` 的项目根；面板的“运行目录”留空或 `/`。指向 `frontend/`、`public/` 会导致所有页面 404。
+2. **默认首页顺序**：确保 `/` 优先使用 `index.html`。Apache 已由 `.htaccess` 的 `DirectoryIndex index.html index.php` 处理；Nginx 必须配置 `index index.html index.php;`，否则 `/` 会进入 `index.php` 的 API 路由而返回 404。
+3. **Apache 重写**：启用 `mod_rewrite`，并允许 `.htaccess`（`AllowOverride All`）；否则 `/api/*`、无扩展名的前端路由会 404。
+4. **Nginx 重写**：`location /` 必须有 `try_files $uri $uri/ /index.html;`。
+5. **PHP 内置服务器**：必须使用 `php -S 127.0.0.1:8080 router.php` 启动，不能省略 `router.php`。
+6. 若只有安装页可访问：确认 `index.html` 与 `static/` 已上传，且没有把应用部署在子目录。
 
 ## 错误页
 

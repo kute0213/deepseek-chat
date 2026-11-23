@@ -23,6 +23,16 @@ if (!Config::installed()) {
     exit;
 }
 
+$path = App\Support\Request::path();
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+// 服务器把 index.php 当作默认首页时，非 API 请求直接返回前端页面
+if ($method === 'GET' && !str_starts_with($path, '/api/')) {
+    header('Content-Type: text/html; charset=utf-8');
+    readfile(__DIR__ . '/index.html');
+    exit;
+}
+
 $router = new Router();
 
 $router->get('/api/site', [SiteController::class, 'show']);
@@ -60,4 +70,4 @@ $router->delete('/api/deepseek/files/{fileId}', [ChatController::class, 'deleteF
 $router->post('/api/deepseek/tools/asr', [SpeechController::class, 'asr']);
 $router->post('/api/deepseek/tools/tts', [SpeechController::class, 'tts']);
 
-$router->dispatch($_SERVER['REQUEST_METHOD'] ?? 'GET', App\Support\Request::path());
+$router->dispatch($method, $path);
