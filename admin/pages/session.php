@@ -14,7 +14,7 @@ $messages = is_array($session['data']['messages'] ?? null) ? $session['data']['m
     </dl>
     <div class="quick">
         <a class="btn" href="<?= e(admin_url(['page' => 'sessions'])) ?>">返回列表</a>
-        <form class="mini" method="post" onsubmit="return confirm('确定删除该会话？')">
+        <form class="mini" method="post" data-confirm="确定删除该会话？">
             <input type="hidden" name="action" value="session_delete">
             <input type="hidden" name="csrf" value="<?= e($user['csrf_token']) ?>">
             <input type="hidden" name="back" value="sessions">

@@ -12,13 +12,6 @@ $nav = [
     'settings' => '站点设置',
     'logs' => '操作日志',
 ];
-$icons = [
-    'dashboard' => '<rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/>',
-    'users' => '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c0-3.2 2.5-5.3 5.5-5.3s5.5 2.1 5.5 5.3"/><path d="M16 5.6a3 3 0 0 1 0 5.8M17.6 14.5c2 .4 3.4 2.2 3.4 4.5"/>',
-    'sessions' => '<path d="M20 14.5a3.5 3.5 0 0 1-3.5 3.5H9l-4.5 3v-13A3.5 3.5 0 0 1 8 4.5h8.5A3.5 3.5 0 0 1 20 8z"/>',
-    'settings' => '<circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.7 2.7-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-3.8v-.2a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.6 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3v-3.8h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.4 7l2.7-2.7.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6v-.2H14v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.7 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v3.8h-.2a1.7 1.7 0 0 0-1.5 1.2z"/>',
-    'logs' => '<path d="M6 3.5h9l3 3v14H6z"/><path d="M14.5 3.5v4h4M9 12h6M9 15.5h6"/>',
-];
 $active = static fn (string $key): bool => $page === $key
     || ($page === 'session' && $key === 'sessions')
     || ($page === 'user' && $key === 'users');
@@ -28,27 +21,17 @@ $active = static fn (string $key): bool => $page === $key
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= e($title) ?> - 管理控制台</title>
+    <title><?= e($title) ?> - 管理后台</title>
     <link rel="stylesheet" href="/admin/assets/admin.css">
 </head>
 <body>
 <div class="shell">
     <aside class="side">
-        <div class="brand-row">
-            <img class="brand-mark" src="/admin/assets/deepseek-logo.png" alt="" width="30" height="30">
-            <div class="brand-text">
-                <span class="brand-name">DeepSeek</span>
-                <span class="brand-badge">管理</span>
-            </div>
-        </div>
+        <div class="side-title">DeepSeekChat</div>
         <nav>
             <?php foreach ($nav as $key => $label): ?>
                 <a class="nav<?= $active($key) ? ' active' : '' ?>"
-                   href="<?= e(admin_url(['page' => $key])) ?>">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icons[$key] ?></svg>
-                    <?= e($label) ?>
-                </a>
+                   href="<?= e(admin_url(['page' => $key])) ?>"><?= e($label) ?></a>
             <?php endforeach; ?>
         </nav>
         <div class="side-foot">
@@ -69,7 +52,6 @@ $active = static fn (string $key): bool => $page === $key
     <main class="main">
         <header class="topbar">
             <h1><?= e($title) ?></h1>
-            <span class="topbar-note">DeepSeekChat 管理控制台</span>
         </header>
         <div class="content">
             <?php if ($ok !== null): ?>
@@ -82,5 +64,64 @@ $active = static fn (string $key): bool => $page === $key
         </div>
     </main>
 </div>
+<div class="modal-mask" id="confirm-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <h2 class="modal-title" id="confirm-title">确认操作</h2>
+        <p class="modal-body" id="confirm-text"></p>
+        <div class="modal-actions">
+            <button class="btn" type="button" data-confirm-cancel>取消</button>
+            <button class="btn primary" type="button" data-confirm-ok>确定</button>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    var mask = document.getElementById('confirm-modal');
+    var text = document.getElementById('confirm-text');
+    var ok = mask.querySelector('[data-confirm-ok]');
+    var cancel = mask.querySelector('[data-confirm-cancel]');
+    var pending = null;
+
+    function close() {
+        mask.hidden = true;
+        pending = null;
+    }
+
+    function open(form) {
+        text.textContent = form.getAttribute('data-confirm') || '确定执行该操作？';
+        mask.hidden = false;
+        ok.focus();
+        pending = form;
+    }
+
+    document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (form.dataset.confirmed === '1') {
+                return;
+            }
+            event.preventDefault();
+            open(form);
+        });
+    });
+
+    ok.addEventListener('click', function () {
+        if (pending) {
+            pending.dataset.confirmed = '1';
+            pending.submit();
+        }
+    });
+    cancel.addEventListener('click', close);
+    mask.addEventListener('click', function (event) {
+        if (event.target === mask) {
+            close();
+        }
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !mask.hidden) {
+            close();
+        }
+    });
+})();
+</script>
 </body>
 </html>

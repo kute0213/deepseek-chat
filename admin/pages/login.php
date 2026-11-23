@@ -12,11 +12,7 @@
 </head>
 <body class="login-body">
 <form class="login-card" method="post" action="/admin/">
-    <div class="login-brand">
-        <img class="brand-mark" src="/admin/assets/deepseek-logo.png" alt="" width="44" height="44">
-        <span class="brand-name">DeepSeek</span>
-    </div>
-    <h1>管理控制台</h1>
+    <h1>管理后台登录</h1>
     <p class="muted">请使用管理员账号登录</p>
     <?php if ($flashError !== null): ?>
         <div class="flash error"><?= e($flashError) ?></div>

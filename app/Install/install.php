@@ -173,150 +173,133 @@ function e(string $value): string
 <style>
     :root {
         color-scheme: light dark;
-        --brand: #4d6bfe;
-        --brand-strong: #3f5be6;
-        --brand-soft: rgba(77, 107, 254, 0.1);
-        --bg: #ffffff;
+        --brand: #3964fe;
+        --brand-strong: #5686fe;
+        --brand-soft: #e4edfd;
+        --bg: #f9fafb;
         --panel: #ffffff;
-        --text: #1f2329;
-        --muted: #8a8f99;
-        --line: #ececee;
-        --line-strong: #e2e3e7;
-        --danger: #e5484d;
-        --ok: #1a9d63;
-        --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 12px 32px rgba(16, 24, 40, .05);
+        --text: #0f1115;
+        --muted: #61666b;
+        --line: rgba(0, 0, 0, .04);
+        --line-strong: rgba(0, 0, 0, .1);
+        --input: #f9fafb;
+        --danger: #ec1313;
+        --ok: #22c55e;
+        --shadow: 0 0 1px 0 rgba(0, 0, 0, .2), 0 12px 32px 0 rgba(0, 0, 0, .08);
     }
     @media (prefers-color-scheme: dark) {
         :root {
-            --bg: #191a1c;
-            --panel: #202124;
-            --text: #e8eaed;
-            --muted: #9aa0a6;
-            --line: #2e3035;
-            --line-strong: #3a3d43;
-            --danger: #ef6b6b;
-            --ok: #43c78d;
-            --shadow: 0 1px 2px rgba(0, 0, 0, .24), 0 16px 40px rgba(0, 0, 0, .28);
+            --brand: #5686fe;
+            --brand-strong: #3964fe;
+            --brand-soft: #2c2c2e;
+            --bg: #151517;
+            --panel: #1b1b1c;
+            --text: #f9fafb;
+            --muted: #cfd3d6;
+            --line: rgba(255, 255, 255, .06);
+            --line-strong: rgba(255, 255, 255, .12);
+            --input: #151517;
+            --danger: #f25a5a;
+            --ok: #4ed17e;
+            --shadow: 0 0 1px 0 rgba(0, 0, 0, .4), 0 12px 32px 0 rgba(0, 0, 0, .4);
         }
     }
     * { box-sizing: border-box; }
     html, body { min-height: 100%; }
     body {
-        position: relative;
         margin: 0;
         background: var(--bg);
         color: var(--text);
-        font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-            "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        font: 14px/22px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
         -webkit-font-smoothing: antialiased;
     }
-    body::before {
-        position: fixed;
-        top: -220px;
-        left: 50%;
-        width: min(780px, 120vw);
-        height: min(780px, 120vw);
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(77, 107, 254, .14), rgba(77, 107, 254, 0) 66%);
-        content: "";
-        transform: translateX(-50%);
-        pointer-events: none;
-    }
     .top {
-        position: relative;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        max-width: 760px;
+        max-width: 720px;
         margin: 0 auto;
         padding: 28px 20px 0;
     }
     .brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
         color: var(--text);
-        font-size: 18px;
-        font-weight: 650;
-        letter-spacing: -.02em;
+        font-size: 16px;
+        font-weight: 500;
         text-decoration: none;
     }
-    .brand img { width: 30px; height: 30px; object-fit: contain; }
     .tag {
         padding: 2px 10px;
-        border-radius: 999px;
+        border-radius: 4096px;
         background: var(--brand-soft);
         color: var(--brand);
         font-size: 12px;
-        font-weight: 600;
     }
     .wrap {
-        position: relative;
-        max-width: 760px;
-        margin: 26px auto 64px;
+        max-width: 720px;
+        margin: 24px auto 64px;
         padding: 0 20px;
     }
-    h1 { margin: 0 0 6px; font-size: 28px; font-weight: 650; letter-spacing: -.02em; }
+    h1 { margin: 0 0 6px; font-size: 24px; font-weight: 500; }
     .sub { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
     .card {
         margin-bottom: 16px;
-        padding: 22px;
+        padding: 22px 24px;
         border: 1px solid var(--line);
-        border-radius: 16px;
+        border-radius: 24px;
         background: var(--panel);
-        box-shadow: var(--shadow);
     }
-    h2 { margin: 0 0 14px; font-size: 15px; font-weight: 600; }
+    h2 { margin: 0 0 14px; font-size: 15px; font-weight: 500; }
     .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; }
     .checks li {
         display: flex;
         justify-content: space-between;
         gap: 12px;
-        padding: 9px 12px;
-        border: 1px solid var(--line);
-        border-radius: 10px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: var(--input);
         font-size: 13px;
     }
-    .ok { color: var(--ok); font-weight: 600; }
-    .bad { color: var(--danger); font-weight: 600; }
+    .ok { color: var(--ok); font-weight: 500; }
+    .bad { color: var(--danger); font-weight: 500; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
     label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 13px; }
     input[type=text], input[type=password], input[type=number] {
         width: 100%;
         height: 40px;
-        padding: 0 12px;
-        border: 1px solid var(--line-strong);
-        border-radius: 10px;
-        background: transparent;
+        padding: 0 14px;
+        border: none;
+        border-radius: 4096px;
+        background: var(--input);
         color: var(--text);
         font: inherit;
         font-size: 14px;
         outline: none;
-        transition: border-color .15s ease, box-shadow .15s ease;
+        transition: box-shadow .2s cubic-bezier(.4, 0, .2, 1);
     }
-    input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+    input:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 35%, transparent); }
     .checkbox { display: flex; align-items: center; gap: 8px; margin-top: 20px; color: var(--text); font-size: 14px; }
     button {
         width: 100%;
-        height: 44px;
-        margin-top: 6px;
+        height: 40px;
+        margin-top: 8px;
         border: 0;
-        border-radius: 12px;
+        border-radius: 4096px;
         background: var(--brand);
         color: #fff;
         font: inherit;
-        font-size: 15px;
-        font-weight: 600;
+        font-size: 14px;
+        font-weight: 500;
         cursor: pointer;
-        transition: background .15s ease, transform .1s ease;
+        transition: background-color .2s cubic-bezier(.4, 0, .2, 1), opacity .2s cubic-bezier(.4, 0, .2, 1);
     }
     button:hover { background: var(--brand-strong); }
-    button:active { transform: scale(.995); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
     .error {
         margin-bottom: 16px;
-        padding: 12px 14px;
+        padding: 10px 16px;
         border-radius: 12px;
         background: color-mix(in srgb, var(--danger) 10%, transparent);
         color: var(--danger);
@@ -328,11 +311,11 @@ function e(string $value): string
         border-radius: 6px;
         background: var(--brand-soft);
         color: var(--brand);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
         font-size: 12px;
     }
     a { color: var(--brand); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    a:hover { opacity: .8; }
     @media (max-width: 480px) {
         .top { padding-top: 20px; }
         h1 { font-size: 24px; }
@@ -341,10 +324,7 @@ function e(string $value): string
 </head>
 <body>
 <header class="top">
-    <a class="brand" href="/">
-        <img src="/admin/assets/deepseek-logo.png" alt="" width="30" height="30">
-        DeepSeekChat
-    </a>
+    <a class="brand" href="/">DeepSeekChat</a>
     <span class="tag">安装向导</span>
 </header>
 <main class="wrap">

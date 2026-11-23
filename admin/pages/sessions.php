@@ -34,7 +34,7 @@ $base = ['page' => 'sessions', 'q' => $q];
                 <td class="mono"><?= number_format((int) $row['input_tokens']) ?> / <?= number_format((int) $row['output_tokens']) ?></td>
                 <td class="muted"><?= e(fmt_ms((int) $row['updated_ms'])) ?></td>
                 <td class="actions">
-                    <form class="mini" method="post" onsubmit="return confirm('确定删除该会话？')">
+                    <form class="mini" method="post" data-confirm="确定删除该会话？">
                         <input type="hidden" name="action" value="session_delete">
                         <input type="hidden" name="csrf" value="<?= e($user['csrf_token']) ?>">
                         <input type="hidden" name="back" value="sessions">

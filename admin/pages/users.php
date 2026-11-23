@@ -97,7 +97,7 @@ $base = ['page' => 'users', 'q' => $q];
                         </form>
                     </details>
                     <?php if (($row['api_key'] ?? '') !== ''): ?>
-                        <form class="mini" method="post" onsubmit="return confirm('确定清除该用户的 API Key？')">
+                        <form class="mini" method="post" data-confirm="确定清除该用户的 API Key？">
                             <input type="hidden" name="action" value="user_clear_key">
                             <input type="hidden" name="csrf" value="<?= e($user['csrf_token']) ?>">
                             <input type="hidden" name="back" value="users">
@@ -106,7 +106,7 @@ $base = ['page' => 'users', 'q' => $q];
                         </form>
                     <?php endif; ?>
                     <?php if ((string) $row['id'] !== (string) $user['id']): ?>
-                        <form class="mini" method="post" onsubmit="return confirm('删除用户会同时删除其全部会话与附件，确定继续？')">
+                        <form class="mini" method="post" data-confirm="删除用户会同时删除其全部会话与附件，确定继续？">
                             <input type="hidden" name="action" value="user_delete">
                             <input type="hidden" name="csrf" value="<?= e($user['csrf_token']) ?>">
                             <input type="hidden" name="back" value="users">
