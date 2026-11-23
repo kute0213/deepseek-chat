@@ -81,9 +81,9 @@ if (!$installed && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$form['db_name']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         $pdo->exec("USE `{$form['db_name']}`");
 
-        $schema = file_get_contents($root . '/database/schema.sql');
+        $schema = file_get_contents(__DIR__ . '/schema.sql');
         if ($schema === false) {
-            throw new RuntimeException('无法读取 database/schema.sql');
+            throw new RuntimeException('无法读取 app/Install/schema.sql');
         }
         $pdo->exec($schema);
 
@@ -214,7 +214,7 @@ function e(string $value): string
         <h2>安装完成</h2>
         <div class="success">
             <p>数据库与管理员账号已创建。</p>
-            <p>用户端：<a href="/">/</a><br>管理后台：<a href="/admin/login.php">/admin/login.php</a></p>
+            <p>用户端：<a href="/">/</a><br>管理后台：<a href="/admin/">/admin/</a></p>
             <p>管理员用户名：<code><?= e($form['admin_user']) ?></code></p>
             <p style="color:var(--danger)">安装向导已锁定。如需重新安装，请删除 <code>uploads/config/config.php</code> 与 <code>uploads/config/installed.lock</code>。</p>
         </div>
@@ -229,7 +229,7 @@ function e(string $value): string
         </ul>
     </div>
 
-    <form method="post" action="/index.php?_r=/install">
+    <form method="post" action="/install">
         <div class="card">
             <h2>MySQL 连接</h2>
             <?php if ($error !== null): ?><div class="error"><?= e($error) ?></div><?php endif; ?>

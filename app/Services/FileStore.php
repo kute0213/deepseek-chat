@@ -168,6 +168,19 @@ final class FileStore
     public static function removeFile(string $userId, string $fileId): void
     {
         @unlink(self::path($userId, $fileId));
+        self::pruneDir(self::attachmentDir($userId));
+    }
+
+    /** 会话删除后附件目录可能变空，顺手移除，避免留下空壳目录 */
+    public static function pruneDir(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        $entries = scandir($dir);
+        if ($entries !== false && count($entries) === 2) {
+            @rmdir($dir);
+        }
     }
 
     public static function removeDir(string $dir): void
