@@ -6,7 +6,7 @@
 
 - 自建账号系统：注册、登录、退出、修改密码、修改用户名；用户、会话、消息 ID 全部使用雪花算法。
 - 图形验证码：注册与登录在提交表单后弹出统一验证码弹窗，管理后台登录保留内嵌验证码；统一由 `Captcha` 服务生成 / 校验 / 销毁，一次性消费、5 分钟过期。
-- 服务协议：`/terms` 独立页面（兼容 `/terms.html`），登录 / 注册时必须勾选「已阅读并同意服务协议」。
+- 服务协议：`/terms.html` 独立页面（兼容 `/terms`），登录 / 注册时必须勾选「已阅读并同意服务协议」。
 - 未登录也可以直接进入聊天页面；发送消息、上传附件或使用语音时提示登录，并在设置中打开登录 / 注册页，登录后草稿保留。
 - API Key 由用户在设置中填写，**明文保存在服务器数据库**，由服务端代理聊天、附件、语音等全部 DeepSeek 请求；「数据管理」中 API Key 输入框下方提供「DeepSeek 开放平台」跳转入口，方便管理 Key、充值与查看用量。
 - 与官方一致的聊天体验：流式回复、深度思考、智能搜索、分支切换、消息编辑/重试、附件上传、图片预览、语音输入与朗读。
@@ -24,12 +24,14 @@
 ├── .user.ini              # PHP-FPM/CGI 上传与执行时间限制
 ├── index.html             # 前端构建产物（由 frontend 构建生成）
 ├── static/                # 前端构建产物
+├── 404.html               # 公开错误页（Apache/Nginx 直接指向它）
+├── terms.html             # 服务协议公开页
+├── install/               # 安装向导目录入口（/install/）
 ├── app/                   # 业务代码
 │   ├── Controllers/       # API 控制器
 │   ├── Services/          # 会话、附件、导入、验证码、首页渲染、后台数据
 │   ├── Support/           # 配置、数据库、认证、雪花、请求响应
-│   ├── Views/             # 服务端静态页面（404、服务协议）
-│   ├── Install/           # 安装向导与建表脚本（由 index.php 分发到 /install）
+│   ├── Install/           # 安装向导逻辑与建表脚本
 │   └── Dev/               # PHP 内置服务器开发路由
 ├── admin/                 # 服务端渲染管理后台（/admin/）
 ├── docs/                  # 项目实现计划
@@ -54,7 +56,7 @@
    - 若面板提供“运行目录”选项，留空或填 `/`，**不要**设为 `/public`、`/frontend` 等子目录。
    - 前端产物与接口都使用 `/static`、`/api` 等根路径，因此必须部署在域名根目录；如需部署到子目录，需同步修改前端 `publicPath` 与接口前缀。
 2. 确保 `uploads/` 可写（安装向导会自动创建 `uploads/config/` 等子目录）。
-3. 浏览器访问 `/install`，填写 MySQL 地址、库名、账号密码，创建管理员账号。
+3. 浏览器访问 `/install`（或 `/install/`），填写 MySQL 地址、库名、账号密码，创建管理员账号。
    - 安装程序会自动建库、建表、生成 `uploads/config/config.php` 与 `uploads/config/installed.lock`。
    - 若数据库已存在同名库，请确认使用空库或备份后继续。
 4. 安装完成后访问 `/` 即可直接进入聊天；未登录时发送消息会引导在设置中登录 / 注册。管理员访问 `/admin/` 登录后台。
@@ -99,9 +101,9 @@ server {
     index index.php index.html;
 
     client_max_body_size 128m;
-    error_page 404 /404;
+    error_page 404 /404.html;
 
-    location ~ ^/(app|config|uploads|database|docs|frontend|scripts)(/|$) { deny all; }
+    location ~ ^/(app|uploads|docs|frontend|scripts)(/|$) { deny all; }
     location ~ ^/\.(git|gitignore) { deny all; }
 
     location /api/ { try_files $uri /index.php$is_args$args; }
@@ -130,7 +132,7 @@ server {
 
 ## 错误页
 
-`app/Views/404.html` 为自包含页面，沿用官方浅色/深色配色与品牌蓝，由 `index.php` 路由 `/404` 输出。Apache 通过 `.htaccess` 的 `ErrorDocument 404 /index.php?_r=/404` 生效；Nginx 需配置 `error_page 404 /404;`；开发用的 `app/Dev/router.php` 会把缺失路径交给 `index.php` 处理。
+`404.html` 为根目录下的自包含公开页面，沿用官方浅色/深色配色与品牌蓝。Apache 通过 `.htaccess` 的 `ErrorDocument 404 /404.html` 生效；Nginx 需配置 `error_page 404 /404.html;`；开发用的 `app/Dev/router.php` 会把缺失路径交给 `index.php` 处理。公开页与安装入口都保留物理路径，因此在未开启伪静态的服务器上也能直接访问。
 
 ## 管理后台
 

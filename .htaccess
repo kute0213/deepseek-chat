@@ -1,6 +1,6 @@
 Options -Indexes
 DirectoryIndex index.php index.html
-ErrorDocument 404 /index.php?_r=/404
+ErrorDocument 404 /404.html
 
 # 导入历史与附件上传需要更大的请求体（mod_php 环境）
 <IfModule mod_php.c>

@@ -9,10 +9,10 @@ namespace App\Services;
  */
 final class HomePage
 {
-    /** 输出 app/Views 下的静态页面（服务协议、404 等） */
+    /** 输出根目录下的公开静态页面（服务协议、404 等） */
     public static function renderView(string $file, int $status = 200): void
     {
-        $path = dirname(__DIR__) . '/Views/' . $file;
+        $path = dirname(__DIR__, 2) . '/' . $file;
         if (!is_file($path)) {
             throw new \RuntimeException('页面不存在：' . $file);
         }

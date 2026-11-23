@@ -229,7 +229,7 @@ function e(string $value): string
         </ul>
     </div>
 
-    <form method="post" action="/install">
+    <form method="post" action="/install/">
         <div class="card">
             <h2>MySQL 连接</h2>
             <?php if ($error !== null): ?><div class="error"><?= e($error) ?></div><?php endif; ?>
