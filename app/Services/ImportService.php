@@ -12,6 +12,8 @@ final class ImportService
     /** @return array<int, array> 新会话摘要 */
     public static function commit(string $userId): array
     {
+        set_time_limit(0);
+        ignore_user_abort(true);
         $pdo = Database::pdo();
         $stmt = $pdo->prepare('SELECT id, data, created_ms FROM staging_sessions WHERE user_id = ? ORDER BY created_ms ASC');
         $stmt->execute([$userId]);

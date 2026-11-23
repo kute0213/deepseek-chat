@@ -1,6 +1,15 @@
 Options -Indexes
-DirectoryIndex index.html index.php
+DirectoryIndex index.php index.html
 ErrorDocument 404 /404.html
+
+# 导入历史与附件上传需要更大的请求体（mod_php 环境）
+<IfModule mod_php.c>
+    php_value post_max_size 128M
+    php_value upload_max_filesize 128M
+    php_value max_execution_time 900
+    php_value memory_limit 256M
+</IfModule>
+
 RewriteEngine On
 
 # API 统一入口
@@ -15,8 +24,8 @@ RewriteRule ^ - [L]
 RewriteCond %{REQUEST_URI} \.[A-Za-z0-9]{1,8}$
 RewriteRule ^ - [R=404,L]
 
-# SPA 回退
-RewriteRule ^ index.html [L]
+# SPA 回退：由 PHP 注入站点信息后输出
+RewriteRule ^ index.php [L]
 
 # 内部目录与杂物禁止访问
 RedirectMatch 403 ^/(app|config|storage|database|docs|frontend|scripts)(/|$)

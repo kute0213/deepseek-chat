@@ -50,19 +50,33 @@ export const initAuth = async (): Promise<void> => {
   }
 }
 
-export const login = async (username: string, password: string): Promise<void> => {
+export const login = async (
+  username: string,
+  password: string,
+  captchaId: string,
+  captchaCode: string
+): Promise<void> => {
   const { user } = await requestJson<{ user: UserPayload }>('/api/auth/login', 'POST', {
     username,
     password,
+    captchaId,
+    captchaCode,
   })
   resetChat(true)
   applyUser(user)
 }
 
-export const register = async (username: string, password: string): Promise<void> => {
+export const register = async (
+  username: string,
+  password: string,
+  captchaId: string,
+  captchaCode: string
+): Promise<void> => {
   const { user } = await requestJson<{ user: UserPayload }>('/api/auth/register', 'POST', {
     username,
     password,
+    captchaId,
+    captchaCode,
   })
   resetChat(true)
   applyUser(user)

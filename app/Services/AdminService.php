@@ -57,13 +57,70 @@ final class AdminService
         $stmt->execute($params);
         $meta = self::page((int) $stmt->fetchColumn(), $perPage, $page);
         $stmt = $pdo->prepare(
-            'SELECT id, username, role, status, api_key_mask, created_ms, last_login_ms,
+            'SELECT id, username, role, status, api_key, created_ms, last_login_ms,
                     (SELECT COUNT(*) FROM sessions s WHERE s.user_id = users.id) AS sessions_count
              FROM users' . $where . ' ORDER BY created_ms DESC LIMIT ' . $perPage . ' OFFSET ' . $meta['offset']
         );
         $stmt->execute($params);
         $meta['rows'] = $stmt->fetchAll();
         return $meta;
+    }
+
+    /** 单个用户的完整资料：账号字段（含明文 API Key、密码哈希）、统计、最近会话与附件 */
+    public static function userDetail(string $userId): ?array
+    {
+        $pdo = Database::pdo();
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE id = ?');
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch();
+        if (!$user) {
+            return null;
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT COUNT(*) AS total, COALESCE(SUM(messages_count), 0) AS messages,
+                    COALESCE(SUM(input_tokens), 0) AS input_tokens, COALESCE(SUM(output_tokens), 0) AS output_tokens
+             FROM sessions WHERE user_id = ?'
+        );
+        $stmt->execute([$userId]);
+        $sessions = $stmt->fetch();
+
+        $stmt = $pdo->prepare('SELECT COUNT(*) AS total, COALESCE(SUM(size), 0) AS bytes FROM files WHERE user_id = ?');
+        $stmt->execute([$userId]);
+        $files = $stmt->fetch();
+
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM auth_tokens WHERE user_id = ?');
+        $stmt->execute([$userId]);
+        $tokens = (int) $stmt->fetchColumn();
+
+        $stmt = $pdo->prepare(
+            'SELECT id, title, messages_count, input_tokens, output_tokens, created_ms, updated_ms
+             FROM sessions WHERE user_id = ? ORDER BY updated_ms DESC LIMIT 50'
+        );
+        $stmt->execute([$userId]);
+        $sessionRows = $stmt->fetchAll();
+
+        $stmt = $pdo->prepare(
+            'SELECT id, name, size, is_image, mime_type, created_ms
+             FROM files WHERE user_id = ? ORDER BY created_ms DESC LIMIT 50'
+        );
+        $stmt->execute([$userId]);
+        $fileRows = $stmt->fetchAll();
+
+        return [
+            'user' => $user,
+            'stats' => [
+                'sessions' => (int) $sessions['total'],
+                'messages' => (int) $sessions['messages'],
+                'inputTokens' => (int) $sessions['input_tokens'],
+                'outputTokens' => (int) $sessions['output_tokens'],
+                'files' => (int) $files['total'],
+                'fileBytes' => (int) $files['bytes'],
+                'tokens' => $tokens,
+            ],
+            'sessions' => $sessionRows,
+            'files' => $fileRows,
+        ];
     }
 
     public static function createUser(string $username, string $password, string $role): void

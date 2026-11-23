@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use App\Bootstrap;
 use App\Services\AdminService;
+use App\Services\Captcha;
 use App\Services\SiteSettings;
 use App\Services\UserService;
 use App\Support\Auth;
@@ -43,9 +44,9 @@ function fmt_bytes(int $bytes): string
     return ($unit === 0 ? (string) (int) $value : number_format($value, 1)) . ' ' . $units[$unit];
 }
 
-function admin_redirect(string $page, ?string $ok = null, ?string $error = null): never
+function admin_redirect(string $page, ?string $ok = null, ?string $error = null, array $extra = []): never
 {
-    $params = ['page' => $page];
+    $params = ['page' => $page] + $extra;
     if ($ok !== null) {
         $params['ok'] = $ok;
     }
@@ -66,6 +67,10 @@ if (Request::method() === 'POST' && ($_POST['action'] ?? '') === 'login') {
     $password = (string) ($_POST['password'] ?? '');
     $ip = Request::ip();
     try {
+        Captcha::verify(
+            isset($_POST['captcha_id']) ? (string) $_POST['captcha_id'] : '',
+            isset($_POST['captcha_code']) ? (string) $_POST['captcha_code'] : ''
+        );
         UserService::checkLoginAllowed($username, $ip);
         $row = $username === '' ? null : UserService::findByUsername($username);
         if ($row === null || !password_verify($password, (string) $row['password_hash'])) {
@@ -88,6 +93,7 @@ if (Request::method() === 'POST' && ($_POST['action'] ?? '') === 'login') {
 
 if (!$isAdmin) {
     $flashError = isset($_GET['err']) ? (string) $_GET['err'] : null;
+    $captcha = Captcha::generate(Request::ip());
     require __DIR__ . '/pages/login.php';
     exit;
 }
@@ -99,6 +105,8 @@ if (Request::method() === 'POST') {
         admin_redirect('dashboard', null, '表单已过期，请重试');
     }
     $id = (string) ($_POST['id'] ?? '');
+    $back = (string) ($_POST['back'] ?? 'dashboard');
+    $backExtra = $back === 'user' ? ['id' => $id] : [];
     try {
         switch ($action) {
             case 'logout':
@@ -117,12 +125,12 @@ if (Request::method() === 'POST') {
                 $role = ($_POST['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
                 AdminService::setRole($id, $role);
                 AdminService::log((string) $user['id'], 'user.role', 'user', $id, $role);
-                admin_redirect('users', '角色已更新');
+                admin_redirect($back, '角色已更新', null, $backExtra);
             case 'user_status':
                 $enabled = ($_POST['status'] ?? '1') === '1';
                 AdminService::setStatus($id, $enabled);
                 AdminService::log((string) $user['id'], 'user.status', 'user', $id, $enabled ? 'enabled' : 'disabled');
-                admin_redirect('users', '状态已更新');
+                admin_redirect($back, '状态已更新', null, $backExtra);
             case 'user_password':
                 $password = (string) ($_POST['password'] ?? '');
                 if (strlen($password) < 8) {
@@ -131,11 +139,11 @@ if (Request::method() === 'POST') {
                 UserService::updatePassword($id, $password);
                 Auth::revokeOtherTokens($id);
                 AdminService::log((string) $user['id'], 'user.password', 'user', $id);
-                admin_redirect('users', '密码已重置');
+                admin_redirect($back, '密码已重置', null, $backExtra);
             case 'user_clear_key':
                 UserService::deleteApiKey($id);
                 AdminService::log((string) $user['id'], 'user.apiKey.clear', 'user', $id);
-                admin_redirect('users', 'API Key 已清除');
+                admin_redirect($back, 'API Key 已清除', null, $backExtra);
             case 'user_delete':
                 if ($id === (string) $user['id']) {
                     throw new \App\Support\HttpError('不能删除当前登录的账号', 422);
@@ -185,7 +193,7 @@ if ($export !== '') {
         foreach (AdminService::listUsers((string) ($_GET['q'] ?? ''), 1, 10000)['rows'] as $row) {
             fputcsv($out, [
                 $row['id'], $row['username'], $row['role'], (int) $row['status'] === 1 ? '正常' : '禁用',
-                $row['api_key_mask'] ?: '', (int) $row['sessions_count'],
+                $row['api_key'] ?? '', (int) $row['sessions_count'],
                 fmt_ms((int) $row['created_ms']), fmt_ms($row['last_login_ms'] !== null ? (int) $row['last_login_ms'] : null),
             ]);
         }
@@ -205,7 +213,7 @@ if ($export !== '') {
 /* ---------------------------------------------------------------- 页面数据 */
 
 $page = (string) ($_GET['page'] ?? 'dashboard');
-$pages = ['dashboard', 'users', 'sessions', 'session', 'settings', 'logs'];
+$pages = ['dashboard', 'users', 'user', 'sessions', 'session', 'settings', 'logs'];
 if (!in_array($page, $pages, true)) {
     $page = 'dashboard';
 }
@@ -219,6 +227,13 @@ switch ($page) {
         break;
     case 'users':
         $data = ['list' => AdminService::listUsers($q, $pageNo, ADMIN_PER_PAGE)];
+        break;
+    case 'user':
+        $detail = AdminService::userDetail((string) ($_GET['id'] ?? ''));
+        if ($detail === null) {
+            admin_redirect('users', null, '用户不存在');
+        }
+        $data = ['detail' => $detail];
         break;
     case 'sessions':
         $data = ['list' => AdminService::listSessions($q, $pageNo, ADMIN_PER_PAGE)];
@@ -241,6 +256,7 @@ switch ($page) {
 $titles = [
     'dashboard' => '概览',
     'users' => '用户管理',
+    'user' => '用户详情',
     'sessions' => '会话管理',
     'session' => '会话详情',
     'settings' => '站点设置',

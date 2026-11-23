@@ -78,11 +78,14 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
  * 会话读完立即暂存，只保留图片路径映射；图片全部读完后逐会话回填 MIME，不改变图片身份。
  * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
  */
-export const importArchive = async (file: File): Promise<void> => {
+export const importArchive = async (
+  file: File,
+  onProgress?: (ratio: number) => void
+): Promise<void> => {
   if (!(await isZipFile(file))) {
     fail('backupUnrecognized')
   }
-  const imported = new Set<string>()
+  const imported = new Map<string, SessionIndexEntry>()
   const images = new Map<string, string>()
   /** 已保存的原件：文件 ID → MIME。同一图片出现在多个会话目录时只保存一次。 */
   const stored = new Map<string, string>()
@@ -102,7 +105,7 @@ export const importArchive = async (file: File): Promise<void> => {
   }
 
   try {
-    for await (const entry of readArchive(file)) {
+    for await (const entry of readArchive(file, onProgress)) {
       const { path } = entry
       const sessionId = parseSessionPath(path)
       if (!manifest) {
@@ -119,7 +122,14 @@ export const importArchive = async (file: File): Promise<void> => {
         if (local.session.id !== sessionId || imported.has(sessionId)) {
           fail('backupIncomplete')
         }
-        imported.add(sessionId)
+        imported.set(sessionId, {
+          id: sessionId,
+          title: local.session.title || null,
+          pinned: false,
+          message_count: local.session.messages.length,
+          inserted_at: new Date(local.session.createdAt).toISOString(),
+          updated_at: new Date(local.session.updatedAt).toISOString(),
+        })
         currentSessionId = sessionId
         for (const [imagePath, id] of local.images) {
           images.set(imagePath, id)
@@ -145,13 +155,16 @@ export const importArchive = async (file: File): Promise<void> => {
   if (!manifest) {
     fail('backupUnrecognized')
   }
+  // 兼容不带 index 的旧版归档：按已导入会话补出索引
+  if (!index) {
+    index = [...imported.values()]
+  }
   // index 只列出成功写出的会话，与会话文件一一对应。
-  const listed = new Set(index?.map((entry) => entry.id))
+  const listed = new Set(index.map((entry) => entry.id))
   if (
-    !index ||
     listed.size !== index.length ||
     listed.size !== imported.size ||
-    [...imported].some((id) => !listed.has(id))
+    [...imported.keys()].some((id) => !listed.has(id))
   ) {
     fail('backupIncomplete')
   }

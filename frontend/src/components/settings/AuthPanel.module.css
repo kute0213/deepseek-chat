@@ -81,6 +81,65 @@
   line-height: 20px;
 }
 
+.captchaRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.captchaRow .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.captchaRefresh {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dsw-alias-label-caption);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.captchaRefresh img {
+  display: block;
+  width: 132px;
+  height: 42px;
+  object-fit: cover;
+}
+
+.agreement {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.agreement input {
+  margin: 3px 0 0;
+  accent-color: var(--dsw-alias-brand-primary);
+}
+
+.agreement a {
+  color: var(--dsw-alias-brand-primary);
+  text-decoration: none;
+}
+
+.agreement a:hover {
+  text-decoration: underline;
+}
+
 .submit {
   width: 100%;
   margin-top: 4px;

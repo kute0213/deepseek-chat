@@ -11,7 +11,8 @@ $html = static function (string $file, int $status = 200): bool {
 };
 
 if ($path === '/') {
-    return $html('/index.html');
+    require __DIR__ . '/index.php';
+    return true;
 }
 
 if (is_file(__DIR__ . $path)) {
@@ -28,9 +29,10 @@ if (str_starts_with($path, '/api/')) {
     return true;
 }
 
-// 缺失的静态资源返回 404 页面，其余路径交给前端路由
+// 缺失的静态资源返回 404 页面，其余路径交给 PHP 输出前端页面
 if (preg_match('#\.[A-Za-z0-9]{1,8}$#', $path)) {
     return $html('/404.html', 404);
 }
 
-return $html('/index.html');
+require __DIR__ . '/index.php';
+return true;

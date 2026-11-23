@@ -11,7 +11,17 @@ export type SiteInfo = {
 
 type SiteState = { info: SiteInfo | null }
 
-export const useSite = create<SiteState>(() => ({ info: null }))
+declare global {
+  interface Window {
+    /** 由 PHP 首页注入的公开站点信息，用于首屏渲染 */
+    __SITE__?: SiteInfo
+  }
+}
+
+const embedded = typeof window === 'undefined' ? null : window.__SITE__
+const initialInfo = embedded && typeof embedded.siteName === 'string' ? embedded : null
+
+export const useSite = create<SiteState>(() => ({ info: initialInfo }))
 
 let loading: Promise<void> | null = null
 

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { login, register } from '../../services/auth.js'
+import { requestJson } from '../../services/http.js'
 import { useSite } from '../../services/site.js'
 import { useTranslate } from '../../i18n/index.js'
 import { Button } from '../base/Button.js'
@@ -8,6 +9,7 @@ import { closeSettings } from './settingsDialogState.js'
 import styles from './AuthPanel.module.css'
 
 type Mode = 'login' | 'register'
+type CaptchaData = { id: string; image: string }
 
 /** 设置里的登录 / 注册：游客可直接进入聊天，发送消息时再引导到这里 */
 export const AuthPanel = () => {
@@ -17,11 +19,28 @@ export const AuthPanel = () => {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [captcha, setCaptcha] = useState<CaptchaData | null>(null)
+  const [captchaCode, setCaptchaCode] = useState('')
+  const [agreed, setAgreed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // 站点信息加载失败时也保留注册入口，是否开放由服务端最终校验
   const allowRegister = site?.allowRegister ?? true
+
+  const loadCaptcha = async () => {
+    try {
+      const data = await requestJson<CaptchaData>('/api/auth/captcha', 'GET')
+      setCaptcha(data)
+      setCaptchaCode('')
+    } catch {
+      setCaptcha(null)
+    }
+  }
+
+  useEffect(() => {
+    void loadCaptcha()
+  }, [])
 
   const submit = async () => {
     if (busy) {
@@ -47,18 +66,28 @@ export const AuthPanel = () => {
         return
       }
     }
+    if (!agreed) {
+      setError(t('authAgreementRequired'))
+      return
+    }
+    if (!captcha || captchaCode.trim().length !== 4) {
+      setError(t('authCaptchaRequired'))
+      return
+    }
     setBusy(true)
     try {
       if (mode === 'login') {
-        await login(name, password)
+        await login(name, password, captcha.id, captchaCode.trim())
       } else {
-        await register(name, password)
+        await register(name, password, captcha.id, captchaCode.trim())
       }
       showToast({ key: mode === 'login' ? 'authLoginSuccess' : 'authRegisterSuccess' })
       closeSettings()
     } catch (cause) {
       setError(cause instanceof Error && cause.message ? cause.message : t('authFailed'))
       setBusy(false)
+      // 验证码验证后即失效，失败时统一刷新
+      void loadCaptcha()
     }
   }
 
@@ -127,6 +156,43 @@ export const AuthPanel = () => {
             onChange={(event) => setConfirm(event.target.value)}
           />
         ) : null}
+        <div className={styles.captchaRow}>
+          <input
+            className={styles.input}
+            placeholder={t('authCaptchaPlaceholder')}
+            autoComplete="off"
+            spellCheck={false}
+            maxLength={4}
+            value={captchaCode}
+            onChange={(event) => setCaptchaCode(event.target.value)}
+          />
+          <button
+            type="button"
+            className={styles.captchaRefresh}
+            title={t('authCaptchaRefresh')}
+            aria-label={t('authCaptchaRefresh')}
+            onClick={() => void loadCaptcha()}
+          >
+            {captcha ? (
+              <img src={captcha.image} alt={t('authCaptchaLabel')} />
+            ) : (
+              <span>{t('authCaptchaRefresh')}</span>
+            )}
+          </button>
+        </div>
+        <label className={styles.agreement}>
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(event) => setAgreed(event.target.checked)}
+          />
+          <span>
+            {t('authAgreementPrefix')}
+            <a href="/terms.html" target="_blank" rel="noopener noreferrer">
+              {t('authAgreementLink')}
+            </a>
+          </span>
+        </label>
         {error ? (
           <div className={styles.error} role="alert">
             {error}

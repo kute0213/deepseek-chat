@@ -6,6 +6,7 @@ require __DIR__ . '/app/Bootstrap.php';
 use App\Bootstrap;
 use App\Controllers\AccountController;
 use App\Controllers\AuthController;
+use App\Controllers\CaptchaController;
 use App\Controllers\ChatController;
 use App\Controllers\FileController;
 use App\Controllers\HistoryController;
@@ -13,6 +14,7 @@ use App\Controllers\IdController;
 use App\Controllers\SessionController;
 use App\Controllers\SiteController;
 use App\Controllers\SpeechController;
+use App\Services\HomePage;
 use App\Router;
 use App\Support\Config;
 
@@ -26,10 +28,9 @@ if (!Config::installed()) {
 $path = App\Support\Request::path();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-// 服务器把 index.php 当作默认首页时，非 API 请求直接返回前端页面
+// 非 API 的 GET 请求由 PHP 输出前端页面，注入站点名称与公开配置
 if ($method === 'GET' && !str_starts_with($path, '/api/')) {
-    header('Content-Type: text/html; charset=utf-8');
-    readfile(__DIR__ . '/index.html');
+    HomePage::render();
     exit;
 }
 
@@ -37,6 +38,7 @@ $router = new Router();
 
 $router->get('/api/site', [SiteController::class, 'show']);
 
+$router->get('/api/auth/captcha', [CaptchaController::class, 'show']);
 $router->post('/api/auth/register', [AuthController::class, 'register']);
 $router->post('/api/auth/login', [AuthController::class, 'login']);
 $router->post('/api/auth/logout', [AuthController::class, 'logout']);

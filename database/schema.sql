@@ -109,6 +109,16 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     PRIMARY KEY (username, ip)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS captchas (
+    id CHAR(32) NOT NULL,
+    answer_hash CHAR(64) NOT NULL,
+    ip VARCHAR(45) NOT NULL DEFAULT '',
+    created_ms BIGINT NOT NULL,
+    expires_ms BIGINT NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_captchas_expires (expires_ms)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS admin_logs (
     id BIGINT UNSIGNED NOT NULL,
     admin_id BIGINT UNSIGNED NOT NULL,

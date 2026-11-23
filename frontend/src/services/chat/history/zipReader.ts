@@ -238,8 +238,12 @@ export type ArchiveEntry = {
  * 按条目在文件中的物理顺序逐条、逐块解压，跳过目录条目。
  * 调用方必须消费完当前条目的数据，再请求下一个条目。
  */
-export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
+export async function* readArchive(
+  file: File,
+  onProgress?: (ratio: number) => void
+): AsyncGenerator<ArchiveEntry> {
   const directory = await readDirectory(file)
+  onProgress?.(0)
   for (const [index, entry] of directory.entries.entries()) {
     const boundary = directory.entries[index + 1]?.offset ?? directory.offset
     const start = await readEntryOffset(file, entry, boundary)
@@ -273,6 +277,7 @@ export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
         if (!inflate) {
           append(chunk)
           yield* pending.splice(0)
+          onProgress?.(Math.min(1, (start + offset + chunk.length) / file.size))
           continue
         }
         for (let cursor = 0; cursor < chunk.length; cursor += INFLATE_CHUNK_BYTES) {
@@ -281,6 +286,7 @@ export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
           // yield 暂停解压，等待调用方完成异步写入；不缓存整个条目。
           yield* pending.splice(0)
         }
+        onProgress?.(Math.min(1, (start + offset + chunk.length) / file.size))
       }
       if (inflate && entry.compressedSize === 0) {
         inflate.push(new Uint8Array(), true)

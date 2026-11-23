@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Services\Captcha;
 use App\Services\SiteSettings;
 use App\Services\UserService;
 use App\Support\Auth;
@@ -20,6 +21,7 @@ final class AuthController
         $body = $request->json();
         $username = trim((string) ($body['username'] ?? ''));
         $password = (string) ($body['password'] ?? '');
+        Captcha::verify($body['captchaId'] ?? '', $body['captchaCode'] ?? '');
         $user = UserService::create($username, $password);
         $login = Auth::login((string) $user['id']);
 
@@ -34,6 +36,7 @@ final class AuthController
         if ($username === '' || $password === '') {
             throw new HttpError('请输入用户名和密码', 422);
         }
+        Captcha::verify($body['captchaId'] ?? '', $body['captchaCode'] ?? '');
 
         $ip = Request::ip();
         UserService::checkLoginAllowed($username, $ip);

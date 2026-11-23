@@ -546,12 +546,14 @@ const SettingCell = ({
   label,
   description,
   status,
+  progress,
   action,
   className,
 }: {
   label: string
   description?: string
   status: Status
+  progress?: number | null
   action: ReactNode
   className?: string
 }) => {
@@ -567,6 +569,17 @@ const SettingCell = ({
               : description}
           </div>
         ) : null}
+        {progress != null ? (
+          <div
+            className={styles.progress}
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress}
+          >
+            <div style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
+          </div>
+        ) : null}
       </div>
       {action}
     </div>
@@ -577,6 +590,7 @@ const SettingCell = ({
 const useHistoryImport = () => {
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
+  const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState<Status>(null)
   const importing = useRef(false)
 
@@ -587,19 +601,21 @@ const useHistoryImport = () => {
     importing.current = true
     setFile(null)
     setBusy(true)
+    setProgress(0)
     setStatus(null)
     try {
-      const count = await importHistory(file)
+      const count = await importHistory(file, setProgress)
       setStatus({ key: count === 1 ? 'historyImportedOne' : 'historyImported', params: { count } })
-    } catch {
-      setStatus({ key: 'historyImportFailed', error: true })
+    } catch (error) {
+      setStatus(errorStatus('historyImportFailed', error))
     } finally {
       importing.current = false
       setBusy(false)
+      setProgress(0)
     }
   }
 
-  return { file, busy, status, select: setFile, cancel: () => setFile(null), confirm }
+  return { file, busy, progress, status, select: setFile, cancel: () => setFile(null), confirm }
 }
 
 /** 导入 = 覆盖：用选中文件替换本地全部会话与附件。 */
@@ -617,7 +633,12 @@ const ImportHistory = ({
     <SettingCell
       label={t('historyImport')}
       description={t('historyImportDescription')}
-      status={historyImport.status}
+      status={
+        historyImport.busy
+          ? { key: 'historyImporting', params: { percent: historyImport.progress } }
+          : historyImport.status
+      }
+      progress={historyImport.busy ? historyImport.progress : null}
       action={
         <>
           <Button

@@ -71,11 +71,12 @@ $base = ['page' => 'users', 'q' => $q];
                         <span class="tag danger">禁用</span>
                     <?php endif; ?>
                 </td>
-                <td class="mono"><?= e($row['api_key_mask'] ?: '—') ?></td>
+                <td class="mono key-cell"><?= e(($row['api_key'] ?? '') !== '' ? $row['api_key'] : '—') ?></td>
                 <td><?= (int) $row['sessions_count'] ?></td>
                 <td class="muted"><?= e(fmt_ms((int) $row['created_ms'])) ?></td>
                 <td class="muted"><?= e(fmt_ms($row['last_login_ms'] !== null ? (int) $row['last_login_ms'] : null)) ?></td>
                 <td class="actions">
+                    <a class="link" href="<?= e(admin_url(['page' => 'user', 'id' => $row['id']])) ?>">查看</a>
                     <form class="mini" method="post">
                         <input type="hidden" name="action" value="user_status">
                         <input type="hidden" name="csrf" value="<?= e($user['csrf_token']) ?>">
@@ -95,7 +96,7 @@ $base = ['page' => 'users', 'q' => $q];
                             <button class="btn small" type="submit">保存</button>
                         </form>
                     </details>
-                    <?php if ($row['api_key_mask']): ?>
+                    <?php if (($row['api_key'] ?? '') !== ''): ?>
                         <form class="mini" method="post" onsubmit="return confirm('确定清除该用户的 API Key？')">
                             <input type="hidden" name="action" value="user_clear_key">
                             <input type="hidden" name="csrf" value="<?= e($user['csrf_token']) ?>">

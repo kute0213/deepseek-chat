@@ -282,6 +282,13 @@ tbody tr:last-child td {
     font-size: 12px;
 }
 
+.key-cell {
+    max-width: 320px;
+    white-space: normal;
+    word-break: break-all;
+    line-height: 1.45;
+}
+
 .muted {
     color: var(--muted);
 }
@@ -471,6 +478,23 @@ details > summary {
 .login-card label span {
     color: var(--muted);
     font-size: 13px;
+}
+
+.captcha-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.captcha-row input {
+    flex: 1;
+    min-width: 0;
+}
+
+.captcha-row img {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
 }
 
 .login-card .btn {

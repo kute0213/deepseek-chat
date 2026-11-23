@@ -27,7 +27,7 @@ $nav = [
         <div class="brand">管理控制台</div>
         <nav>
             <?php foreach ($nav as $key => $label): ?>
-                <a class="nav<?= $page === $key || ($page === 'session' && $key === 'sessions') ? ' active' : '' ?>"
+                <a class="nav<?= $page === $key || ($page === 'session' && $key === 'sessions') || ($page === 'user' && $key === 'users') ? ' active' : '' ?>"
                    href="<?= e(admin_url(['page' => $key])) ?>"><?= e($label) ?></a>
             <?php endforeach; ?>
         </nav>
