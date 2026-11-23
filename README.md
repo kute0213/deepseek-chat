@@ -23,6 +23,7 @@
 ├── .user.ini              # PHP-FPM/CGI 上传与执行时间限制
 ├── index.html             # 前端构建产物（由 frontend 构建生成）
 ├── static/                # 前端构建产物
+├── install/               # /install 兼容入口（未开启伪静态的服务器使用）
 ├── app/                   # 业务代码
 │   ├── Controllers/       # API 控制器
 │   ├── Services/          # 会话、附件、导入、验证码、首页渲染、后台数据
@@ -56,6 +57,7 @@
 2. 确保 `uploads/` 可写（安装向导会自动创建 `uploads/config/` 等子目录）。
 3. 浏览器访问 `/install`，填写 MySQL 地址、库名、账号密码，创建管理员账号。
    - 安装程序会自动建库、建表、生成 `uploads/config/config.php` 与 `uploads/config/installed.lock`。
+   - 未开启伪静态的服务器也可通过 `install/` 目录入口进入，安装表单提交固定走 `/index.php?_r=/install`。
    - 若数据库已存在同名库，请确认使用空库或备份后继续。
 4. 安装完成后访问 `/` 即可直接进入聊天；未登录时发送消息会引导在设置中登录 / 注册。管理员访问 `/admin/` 登录后台。
 5. 导入历史或上传大附件需要更高的 PHP 限制：PHP-FPM/CGI 读取根目录 `.user.ini`（128M / 900s），Apache `mod_php` 读取 `.htaccess` 中的 `php_value`；Nginx + PHP-FPM 需同步 `client_max_body_size 128m;`。
