@@ -71,6 +71,22 @@ CREATE TABLE IF NOT EXISTS session_files (
     KEY idx_session_files_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS share_links (
+    token CHAR(32) NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    session_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(255) NOT NULL DEFAULT '',
+    data LONGTEXT NOT NULL,
+    views INT NOT NULL DEFAULT 0,
+    revoked TINYINT NOT NULL DEFAULT 0,
+    created_ms BIGINT NOT NULL,
+    expires_ms BIGINT NULL,
+    PRIMARY KEY (token),
+    KEY idx_shares_user (user_id, created_ms),
+    KEY idx_shares_session (session_id),
+    KEY idx_shares_created (created_ms)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS staging_sessions (
     user_id BIGINT UNSIGNED NOT NULL,
     id VARCHAR(64) NOT NULL,

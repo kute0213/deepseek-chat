@@ -22,6 +22,7 @@ final class AdminService
         )->fetch();
         $files = $pdo->query('SELECT COUNT(*) AS total, COALESCE(SUM(size), 0) AS bytes FROM files')->fetch();
         $logs = $pdo->query('SELECT COUNT(*) FROM admin_logs')->fetchColumn();
+        $shares = ShareService::stats();
 
         return [
             'users' => (int) $users['total'],
@@ -33,6 +34,9 @@ final class AdminService
             'files' => (int) $files['total'],
             'fileBytes' => (int) $files['bytes'],
             'logs' => (int) $logs,
+            'shares' => $shares['total'],
+            'activeShares' => $shares['active'],
+            'shareViews' => $shares['views'],
         ];
     }
 
@@ -166,6 +170,7 @@ final class AdminService
                 $stmt = $pdo->prepare('DELETE FROM ' . $table . ' WHERE user_id = ?');
                 $stmt->execute([$userId]);
             }
+            ShareService::deleteByUser($userId);
             $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
             $stmt->execute([$userId]);
         });

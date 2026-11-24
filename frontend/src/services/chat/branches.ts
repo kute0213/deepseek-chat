@@ -115,3 +115,40 @@ export const selectVersion = (original: Session, messageId: string): Session => 
     ),
   }
 }
+
+/**
+ * 撤销某一轮对话：从当前路径上的该条提问开始，连同其后的提问与回答一起删除，
+ * 同时清理这些消息派生出的其他版本，避免留下孤立分支。
+ */
+export const truncateFrom = (original: Session, messageId: string): Session => {
+  const session = normalizeSession(original)
+  const path = getVisibleMessages(session)
+  const index = path.findIndex((message) => message.id === messageId)
+  if (index < 0) {
+    return original
+  }
+  const removed = new Set(path.slice(index).map((message) => message.id))
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const message of session.messages) {
+      if (!removed.has(message.id) && message.parentId && removed.has(message.parentId)) {
+        removed.add(message.id)
+        changed = true
+      }
+    }
+  }
+  const kept = session.messages
+    .filter((message) => !removed.has(message.id))
+    .map((message) =>
+      message.selectedChildId && removed.has(message.selectedChildId)
+        ? { ...message, selectedChildId: undefined }
+        : message
+    )
+  return {
+    ...session,
+    rootMessageId:
+      session.rootMessageId && removed.has(session.rootMessageId) ? null : session.rootMessageId,
+    messages: kept,
+  }
+}

@@ -12,6 +12,7 @@ use App\Controllers\FileController;
 use App\Controllers\HistoryController;
 use App\Controllers\IdController;
 use App\Controllers\SessionController;
+use App\Controllers\ShareController;
 use App\Controllers\SiteController;
 use App\Controllers\SpeechController;
 use App\Services\HomePage;
@@ -69,7 +70,14 @@ $router->get('/api/account/balance', [AccountController::class, 'balance']);
 $router->post('/api/ids', [IdController::class, 'create']);
 
 $router->get('/api/sessions', [SessionController::class, 'index']);
+$router->get('/api/sessions/search', [SessionController::class, 'search']);
 $router->get('/api/sessions/{id}', [SessionController::class, 'show']);
+
+$router->get('/api/shares', [ShareController::class, 'index']);
+$router->post('/api/shares', [ShareController::class, 'create']);
+$router->delete('/api/shares/{token}', [ShareController::class, 'revoke']);
+$router->get('/api/share/{token}', [ShareController::class, 'show']);
+$router->post('/api/share/{token}/fork', [ShareController::class, 'fork']);
 $router->put('/api/sessions/{id}', [SessionController::class, 'save']);
 $router->patch('/api/sessions/{id}', [SessionController::class, 'rename']);
 $router->delete('/api/sessions/{id}', [SessionController::class, 'delete']);

@@ -59,6 +59,23 @@ export const loadSessionSummaries = async (
   return { sessions: page.sessions ?? [], nextCursor: page.nextCursor ?? null }
 }
 
+/** 会话搜索命中项：messageId 为空表示仅标题命中 */
+export type SearchResult = {
+  sessionId: string
+  title: string
+  updatedAt: number
+  messageId: string | null
+  snippet: string
+}
+
+export const searchSessions = async (query: string): Promise<SearchResult[]> => {
+  const data = await requestJson<{ results?: SearchResult[] }>(
+    `/api/sessions/search?q=${encodeURIComponent(query)}`,
+    'GET'
+  )
+  return data.results ?? []
+}
+
 /** 打开会话时分页返回的消息窗口：hasMore 表示还有更早的消息，nextCursor 用于继续加载。 */
 export type SessionMessagesPage = Session & { hasMore?: boolean; nextCursor?: string | null }
 

@@ -1,10 +1,15 @@
 import clsx from 'clsx'
+import { useState } from 'react'
 import { useIsMobile } from '../../app/viewport.js'
 import { useTranslate } from '../../i18n/index.js'
+import { useAuth } from '../../services/auth.js'
 import type { Session } from '../../services/chat/types.js'
+import { IconLinkOutline16 } from '../base/icons.js'
+import { IconButton } from '../base/IconButton.js'
 import { ChatInput } from '../chatInput/ChatInput.js'
 import { MessageList } from '../messages/MessageList.js'
 import { MessageNavigator } from '../messages/MessageNavigator.js'
+import { ShareDialog } from '../share/ShareDialog.js'
 import { MobileHeader } from './MobileHeader.js'
 import styles from './SessionView.module.css'
 
@@ -20,16 +25,32 @@ export const SessionView = ({
 }) => {
   const t = useTranslate()
   const isMobile = useIsMobile()
+  const loggedIn = useAuth((state) => state.user !== null)
+  const [sharing, setSharing] = useState(false)
   const title = session.title || t('untitledChat')
   return (
     <div className={styles.view}>
       {isMobile ? (
-        <MobileHeader title={title} />
+        <MobileHeader
+          title={title}
+          onShare={loggedIn ? () => setSharing(true) : undefined}
+        />
       ) : (
         <div className={styles.header}>
           <div className={clsx(styles.title, siderCollapsed && styles.withCollapsedSider)}>
             {title}
           </div>
+          {loggedIn ? (
+            <div className={styles.headerActions}>
+              <IconButton
+                size="m"
+                icon={<IconLinkOutline16 />}
+                tooltip={t('shareDialogTitle')}
+                tooltipPlacement="bottom"
+                onClick={() => setSharing(true)}
+              />
+            </div>
+          ) : null}
         </div>
       )}
       <MessageList
@@ -43,6 +64,9 @@ export const SessionView = ({
         }
       />
       <MessageNavigator session={session} />
+      {sharing ? (
+        <ShareDialog sessionId={session.id} onClose={() => setSharing(false)} />
+      ) : null}
     </div>
   )
 }

@@ -12,7 +12,7 @@ import {
   useUploads,
 } from '../attachments.js'
 import { useSettings } from '../settings.js'
-import { appendBranch, getVisibleMessages, normalizeSession, selectVersion } from './branches.js'
+import { appendBranch, getVisibleMessages, normalizeSession, selectVersion, truncateFrom } from './branches.js'
 import * as db from './db.js'
 import {
   clearAllDrafts,
@@ -960,6 +960,40 @@ export const editMessage = (sessionId: string, messageId: string, content: strin
   }))
   persist(sessionId)
   void streamReply(sessionId, reply, { history: path.slice(0, index), question })
+  return true
+}
+
+/**
+ * 撤销某一轮对话：删除该轮提问、回答以及之后的全部消息，并同步到服务端。
+ * 生成中或正在导入时不允许操作；先补齐全部分页，避免保存时被服务端合并回旧消息。
+ */
+export const undoRound = async (sessionId: string, assistantId: string): Promise<boolean> => {
+  if (get().importingHistory || deletingSessions.has(sessionId)) {
+    return false
+  }
+  if (!getSession(sessionId) || getStreamController(sessionId)) {
+    return false
+  }
+  let guard = 0
+  while (get().messagePages[sessionId]?.hasMore && guard < 50) {
+    guard += 1
+    await loadOlderMessages(sessionId)
+  }
+  const session = getSession(sessionId)
+  if (!session) {
+    return false
+  }
+  const path = getVisibleMessages(session)
+  const index = path.findIndex((message) => message.id === assistantId)
+  const question = path[index - 1]
+  if (index < 1 || question?.role !== 'user') {
+    return false
+  }
+  updateSession(sessionId, (current) => ({
+    ...truncateFrom(current, question.id),
+    updatedAt: Date.now(),
+  }))
+  persist(sessionId)
   return true
 }
 

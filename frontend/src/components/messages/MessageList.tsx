@@ -6,6 +6,7 @@ import {
   type MessageVersions,
 } from '../../services/chat/branches.js'
 import { loadOlderMessages, selectMessageVersion, useChatStore } from '../../services/chat/store.js'
+import { clearMessageFocus, useMessageFocus } from '../../services/chat/focus.js'
 import type { Session } from '../../services/chat/types.js'
 import { useTranslate } from '../../i18n/index.js'
 import { closeSearchPanel } from '../search/searchPanelState.js'
@@ -61,6 +62,7 @@ export const MessageList = ({
   const messages = getVisibleMessages(session)
   const hasMore = useChatStore((state) => state.messagePages[session.id]?.hasMore ?? false)
   const loadingOlder = useChatStore((state) => state.messagePages[session.id]?.loading ?? false)
+  const focusTarget = useMessageFocus((state) => state.target)
   const [previousVersions, setPreviousVersions] = useState(() =>
     buildMessageVersions(session, new Map())
   )
@@ -168,6 +170,29 @@ export const MessageList = ({
   }, [firstMessageId, hasMore, loadingOlder, session.id])
 
   useEffect(closeSearchPanel, [session.id, lastMessageId])
+
+  // 搜索命中后跳转到对应消息：窗口里没有就先继续加载更早的消息，定位后短暂高亮。
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!focusTarget || focusTarget.sessionId !== session.id || !el) {
+      return
+    }
+    const node = el.querySelector<HTMLElement>(
+      `[data-message-id="${CSS.escape(focusTarget.messageId)}"]`
+    )
+    if (!node) {
+      if (hasMore && !loadingOlder) {
+        pendingPrependRef.current = { height: el.scrollHeight, top: el.scrollTop }
+        void loadOlderMessages(session.id)
+      }
+      return
+    }
+    stickyRef.current = false
+    node.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    node.classList.add(styles.flash)
+    window.setTimeout(() => node.classList.remove(styles.flash), 1800)
+    clearMessageFocus()
+  }, [focusTarget, session.id, hasMore, loadingOlder, messages.length])
 
   const selectVersion = useCallback(
     (messageId: string, anchorTop: number) => {

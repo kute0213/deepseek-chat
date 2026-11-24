@@ -17,6 +17,9 @@ import {
   importHistory,
 } from '../../services/chat/backup.js'
 import { changePassword, logout, renameUsername, useAuth } from '../../services/auth.js'
+import { loadMyShares, revokeShare, type ShareSummary } from '../../services/chat/shares.js'
+import { formatDate } from '../../utils/format.js'
+import { copyText } from '../../utils/clipboard.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { useChatStore } from '../../services/chat/store.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
@@ -117,6 +120,7 @@ const SettingsContent = () => {
               <DeepSeekPlatformSetting />
               <ImportHistory historyImport={historyImport} disabled={historyBusy} />
               <ExportHistory disabled={historyBusy} />
+              <MyShares />
               <SettingCell
                 label={t('deleteAllSessions')}
                 status={null}
@@ -768,6 +772,121 @@ const ImportHistory = ({
         </>
       }
     />
+  )
+}
+
+/** 我的分享：列出当前账号创建的分享链接，可复制、打开或撤销 */
+const MyShares = () => {
+  const t = useTranslate()
+  const [shares, setShares] = useState<ShareSummary[] | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [revoking, setRevoking] = useState<string | null>(null)
+
+  const load = async () => {
+    setFailed(false)
+    try {
+      setShares(await loadMyShares())
+    } catch {
+      setFailed(true)
+    }
+  }
+
+  useEffect(() => {
+    void load()
+  }, [])
+
+  const onRevoke = async (token: string) => {
+    if (revoking) {
+      return
+    }
+    setRevoking(token)
+    try {
+      await revokeShare(token)
+      setShares((previous) =>
+        previous?.map((item) => (item.token === token ? { ...item, revoked: true } : item)) ??
+        previous
+      )
+      showToast({ key: 'shareRevoked' })
+    } catch {
+      showToast({ key: 'shareRevokeFailed', type: 'error' })
+    } finally {
+      setRevoking(null)
+    }
+  }
+
+  return (
+    <div className={styles.shares}>
+      <div className={styles.shareHead}>
+        <div>
+          <div className={styles.shareLabel}>{t('myShares')}</div>
+          <div className={styles.shareDesc}>{t('mySharesDescription')}</div>
+        </div>
+        <Button variant="outlined" size="s" className={styles.cellButton} onClick={() => void load()}>
+          {t('retry')}
+        </Button>
+      </div>
+      {failed ? (
+        <div className={styles.shareEmpty}>{t('mySharesLoadFailed')}</div>
+      ) : shares === null ? (
+        <div className={styles.shareEmpty} role="status" aria-live="polite">
+          {t('sessionLoading')}
+        </div>
+      ) : shares.length === 0 ? (
+        <div className={styles.shareEmpty}>{t('mySharesEmpty')}</div>
+      ) : (
+        <div className={styles.shareList}>
+          {shares.map((share) => (
+            <div key={share.token} className={styles.shareRow}>
+              <div className={styles.shareInfo}>
+                {share.revoked ? (
+                  <span className={styles.shareTitleLink}>{share.title || t('untitledChat')}</span>
+                ) : (
+                  <a
+                    className={styles.shareTitleLink}
+                    href={share.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {share.title || t('untitledChat')}
+                  </a>
+                )}
+                <div className={styles.shareMeta}>
+                  {share.revoked ? t('shareStatusRevoked') : t('shareViews', { count: share.views })}
+                  <span>·</span>
+                  {formatDate(share.createdAt)}
+                </div>
+              </div>
+              <div className={styles.shareActions}>
+                <button
+                  type="button"
+                  className={styles.shareAction}
+                  onClick={async () => {
+                    const url = `${window.location.origin}${share.url}`
+                    if (await copyText(url)) {
+                      showToast({ key: 'shareLinkCopied' })
+                    } else {
+                      showToast({ key: 'copyFailed', type: 'error' })
+                    }
+                  }}
+                >
+                  {t('shareCopyLink')}
+                </button>
+                {share.revoked ? null : (
+                  <button
+                    type="button"
+                    className={clsx(styles.shareAction, styles.shareActionDanger)}
+                    disabled={revoking === share.token}
+                    onClick={() => void onRevoke(share.token)}
+                  >
+                    {t('shareRevoke')}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 use App\Bootstrap;
 use App\Services\AdminService;
 use App\Services\Captcha;
+use App\Services\ShareService;
 use App\Services\SiteSettings;
 use App\Services\UserService;
 use App\Support\Auth;
@@ -155,6 +156,18 @@ if (Request::method() === 'POST') {
                 AdminService::deleteSession($id);
                 AdminService::log((string) $user['id'], 'session.delete', 'session', $id);
                 admin_redirect('sessions', '会话已删除');
+            case 'share_revoke':
+                ShareService::setRevoked($id, true);
+                AdminService::log((string) $user['id'], 'share.revoke', 'share', $id);
+                admin_redirect($back === 'shares' ? 'shares' : 'dashboard', '分享已撤销');
+            case 'share_restore':
+                ShareService::setRevoked($id, false);
+                AdminService::log((string) $user['id'], 'share.restore', 'share', $id);
+                admin_redirect('shares', '分享已恢复');
+            case 'share_delete':
+                ShareService::delete($id);
+                AdminService::log((string) $user['id'], 'share.delete', 'share', $id);
+                admin_redirect('shares', '分享已删除');
             case 'settings_save':
                 $fields = [
                     'site_name' => mb_substr(trim((string) ($_POST['site_name'] ?? '')), 0, 64),
@@ -213,7 +226,7 @@ if ($export !== '') {
 /* ---------------------------------------------------------------- 页面数据 */
 
 $page = (string) ($_GET['page'] ?? 'dashboard');
-$pages = ['dashboard', 'users', 'user', 'sessions', 'session', 'settings', 'logs'];
+$pages = ['dashboard', 'users', 'user', 'sessions', 'session', 'shares', 'settings', 'logs'];
 if (!in_array($page, $pages, true)) {
     $page = 'dashboard';
 }
@@ -245,6 +258,9 @@ switch ($page) {
         }
         $data = ['session' => $session];
         break;
+    case 'shares':
+        $data = ['list' => ShareService::listAll($q, $pageNo, ADMIN_PER_PAGE)];
+        break;
     case 'settings':
         $data = ['settings' => SiteSettings::all()];
         break;
@@ -259,6 +275,7 @@ $titles = [
     'user' => '用户详情',
     'sessions' => '会话管理',
     'session' => '会话详情',
+    'shares' => '分享管理',
     'settings' => '站点设置',
     'logs' => '操作日志',
 ];

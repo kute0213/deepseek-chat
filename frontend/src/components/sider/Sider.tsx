@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
-import { IconPanelLeftOutline16, IconSettingsOutline16, IconUserOutline16, NewChatIcon } from '../base/icons.js'
+import { IconPanelLeftOutline16, IconSearchOutline16, IconSettingsOutline16, IconUserOutline16, NewChatIcon } from '../base/icons.js'
 import { setSiderCollapsed } from '../../services/settings.js'
 import { useSite } from '../../services/site.js'
 import { useAuth } from '../../services/auth.js'
@@ -15,6 +15,7 @@ import { showToast } from '../base/toastState.js'
 import { openSettings } from '../settings/settingsDialogState.js'
 import { closeMobileSider, useMobileSider } from './mobileSiderState.js'
 import { SessionItem } from './SessionItem.js'
+import { SearchDialog } from './SearchDialog.js'
 import styles from './Sider.module.css'
 
 /** 展开的侧边栏：名称与收起按钮、开启新对话、按时间分组的会话列表、底部设置；移动端放在抽屉里，收起按钮关闭抽屉 */
@@ -32,6 +33,48 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   const groups = useMemo(() => groupSessions(sessions, now, t), [sessions, now, t])
   const [deleting, setDeleting] = useState<SessionSummary | null>(null)
   const [deletePending, setDeletePending] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [batching, setBatching] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [batchConfirm, setBatchConfirm] = useState(false)
+  const [batchPending, setBatchPending] = useState(false)
+
+  const exitBatch = () => {
+    setBatching(false)
+    setSelected(new Set())
+  }
+
+  const toggleSelected = (id: string) => {
+    setSelected((previous) => {
+      const next = new Set(previous)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const allSelected = sessions.length > 0 && sessions.every((session) => selected.has(session.id))
+
+  const deleteSelected = async () => {
+    setBatchPending(true)
+    let failed = 0
+    for (const id of selected) {
+      if (!(await removeSession(id))) {
+        failed += 1
+      }
+    }
+    setBatchPending(false)
+    setBatchConfirm(false)
+    exitBatch()
+    showToast(
+      failed > 0
+        ? { key: 'batchDeletePartial', type: 'error' }
+        : { key: 'batchDeleteDone' }
+    )
+  }
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>
@@ -79,6 +122,15 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
     <div className={clsx(styles.sider, mobile && styles.mobile)}>
       <div className={styles.top}>
         <div className={styles.appName}>{siteName ?? t('appName')}</div>
+        {username ? (
+          <IconButton
+            size="m"
+            icon={<IconSearchOutline16 />}
+            tooltip={t('searchChats')}
+            tooltipPlacement="bottom"
+            onClick={() => setSearchOpen(true)}
+          />
+        ) : null}
         <IconButton
           size="m"
           icon={<IconUserOutline16 />}
@@ -117,6 +169,9 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
                   key={session.id}
                   session={session}
                   active={session.id === activeId}
+                  batch={batching}
+                  selected={selected.has(session.id)}
+                  onToggle={() => toggleSelected(session.id)}
                   onDelete={() => setDeleting(session)}
                 />
               ))}
@@ -129,6 +184,35 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
           ) : null}
         </div>
       </div>
+      {batching ? (
+        <div className={styles.batchBar}>
+          <button type="button" className={styles.batchLink} onClick={() => {
+            setSelected(allSelected ? new Set() : new Set(sessions.map((item) => item.id)))
+          }}>
+            {allSelected ? t('batchUnselectAll') : t('batchSelectAll')}
+          </button>
+          <span className={styles.batchCount}>{t('batchSelected', { count: selected.size })}</span>
+          <div className={styles.batchActions}>
+            <Button
+              variant="danger"
+              size="s"
+              disabled={selected.size === 0 || batchPending}
+              onClick={() => setBatchConfirm(true)}
+            >
+              {t('delete')}
+            </Button>
+            <button type="button" className={styles.batchLink} onClick={exitBatch}>
+              {t('cancel')}
+            </button>
+          </div>
+        </div>
+      ) : sessions.length > 0 ? (
+        <div className={styles.batchManageRow}>
+          <button type="button" className={styles.batchManage} onClick={() => setBatching(true)}>
+            {t('batchManage')}
+          </button>
+        </div>
+      ) : null}
       <div className={styles.bottom}>
         <button type="button" className={styles.settings} onClick={() => openSettings('general')}>
           <span className={styles.settingsIcon}>
@@ -174,6 +258,37 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
           {t('deleteSessionWithFilesDescription')}
         </Modal>
       ) : null}
+      {batchConfirm ? (
+        <Modal
+          title={t('batchDeleteTitle')}
+          onClose={() => {
+            if (!batchPending) {
+              setBatchConfirm(false)
+            }
+          }}
+          footer={
+            <>
+              <Button
+                variant="outlined"
+                disabled={batchPending}
+                onClick={() => setBatchConfirm(false)}
+              >
+                {t('cancel')}
+              </Button>
+              <Button
+                variant="danger"
+                disabled={batchPending}
+                onClick={() => void deleteSelected()}
+              >
+                {t('delete')}
+              </Button>
+            </>
+          }
+        >
+          {t('batchDeleteDescription', { count: selected.size })}
+        </Modal>
+      ) : null}
+      {searchOpen ? <SearchDialog onClose={() => setSearchOpen(false)} /> : null}
     </div>
   )
 }

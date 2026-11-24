@@ -52,6 +52,107 @@ final class SessionStore
         return ['sessions' => $sessions, 'nextCursor' => $nextCursor];
     }
 
+    /**
+     * 会话搜索：标题或消息正文命中的会话，按更新时间倒序返回；
+     * 命中正文时给出该条消息的 ID 与片段，前端据此跳转到对应位置。
+     */
+    public static function search(string $userId, string $query, int $limit = 20): array
+    {
+        $query = trim($query);
+        if ($query === '') {
+            return ['results' => []];
+        }
+        $limit = max(1, min(50, $limit));
+        $like = '%' . addcslashes($query, '%_\\') . '%';
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, title, updated_ms, data FROM sessions
+             WHERE user_id = ? AND (title LIKE ? OR data LIKE ?)
+             ORDER BY updated_ms DESC LIMIT ' . ($limit * 4)
+        );
+        $stmt->execute([$userId, $like, $like]);
+        $results = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $data = json_decode((string) $row['data'], true);
+            $match = is_array($data) ? self::findMatch($data, $query) : null;
+            $results[] = [
+                'sessionId' => (string) $row['id'],
+                'title' => (string) $row['title'],
+                'updatedAt' => (int) $row['updated_ms'],
+                'messageId' => $match['id'] ?? null,
+                'snippet' => $match['snippet'] ?? '',
+            ];
+            if (count($results) >= $limit) {
+                break;
+            }
+        }
+        return ['results' => $results];
+    }
+
+    /** 在可见分支中查找第一条命中的消息，返回消息 ID 与上下文片段。 */
+    private static function findMatch(array $session, string $query): ?array
+    {
+        $messages = array_values(array_filter(
+            is_array($session['messages'] ?? null) ? $session['messages'] : [],
+            static fn ($message): bool => is_array($message)
+        ));
+        $ordered = self::visiblePath($session, $messages);
+        if ($ordered === []) {
+            $ordered = $messages;
+        }
+        foreach ($ordered as $message) {
+            $text = self::messageText($message);
+            $position = $text === '' ? false : mb_stripos($text, $query, 0, 'UTF-8');
+            if ($position === false) {
+                continue;
+            }
+            $start = max(0, $position - 30);
+            $snippet = mb_substr($text, $start, mb_strlen($query, 'UTF-8') + 60, 'UTF-8');
+            return [
+                'id' => (string) ($message['id'] ?? ''),
+                'snippet' => ($start > 0 ? '…' : '') . $snippet . '…',
+            ];
+        }
+        return null;
+    }
+
+    /** 沿 selectedChildId 还原当前可见分支；线性会话按存储顺序返回。 */
+    private static function visiblePath(array $session, array $messages): array
+    {
+        if (!array_key_exists('rootMessageId', $session)) {
+            return $messages;
+        }
+        $byId = [];
+        foreach ($messages as $message) {
+            if (isset($message['id'])) {
+                $byId[(string) $message['id']] = $message;
+            }
+        }
+        $path = [];
+        $id = $session['rootMessageId'];
+        while (is_string($id) && $id !== '' && isset($byId[$id])) {
+            $message = $byId[$id];
+            unset($byId[$id]);
+            $path[] = $message;
+            $next = $message['selectedChildId'] ?? null;
+            $id = is_string($next) && $next !== '' ? $next : null;
+        }
+        return $path;
+    }
+
+    private static function messageText(array $message): string
+    {
+        if (($message['role'] ?? '') === 'user') {
+            return (string) ($message['content'] ?? '');
+        }
+        $parts = [];
+        foreach (is_array($message['blocks'] ?? null) ? $message['blocks'] : [] as $block) {
+            if (is_array($block) && ($block['type'] ?? '') === 'text' && isset($block['text'])) {
+                $parts[] = (string) $block['text'];
+            }
+        }
+        return implode("\n", $parts);
+    }
+
     public static function load(string $userId, string $sessionId): ?array
     {
         $stmt = Database::pdo()->prepare('SELECT data FROM sessions WHERE user_id = ? AND id = ?');

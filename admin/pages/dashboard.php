@@ -6,6 +6,7 @@ $cards = [
     ['输入 Token', number_format($stats['inputTokens']), '累计'],
     ['输出 Token', number_format($stats['outputTokens']), '累计'],
     ['附件', (string) $stats['files'], fmt_bytes($stats['fileBytes'])],
+    ['分享链接', (string) $stats['shares'], '生效 ' . $stats['activeShares'] . ' · 访问 ' . $stats['shareViews']],
     ['审计日志', (string) $stats['logs'], '条'],
 ];
 ?>
@@ -23,6 +24,7 @@ $cards = [
     <div class="quick">
         <a class="btn" href="<?= e(admin_url(['page' => 'users'])) ?>">管理用户</a>
         <a class="btn" href="<?= e(admin_url(['page' => 'sessions'])) ?>">查看会话</a>
+        <a class="btn" href="<?= e(admin_url(['page' => 'shares'])) ?>">管理分享</a>
         <a class="btn" href="<?= e(admin_url(['page' => 'settings'])) ?>">修改站点设置</a>
         <a class="btn" href="<?= e(admin_url(['page' => 'logs'])) ?>">查看操作日志</a>
     </div>

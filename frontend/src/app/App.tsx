@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslate } from '../i18n/index.js'
 import { useSettings } from '../services/settings.js'
 import { initAuth, useAuth } from '../services/auth.js'
@@ -17,6 +17,7 @@ import { SessionView } from '../components/session/SessionView.js'
 import { MobileHeader } from '../components/session/MobileHeader.js'
 import { Welcome } from '../components/session/Welcome.js'
 import { SettingsDialog } from '../components/settings/SettingsDialog.js'
+import { openSettings } from '../components/settings/settingsDialogState.js'
 import { Toast } from '../components/base/Toast.js'
 import { showToast } from '../components/base/toastState.js'
 import { onUploadNotice } from '../services/attachments.js'
@@ -100,6 +101,39 @@ const ChatApp = () => {
   useEffect(() => {
     void initChat(loggedIn)
   }, [loggedIn])
+
+  // 分享页未登录时点击「继续对话」会带 ?login=1 回到主应用，直接打开登录面板
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('login') !== '1') {
+      return
+    }
+    openSettings('account')
+    params.delete('login')
+    const search = params.toString()
+    window.history.replaceState(
+      null,
+      '',
+      window.location.pathname + (search ? `?${search}` : '') + window.location.hash
+    )
+  }, [])
+
+  // 分享页「继续对话」会带着 ?session= 回到主应用，加载完成后直接打开该会话
+  const openedSessionRef = useRef(false)
+  useEffect(() => {
+    if (!ready || openedSessionRef.current) {
+      return
+    }
+    const target = new URLSearchParams(window.location.search).get('session')
+    if (!target) {
+      return
+    }
+    openedSessionRef.current = true
+    if (useChatStore.getState().sessions.some((item) => item.id === target)) {
+      selectSession(target)
+    }
+    window.history.replaceState(null, '', window.location.pathname + window.location.hash)
+  }, [ready])
 
   return (
     <>

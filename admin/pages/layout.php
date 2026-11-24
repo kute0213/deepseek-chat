@@ -9,6 +9,7 @@ $nav = [
     'dashboard' => '概览',
     'users' => '用户',
     'sessions' => '会话',
+    'shares' => '分享',
     'settings' => '站点设置',
     'logs' => '操作日志',
 ];

@@ -26,6 +26,14 @@ final class SessionController
         Response::json(SessionStore::summaries((string) $user['id'], $limit, $beforeUpdated, $beforeId));
     }
 
+    /** 搜索当前用户的会话：标题与消息正文，返回命中位置便于前端跳转 */
+    public function search(array $params, Request $request): void
+    {
+        $user = Auth::requireUser();
+        $query = (string) ($request->query('q') ?? '');
+        Response::json(SessionStore::search((string) $user['id'], $query));
+    }
+
     public function show(array $params, Request $request): void
     {
         $user = Auth::requireUser();

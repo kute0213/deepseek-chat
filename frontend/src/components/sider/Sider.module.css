@@ -127,6 +127,91 @@
   user-select: none;
 }
 
+.batchManageRow {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  padding: 4px 4px 0;
+}
+
+.batchManage {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  transition:
+    color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    color: var(--dsw-alias-label-primary);
+    background-color: var(--dsw-specific-sidebar-nav-item-hover);
+  }
+}
+
+.batchBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 14px;
+  background-color: var(--dsw-alias-bg-layer-2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  animation: batchBarIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.batchLink {
+  padding: 4px 6px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--dsw-alias-brand-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background-color: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+.batchCount {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.batchActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@keyframes batchBarIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .bottom {
   display: flex;
   flex-shrink: 0;
