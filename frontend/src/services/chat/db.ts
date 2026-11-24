@@ -49,7 +49,7 @@ export type SessionPage = {
 
 export const loadSessionSummaries = async (
   cursor?: string | null,
-  limit = 30
+  limit = 20
 ): Promise<SessionPage> => {
   const query = new URLSearchParams({ limit: String(limit) })
   if (cursor) {

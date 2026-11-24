@@ -4,6 +4,7 @@ import { useTranslate } from '../../i18n/index.js'
 import type { Session } from '../../services/chat/types.js'
 import { ChatInput } from '../chatInput/ChatInput.js'
 import { MessageList } from '../messages/MessageList.js'
+import { MessageNavigator } from '../messages/MessageNavigator.js'
 import { MobileHeader } from './MobileHeader.js'
 import styles from './SessionView.module.css'
 
@@ -41,6 +42,7 @@ export const SessionView = ({
           </div>
         }
       />
+      <MessageNavigator session={session} />
     </div>
   )
 }

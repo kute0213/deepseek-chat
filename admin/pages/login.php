@@ -7,12 +7,12 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>管理登录 - DeepSeekChat</title>
-    <link rel="stylesheet" href="/admin/assets/admin.css">
+    <title>管理登录 - <?= e(\App\Support\Lang::siteName()) ?></title>
+    <link rel="stylesheet" href="/assets/ui.css">
 </head>
 <body class="login-body">
 <form class="login-card" method="post" action="/admin/">
-    <h1>管理后台登录</h1>
+    <h1><?= e(\App\Support\Lang::siteName()) ?> 管理后台登录</h1>
     <p class="muted">请使用管理员账号登录</p>
     <?php if ($flashError !== null): ?>
         <div class="flash error"><?= e($flashError) ?></div>

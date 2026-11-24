@@ -7,7 +7,7 @@
     <input type="hidden" name="back" value="settings">
     <label>
         <span>站点名称</span>
-        <input name="site_name" value="<?= e($settings['site_name'] ?? 'DeepSeekChat') ?>" required>
+        <input name="site_name" value="<?= e($settings['site_name'] ?? \App\Support\Lang::siteName()) ?>" required>
     </label>
     <label>
         <span>公告（显示在登录页，可留空）</span>

@@ -21,13 +21,13 @@ $active = static fn (string $key): bool => $page === $key
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= e($title) ?> - 管理后台</title>
-    <link rel="stylesheet" href="/admin/assets/admin.css">
+    <title><?= e($title) ?> - <?= e(\App\Support\Lang::siteName()) ?></title>
+    <link rel="stylesheet" href="/assets/ui.css">
 </head>
 <body>
 <div class="shell">
     <aside class="side">
-        <div class="side-title">DeepSeekChat</div>
+        <div class="side-title"><?= e(\App\Support\Lang::siteName()) ?></div>
         <nav>
             <?php foreach ($nav as $key => $label): ?>
                 <a class="nav<?= $active($key) ? ' active' : '' ?>"

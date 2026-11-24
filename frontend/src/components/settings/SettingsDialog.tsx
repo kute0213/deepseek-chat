@@ -777,12 +777,14 @@ const ExportHistory = ({ disabled }: { disabled: boolean }) => {
   const empty = useChatStore((state) => state.sessions.length === 0)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<Status>(null)
+  const [progress, setProgress] = useState<number | null>(null)
 
   const onExport = async () => {
     setBusy(true)
     setStatus(null)
+    setProgress(0)
     try {
-      const { name, blob } = await exportHistory()
+      const { name, blob } = await exportHistory(setProgress)
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -793,6 +795,7 @@ const ExportHistory = ({ disabled }: { disabled: boolean }) => {
       setStatus(errorStatus('historyExportFailed', error))
     } finally {
       setBusy(false)
+      setProgress(null)
     }
   }
 
@@ -800,7 +803,12 @@ const ExportHistory = ({ disabled }: { disabled: boolean }) => {
     <SettingCell
       label={t('exportAllLabel')}
       description={t('historyExportDescription')}
-      status={status}
+      status={
+        busy && progress !== null
+          ? { key: 'historyExporting', params: { percent: progress } }
+          : status
+      }
+      progress={busy ? progress : null}
       action={
         <Button
           variant="outlined"

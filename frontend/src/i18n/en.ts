@@ -10,12 +10,14 @@ export const en = {
   sessionLoading: 'Loading chats...',
   sessionListLoadFailed: 'Unable to load the chat list. Please try again.',
   sessionListLoadingMore: 'Loading more...',
+  messagesLoadingMore: 'Loading earlier messages...',
+  messageNavigator: 'Chat navigation',
   sessionLoadFailed: 'Unable to load this chat. Please try again.',
   sessionSaveFailed:
     'Chats or attachments have not been saved to the server. Retry before closing this page.',
   sessionDeleteFailed: 'Unable to delete this chat. Please try again.',
   settings: 'Settings',
-  appName: 'DeepSeekChat',
+  appName: 'DSW',
   deleteSessionModalContentTitle: 'Delete chat?',
   deleteSessionWithFilesDescription:
     'This chat and its uploaded files will be permanently deleted and cannot be recovered. Delete this chat?',
@@ -172,6 +174,7 @@ export const en = {
   historyImportedOne: 'Imported 1 chat',
   historyImported: 'Imported {count} chats',
   historyImporting: 'Importing… {percent}%',
+  historyExporting: 'Exporting… {percent}%',
   historyImportFailed: 'File import failed: {message}',
   historyExportFailed: 'Export failed: {message}',
   exportAllLabel: 'Export all chats',

@@ -5,6 +5,7 @@ require_once dirname(__DIR__, 2) . '/app/Bootstrap.php';
 
 use App\Bootstrap;
 use App\Support\Config;
+use App\Support\Lang;
 use App\Support\Snowflake;
 
 // 经由 index.php 进入时已启动过引导流程，避免重复注册
@@ -32,7 +33,7 @@ $defaults = [
     'db_name' => 'deepseek_chat',
     'db_user' => 'deepseek',
     'db_pass' => '',
-    'site_name' => 'DeepSeekChat',
+    'site_name' => Lang::siteName(),
     'api_base' => 'https://api.deepseek.com',
     'allow_register' => '1',
     'admin_user' => 'admin',
@@ -136,7 +137,7 @@ if (!$installed && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
 
         $settings = [
-            'site_name' => $form['site_name'] !== '' ? $form['site_name'] : 'DeepSeekChat',
+            'site_name' => $form['site_name'] !== '' ? $form['site_name'] : Lang::siteName(),
             'allow_register' => $form['allow_register'],
             'api_base_url' => rtrim($form['api_base'], '/'),
             'announcement' => '',
@@ -169,51 +170,10 @@ function e(string $value): string
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>安装 DeepSeekChat</title>
+<title>安装 <?= e(Lang::siteName()) ?></title>
+<link rel="stylesheet" href="/assets/ui.css">
 <style>
-    :root {
-        color-scheme: light dark;
-        --brand: #3964fe;
-        --brand-strong: #5686fe;
-        --brand-soft: #e4edfd;
-        --bg: #f9fafb;
-        --panel: #ffffff;
-        --text: #0f1115;
-        --muted: #61666b;
-        --line: rgba(0, 0, 0, .04);
-        --line-strong: rgba(0, 0, 0, .1);
-        --input: #f9fafb;
-        --danger: #ec1313;
-        --ok: #22c55e;
-        --shadow: 0 0 1px 0 rgba(0, 0, 0, .2), 0 12px 32px 0 rgba(0, 0, 0, .08);
-    }
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --brand: #5686fe;
-            --brand-strong: #3964fe;
-            --brand-soft: #2c2c2e;
-            --bg: #151517;
-            --panel: #1b1b1c;
-            --text: #f9fafb;
-            --muted: #cfd3d6;
-            --line: rgba(255, 255, 255, .06);
-            --line-strong: rgba(255, 255, 255, .12);
-            --input: #151517;
-            --danger: #f25a5a;
-            --ok: #4ed17e;
-            --shadow: 0 0 1px 0 rgba(0, 0, 0, .4), 0 12px 32px 0 rgba(0, 0, 0, .4);
-        }
-    }
-    * { box-sizing: border-box; }
-    html, body { min-height: 100%; }
-    body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--text);
-        font: 14px/22px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-            "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-        -webkit-font-smoothing: antialiased;
-    }
+    body { background: var(--bg-soft); }
     .top {
         display: flex;
         align-items: center;
@@ -232,7 +192,7 @@ function e(string $value): string
     .tag {
         padding: 2px 10px;
         border-radius: 4096px;
-        background: var(--brand-soft);
+        background: var(--active);
         color: var(--brand);
         font-size: 12px;
     }
@@ -242,13 +202,13 @@ function e(string $value): string
         padding: 0 20px;
     }
     h1 { margin: 0 0 6px; font-size: 24px; font-weight: 500; }
-    .sub { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
+    .sub { margin: 0 0 24px; color: var(--text-2); font-size: 14px; }
     .card {
         margin-bottom: 16px;
         padding: 22px 24px;
-        border: 1px solid var(--line);
+        border: 1px solid var(--line-soft);
         border-radius: 24px;
-        background: var(--panel);
+        background: var(--modal);
     }
     h2 { margin: 0 0 14px; font-size: 15px; font-weight: 500; }
     .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; }
@@ -264,39 +224,12 @@ function e(string $value): string
     .ok { color: var(--ok); font-weight: 500; }
     .bad { color: var(--danger); font-weight: 500; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid input { width: 100%; }
     @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
-    label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 13px; }
-    input[type=text], input[type=password], input[type=number] {
-        width: 100%;
-        height: 40px;
-        padding: 0 14px;
-        border: none;
-        border-radius: 4096px;
-        background: var(--input);
-        color: var(--text);
-        font: inherit;
-        font-size: 14px;
-        outline: none;
-        transition: box-shadow .2s cubic-bezier(.4, 0, .2, 1);
-    }
-    input:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 35%, transparent); }
+    label { display: block; margin-bottom: 6px; color: var(--text-2); font-size: 13px; }
+    .submit { width: 100%; height: 40px; margin-top: 8px; }
     .checkbox { display: flex; align-items: center; gap: 8px; margin-top: 20px; color: var(--text); font-size: 14px; }
-    button {
-        width: 100%;
-        height: 40px;
-        margin-top: 8px;
-        border: 0;
-        border-radius: 4096px;
-        background: var(--brand);
-        color: #fff;
-        font: inherit;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background-color .2s cubic-bezier(.4, 0, .2, 1), opacity .2s cubic-bezier(.4, 0, .2, 1);
-    }
-    button:hover { background: var(--brand-strong); }
-    button:disabled { opacity: .45; cursor: not-allowed; }
+    .checkbox input { width: auto; height: auto; padding: 0; border-radius: 0; background: none; }
     .error {
         margin-bottom: 16px;
         padding: 10px 16px;
@@ -309,13 +242,11 @@ function e(string $value): string
     code {
         padding: 2px 6px;
         border-radius: 6px;
-        background: var(--brand-soft);
+        background: var(--active);
         color: var(--brand);
         font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
         font-size: 12px;
     }
-    a { color: var(--brand); text-decoration: none; }
-    a:hover { opacity: .8; }
     @media (max-width: 480px) {
         .top { padding-top: 20px; }
         h1 { font-size: 24px; }
@@ -324,11 +255,11 @@ function e(string $value): string
 </head>
 <body>
 <header class="top">
-    <a class="brand" href="/">DeepSeekChat</a>
+    <a class="brand" href="/"><?= e(Lang::siteName()) ?></a>
     <span class="tag">安装向导</span>
 </header>
 <main class="wrap">
-    <h1>欢迎使用 DeepSeekChat</h1>
+    <h1>欢迎使用 <?= e(Lang::siteName()) ?></h1>
     <p class="sub">配置 MySQL 连接与站点信息，只需完成一次。</p>
 
 <?php if ($installed): ?>
@@ -381,7 +312,7 @@ function e(string $value): string
             <label class="checkbox"><input type="checkbox" name="allow_register" value="1" <?= $form['allow_register'] === '1' ? 'checked' : '' ?>> 开放用户注册</label>
         </div>
 
-        <button type="submit">开始安装</button>
+        <button class="btn primary submit" type="submit">开始安装</button>
     </form>
 <?php endif; ?>
 </main>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Support\Database;
+use App\Support\Lang;
 
 final class SiteSettings
 {
@@ -37,10 +38,10 @@ final class SiteSettings
 
     public static function publicInfo(): array
     {
-        $siteName = self::get('site_name', 'DeepSeekChat');
-        // 旧安装的默认站点名迁移为新品牌名
-        if ($siteName === 'DeepSeek') {
-            $siteName = 'DeepSeekChat';
+        $siteName = self::get('site_name', Lang::siteName());
+        // 旧安装的默认站点名统一迁移到正式名称
+        if (in_array($siteName, ['DeepSeek', 'DeepSeekChat'], true)) {
+            $siteName = Lang::siteName();
             self::set('site_name', $siteName);
         }
         return [

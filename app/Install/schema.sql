@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS site_settings (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO site_settings (k, v) VALUES
-    ('site_name', 'DeepSeekChat'),
+    ('site_name', 'DSW'),
     ('allow_register', '1'),
     ('api_base_url', 'https://api.deepseek.com'),
     ('announcement', ''),

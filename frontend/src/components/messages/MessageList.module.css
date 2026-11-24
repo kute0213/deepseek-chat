@@ -38,3 +38,15 @@
   margin: 0 auto;
   padding-bottom: 24px;
 }
+
+.loadingTop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 8px 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary);
+  user-select: none;
+}

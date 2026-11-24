@@ -7,6 +7,7 @@ import {
 } from '../../services/chat/branches.js'
 import { loadOlderMessages, selectMessageVersion, useChatStore } from '../../services/chat/store.js'
 import type { Session } from '../../services/chat/types.js'
+import { useTranslate } from '../../i18n/index.js'
 import { closeSearchPanel } from '../search/searchPanelState.js'
 import { AssistantMessage } from './AssistantMessage.js'
 import { ScrollToBottomContext } from './scrollContext.js'
@@ -45,6 +46,7 @@ export const MessageList = ({
   footer: React.ReactNode
 }) => {
   const isMobile = useIsMobile()
+  const t = useTranslate()
   const scrollRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const stickyRef = useRef(true)
@@ -52,6 +54,8 @@ export const MessageList = ({
   const restoreScrollRef = useRef<{ messageId: string; top: number } | null>(null)
   /** 加载更早消息前记录高度，渲染后把滚动位置保持在原内容上 */
   const pendingPrependRef = useRef<{ height: number; top: number } | null>(null)
+  /** 上一次渲染后的滚动高度与首条消息，用于识别从其他入口（右侧导航）插入的更早消息 */
+  const prevLayoutRef = useRef<{ height: number; firstId: string | undefined } | null>(null)
   /** 记录已尝试自动补齐的窗口，失败时不重复触发 */
   const fillKeyRef = useRef('')
   const messages = getVisibleMessages(session)
@@ -82,6 +86,7 @@ export const MessageList = ({
   // 切换会话时丢弃上一个会话遗留的“保持位置”记录
   useLayoutEffect(() => {
     pendingPrependRef.current = null
+    prevLayoutRef.current = null
   }, [session.id])
 
   // 内容、键盘和输入框高度变化时，继续遵循当前跟随状态。
@@ -116,21 +121,33 @@ export const MessageList = ({
   }, [session.id, lastMessageId, scrollToBottom])
 
   // 更早的消息插入到顶部后，把原阅读位置向下平移，避免视口跳动。
+  // 除列表自身触发的加载外，右侧导航加载更早消息时也走同一套校正。
   useLayoutEffect(() => {
-    const pending = pendingPrependRef.current
     const el = scrollRef.current
-    if (!pending || !el) {
+    if (!el) {
       return
     }
+    const pending = pendingPrependRef.current
+    const prev = prevLayoutRef.current
     pendingPrependRef.current = null
-    const delta = el.scrollHeight - pending.height
-    if (delta <= 0) {
+    prevLayoutRef.current = { height: el.scrollHeight, firstId: firstMessageId }
+    if (pending) {
+      const delta = el.scrollHeight - pending.height
+      if (delta > 0) {
+        el.scrollTop = pending.top + delta
+        scrollTopRef.current = el.scrollTop
+        stickyRef.current = false
+      }
       return
     }
-    el.scrollTop = pending.top + delta
-    scrollTopRef.current = el.scrollTop
-    stickyRef.current = false
-  }, [messageWindowKey])
+    if (!stickyRef.current && prev && prev.firstId !== firstMessageId) {
+      const delta = el.scrollHeight - prev.height
+      if (delta > 0) {
+        el.scrollTop += delta
+        scrollTopRef.current = el.scrollTop
+      }
+    }
+  }, [messageWindowKey, firstMessageId])
 
   // 消息不足一屏时无法通过滚动触发，主动补齐到可滚动为止。
   useLayoutEffect(() => {
@@ -184,13 +201,8 @@ export const MessageList = ({
       } else if (el.scrollTop < scrollTopRef.current) {
         stickyRef.current = false
       }
-      // 滑到顶部且继续向上滚动时加载更早的一页
-      if (
-        hasMore &&
-        !loadingOlder &&
-        el.scrollTop <= TOP_THRESHOLD &&
-        el.scrollTop < scrollTopRef.current
-      ) {
+      // 滑到顶部后加载更早的一页；到达顶部即触发，不必再继续上滑
+      if (hasMore && !loadingOlder && el.scrollTop <= TOP_THRESHOLD) {
         pendingPrependRef.current = { height: el.scrollHeight, top: el.scrollTop }
         void loadOlderMessages(session.id)
       }
@@ -204,9 +216,22 @@ export const MessageList = ({
   const uploadRetryId = getUploadRetryId(messages, streaming)
   return (
     <ScrollToBottomContext.Provider value={scrollToBottom}>
-      <div ref={isMobile ? undefined : scrollRef} className={styles.container}>
-        <div ref={isMobile ? scrollRef : undefined} className={styles.scroll}>
+      <div
+        ref={isMobile ? undefined : scrollRef}
+        className={styles.container}
+        data-message-scroll={isMobile ? undefined : ''}
+      >
+        <div
+          ref={isMobile ? scrollRef : undefined}
+          className={styles.scroll}
+          data-message-scroll={isMobile ? '' : undefined}
+        >
           <div ref={contentRef} className={styles.column}>
+            {hasMore ? (
+              <div className={styles.loadingTop} role="status" aria-live="polite">
+                {loadingOlder ? t('messagesLoadingMore') : ''}
+              </div>
+            ) : null}
             {messages.map((message, index) =>
               message.role === 'user' ? (
                 <UserMessage

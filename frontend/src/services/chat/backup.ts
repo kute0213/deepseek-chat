@@ -1,7 +1,7 @@
 import { formatDate } from '../../utils/format.js'
 import * as db from './db.js'
 import { replaceHistory, useChatStore } from './store.js'
-import type { Session } from './types.js'
+import type { Session, SessionSummary } from './types.js'
 
 export { BackupError } from './history/errors.js'
 
@@ -17,30 +17,42 @@ const enqueueBackup = <T>(run: () => Promise<T>): Promise<T> => {
 const backupFileName = (date: Date) => `deepseek_data-${formatDate(date)}.zip`
 
 /** 导出为历史会话导出格式的 ZIP，可再次导入。 */
-export const exportHistory = (): Promise<{ name: string; blob: Blob }> =>
+export const exportHistory = (
+  onProgress?: (percent: number) => void
+): Promise<{ name: string; blob: Blob }> =>
   enqueueBackup(async () => {
-    // 导出需要全部会话：先复用已加载的详情缓存，其余逐页拉取摘要并按需读取，不填满详情缓存。
+    onProgress?.(1)
+    // 先向服务端取回全部会话摘要，再逐个读取完整聊天记录，最后在浏览器本地打包 ZIP。
+    const summaries: SessionSummary[] = []
+    let cursor: string | null = null
+    do {
+      const page: Awaited<ReturnType<typeof db.loadSessionSummaries>> =
+        await db.loadSessionSummaries(cursor)
+      summaries.push(...page.sessions)
+      cursor = page.nextCursor
+    } while (cursor)
     const { sessionCache } = useChatStore.getState()
+    const total = summaries.length || 1
+    let loaded = 0
     async function* readSessions(): AsyncGenerator<Session> {
-      let cursor: string | null = null
-      do {
-        const page = await db.loadSessionSummaries(cursor)
-        for (const summary of page.sessions) {
-          const session = Object.hasOwn(sessionCache, summary.id)
-            ? sessionCache[summary.id]
-            : await db.loadSession(summary.id)
-          if (!session) {
-            throw new Error(`History session disappeared during export: ${summary.id}`)
-          }
-          // 详情读取期间可能重命名，归档标题与开始时的列表保持一致。
-          yield { ...session, ...summary }
+      for (const summary of summaries) {
+        const session = Object.hasOwn(sessionCache, summary.id)
+          ? sessionCache[summary.id]
+          : await db.loadSession(summary.id)
+        if (!session) {
+          throw new Error(`History session disappeared during export: ${summary.id}`)
         }
-        cursor = page.nextCursor
-      } while (cursor)
+        loaded += 1
+        onProgress?.(5 + Math.round((loaded / total) * 85))
+        // 详情读取期间可能重命名，归档标题与开始时的列表保持一致。
+        yield { ...session, ...summary }
+      }
     }
     const { exportArchive } = await import('./history/exportArchive.js')
+    onProgress?.(92)
     const now = new Date()
     const blob = await exportArchive(readSessions())
+    onProgress?.(100)
     return { name: backupFileName(now), blob }
   })
 

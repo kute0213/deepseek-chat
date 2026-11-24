@@ -46,7 +46,7 @@ const SYSTEM_PROMPT = '该助手为DeepSeek，由深度求索公司创造。'
 /** 保留最近打开的详情；当前会话、生成中及尚未成功保存的会话不淘汰。 */
 const SESSION_CACHE_LIMIT = 5
 /** 打开会话时先加载的最近消息数，向上滚动再按同样数量加载更早消息。 */
-const MESSAGE_PAGE_SIZE = 10
+const MESSAGE_PAGE_SIZE = 20
 /** 安全审核固定开启，所有请求都走扩展模式 */
 const SAFETY_CHECK = { level: 'high' } as const
 /** 服务端判定 file_id 失效后，重新补传并重发的最多次数（不含首次请求） */
@@ -486,7 +486,7 @@ const ensureSessionLoaded = (id: string): Promise<void> => {
 }
 
 /**
- * 向上滚动到顶部时加载更早的一页消息（10 条）；同一会话的并发请求合并为一次。
+ * 向上滚动到顶部时加载更早的一页消息（20 条）；同一会话的并发请求合并为一次。
  * 新消息拼在已有消息之前，根节点改用更早一页的根，保证分支链完整。
  */
 export const loadOlderMessages = (sessionId: string): Promise<void> => {

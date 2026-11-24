@@ -14,7 +14,7 @@ final class SessionController
     public function index(array $params, Request $request): void
     {
         $user = Auth::requireUser();
-        $limit = (int) ($request->query('limit') ?? 30);
+        $limit = (int) ($request->query('limit') ?? 20);
         $cursor = (string) ($request->query('cursor') ?? '');
         $beforeUpdated = null;
         $beforeId = null;
