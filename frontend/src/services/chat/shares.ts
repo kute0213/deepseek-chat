@@ -30,8 +30,8 @@ export type ShareView = {
   messages: ShareMessage[]
 }
 
-export const createShare = (sessionId: string): Promise<ShareSummary> =>
-  requestJson<ShareSummary>('/api/shares', 'POST', { sessionId })
+export const createShare = (sessionId: string, messageIds: string[]): Promise<ShareSummary> =>
+  requestJson<ShareSummary>('/api/shares', 'POST', { sessionId, messageIds })
 
 export const loadMyShares = async (): Promise<ShareSummary[]> => {
   const data = await requestJson<{ shares?: ShareSummary[] }>('/api/shares', 'GET')

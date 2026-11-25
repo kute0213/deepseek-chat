@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Services\DeepSeekClient;
+use App\Services\AdminService;
+use App\Services\SessionStore;
 use App\Services\UserService;
 use App\Support\Auth;
 use App\Support\HttpError;
@@ -77,5 +79,33 @@ final class AccountController
             throw new HttpError('请先配置 API Key', 422);
         }
         Response::json(['balance' => DeepSeekClient::balance($key)]);
+    }
+
+    /** Token 用量：总输入 / 输出与按会话明细 */
+    public function usage(array $params, Request $request): void
+    {
+        $user = Auth::requireUser();
+        Response::json(SessionStore::usage((string) $user['id']));
+    }
+
+    /** 注销账号：校验当前密码后删除账号及全部数据 */
+    public function destroy(array $params, Request $request): void
+    {
+        $user = Auth::requireUser();
+        $body = $request->json();
+        $password = (string) ($body['password'] ?? '');
+        if (!password_verify($password, (string) $user['password_hash'])) {
+            throw new HttpError('当前密码不正确', 422);
+        }
+        if ((string) $user['role'] === 'admin') {
+            $stmt = \App\Support\Database::pdo()->prepare("SELECT COUNT(*) FROM users WHERE role = 'admin' AND status = 1");
+            $stmt->execute();
+            if ((int) $stmt->fetchColumn() <= 1) {
+                throw new HttpError('不能注销唯一的管理员账号', 422);
+            }
+        }
+        AdminService::deleteUser((string) $user['id']);
+        Auth::logout();
+        Response::json(['ok' => true]);
     }
 }

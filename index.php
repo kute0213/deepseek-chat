@@ -8,6 +8,7 @@ use App\Controllers\AccountController;
 use App\Controllers\AuthController;
 use App\Controllers\CaptchaController;
 use App\Controllers\ChatController;
+use App\Controllers\DocsController;
 use App\Controllers\FileController;
 use App\Controllers\HistoryController;
 use App\Controllers\IdController;
@@ -66,6 +67,10 @@ $router->post('/api/account/username', [AccountController::class, 'renameUsernam
 $router->post('/api/account/api-key', [AccountController::class, 'saveApiKey']);
 $router->delete('/api/account/api-key', [AccountController::class, 'deleteApiKey']);
 $router->get('/api/account/balance', [AccountController::class, 'balance']);
+$router->get('/api/account/usage', [AccountController::class, 'usage']);
+$router->post('/api/account/delete', [AccountController::class, 'destroy']);
+
+$router->get('/api/docs', [DocsController::class, 'index']);
 
 $router->post('/api/ids', [IdController::class, 'create']);
 

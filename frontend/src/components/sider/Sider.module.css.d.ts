@@ -1,11 +1,17 @@
 declare const styles: {
   readonly "sider": string;
   readonly "top": string;
+  readonly "topActions": string;
   readonly "appName": string;
   readonly "newChat": string;
   readonly "newChatIcon": string;
+  readonly "selectHeader": string;
+  readonly "selectTitle": string;
+  readonly "manageRow": string;
+  readonly "manageButton": string;
   readonly "listWrap": string;
   readonly "list": string;
+  readonly "listBatch": string;
   readonly "section": string;
   readonly "sectionHeader": string;
   readonly "bottom": string;
@@ -17,6 +23,13 @@ declare const styles: {
   readonly "drawer": string;
   readonly "drawerMask": string;
   readonly "mobile": string;
+  readonly "batchManageRow": string;
+  readonly "batchManage": string;
+  readonly "batchBar": string;
+  readonly "batchAction": string;
+  readonly "batchDanger": string;
+  readonly "batchLink": string;
+  readonly "batchCount": string;
+  readonly "batchActions": string;
 };
 export = styles;
-

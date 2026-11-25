@@ -5,9 +5,11 @@ import {
   IconCheckOutline16,
   IconEditOutline16,
   IconEllipsisOutline16,
+  IconLinkOutline16,
+  IconPinOutline16,
   IconTrashOutline16,
 } from '../base/icons.js'
-import { renameSession, selectSession } from '../../services/chat/store.js'
+import { renameSession, selectSession, togglePinned } from '../../services/chat/store.js'
 import type { SessionSummary } from '../../services/chat/types.js'
 import { IconButton } from '../base/IconButton.js'
 import { Menu } from '../base/Menu.js'
@@ -21,6 +23,8 @@ export const SessionItem = memo(function SessionItem({
   selected = false,
   onToggle,
   onDelete,
+  onShare,
+  onBatchSelect,
 }: {
   session: SessionSummary
   active: boolean
@@ -28,6 +32,8 @@ export const SessionItem = memo(function SessionItem({
   selected?: boolean
   onToggle?: () => void
   onDelete: () => void
+  onShare?: () => void
+  onBatchSelect?: () => void
 }) {
   const t = useTranslate()
   const [editing, setEditing] = useState(false)
@@ -75,6 +81,11 @@ export const SessionItem = memo(function SessionItem({
           {selected ? <IconCheckOutline16 /> : null}
         </span>
       ) : null}
+      {!batch && session.pinned ? (
+        <span className={styles.pin} aria-hidden>
+          <IconPinOutline16 />
+        </span>
+      ) : null}
       <div className={styles.title}>{displayTitle}</div>
       {batch ? null : (
         <div className={styles.action} onClick={(event) => event.stopPropagation()}>
@@ -85,6 +96,24 @@ export const SessionItem = memo(function SessionItem({
                 label: t('sessionItemMenuRenameOption'),
                 icon: <IconEditOutline16 />,
                 onSelect: () => setEditing(true),
+              },
+              {
+                key: 'pin',
+                label: t(session.pinned ? 'sessionItemMenuUnpinOption' : 'sessionItemMenuPinOption'),
+                icon: <IconPinOutline16 />,
+                onSelect: () => togglePinned(session.id, !session.pinned),
+              },
+              {
+                key: 'share',
+                label: t('sessionItemMenuShareOption'),
+                icon: <IconLinkOutline16 />,
+                onSelect: () => onShare?.(),
+              },
+              {
+                key: 'select',
+                label: t('sessionItemMenuSelectOption'),
+                icon: <IconCheckOutline16 />,
+                onSelect: () => onBatchSelect?.(),
               },
               {
                 key: 'delete',

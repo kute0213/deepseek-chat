@@ -57,14 +57,35 @@
   );
 }
 
-.caveat {
+.caveatRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
   padding: 6px 0;
+}
+
+.caveat {
   font-size: 11px;
   line-height: 16px;
   text-align: center;
   color: var(--dsw-alias-label-tertiary);
   user-select: none;
+}
+
+.tokenUsage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary);
+  user-select: none;
+
+  span {
+    white-space: nowrap;
+  }
 }
 
 @media not all and (min-width: 768px) {

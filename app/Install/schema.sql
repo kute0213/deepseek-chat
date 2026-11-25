@@ -41,11 +41,12 @@ CREATE TABLE IF NOT EXISTS sessions (
     messages_count INT NOT NULL DEFAULT 0,
     input_tokens BIGINT NOT NULL DEFAULT 0,
     output_tokens BIGINT NOT NULL DEFAULT 0,
+    pinned TINYINT NOT NULL DEFAULT 0,
     data LONGTEXT NOT NULL,
     created_ms BIGINT NOT NULL,
     updated_ms BIGINT NOT NULL,
     PRIMARY KEY (id),
-    KEY idx_sessions_user (user_id, updated_ms),
+    KEY idx_sessions_user (user_id, pinned, updated_ms),
     KEY idx_sessions_created (created_ms)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

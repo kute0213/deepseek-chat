@@ -9,8 +9,27 @@ use PDO;
 
 final class SessionStore
 {
+    private static bool $columnsReady = false;
+
+    /** 已安装站点没有迁移脚本，首次使用时补齐新增列（置顶）。 */
+    private static function ensureColumns(): void
+    {
+        if (self::$columnsReady) {
+            return;
+        }
+        self::$columnsReady = true;
+        try {
+            $column = Database::pdo()->query("SHOW COLUMNS FROM sessions LIKE 'pinned'")->fetch();
+            if ($column === false) {
+                Database::pdo()->exec('ALTER TABLE sessions ADD COLUMN pinned TINYINT NOT NULL DEFAULT 0 AFTER output_tokens');
+            }
+        } catch (\Throwable) {
+            // 建表权限不足时保持原有行为：置顶字段缺省为 0
+        }
+    }
+
     /**
-     * 按更新时间倒序分页返回会话摘要，配合前端滚动加载，避免一次拉取全部记录。
+     * 按置顶优先、更新时间倒序分页返回会话摘要，配合前端滚动加载，避免一次拉取全部记录。
      *
      * @return array{sessions: array<int, array>, nextCursor: ?string}
      */
@@ -18,19 +37,24 @@ final class SessionStore
         string $userId,
         int $limit = 30,
         ?int $beforeUpdated = null,
-        ?string $beforeId = null
+        ?string $beforeId = null,
+        ?int $beforePinned = null
     ): array {
+        self::ensureColumns();
         $limit = max(1, min(100, $limit));
-        $sql = 'SELECT id, title, created_ms, updated_ms FROM sessions WHERE user_id = ?';
+        $sql = 'SELECT id, title, pinned, created_ms, updated_ms FROM sessions WHERE user_id = ?';
         $args = [$userId];
-        // 键集分页：用 (updated_ms, id) 作为游标，避免数据变动时 OFFSET 跳页或重复
+        // 键集分页：用 (pinned, updated_ms, id) 作为游标，避免数据变动时 OFFSET 跳页或重复
         if ($beforeUpdated !== null && $beforeId !== null) {
-            $sql .= ' AND (updated_ms < ? OR (updated_ms = ? AND id < ?))';
+            $pinned = $beforePinned ?? 0;
+            $sql .= ' AND (pinned < ? OR (pinned = ? AND (updated_ms < ? OR (updated_ms = ? AND id < ?))))';
+            $args[] = $pinned;
+            $args[] = $pinned;
             $args[] = $beforeUpdated;
             $args[] = $beforeUpdated;
             $args[] = $beforeId;
         }
-        $sql .= ' ORDER BY updated_ms DESC, id DESC LIMIT ' . ($limit + 1);
+        $sql .= ' ORDER BY pinned DESC, updated_ms DESC, id DESC LIMIT ' . ($limit + 1);
         $stmt = Database::pdo()->prepare($sql);
         $stmt->execute($args);
         $rows = $stmt->fetchAll();
@@ -41,15 +65,64 @@ final class SessionStore
         $sessions = array_map(static fn (array $row): array => [
             'id' => (string) $row['id'],
             'title' => (string) $row['title'],
+            'pinned' => (int) ($row['pinned'] ?? 0) === 1,
             'createdAt' => (int) $row['created_ms'],
             'updatedAt' => (int) $row['updated_ms'],
         ], $rows);
         $nextCursor = null;
         if ($hasMore && $sessions !== []) {
             $last = $sessions[count($sessions) - 1];
-            $nextCursor = $last['updatedAt'] . '_' . $last['id'];
+            $nextCursor = ($last['pinned'] ? '1' : '0') . '_' . $last['updatedAt'] . '_' . $last['id'];
         }
         return ['sessions' => $sessions, 'nextCursor' => $nextCursor];
+    }
+
+    /** 置顶 / 取消置顶：只更新标记，不改动更新时间 */
+    public static function setPinned(string $userId, string $sessionId, bool $pinned): void
+    {
+        self::ensureColumns();
+        $stmt = Database::pdo()->prepare('UPDATE sessions SET pinned = ? WHERE user_id = ? AND id = ?');
+        $stmt->execute([$pinned ? 1 : 0, $userId, $sessionId]);
+    }
+
+    /** 账号 Token 用量：总计与按会话明细（仅已写入的统计值） */
+    public static function usage(string $userId): array
+    {
+        self::ensureColumns();
+        $pdo = Database::pdo();
+        $stmt = $pdo->prepare(
+            'SELECT COUNT(*) AS sessions, COALESCE(SUM(input_tokens), 0) AS input_tokens,
+                    COALESCE(SUM(output_tokens), 0) AS output_tokens, COALESCE(SUM(messages_count), 0) AS messages
+             FROM sessions WHERE user_id = ?'
+        );
+        $stmt->execute([$userId]);
+        $totals = $stmt->fetch() ?: [];
+        $stmt = $pdo->prepare(
+            'SELECT id, title, messages_count, input_tokens, output_tokens, updated_ms
+             FROM sessions WHERE user_id = ? ORDER BY (input_tokens + output_tokens) DESC LIMIT 50'
+        );
+        $stmt->execute([$userId]);
+        $items = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $items[] = [
+                'id' => (string) $row['id'],
+                'title' => (string) $row['title'],
+                'messages' => (int) $row['messages_count'],
+                'inputTokens' => (int) $row['input_tokens'],
+                'outputTokens' => (int) $row['output_tokens'],
+                'updatedAt' => (int) $row['updated_ms'],
+            ];
+        }
+        $input = (int) ($totals['input_tokens'] ?? 0);
+        $output = (int) ($totals['output_tokens'] ?? 0);
+        return [
+            'inputTokens' => $input,
+            'outputTokens' => $output,
+            'totalTokens' => $input + $output,
+            'sessions' => (int) ($totals['sessions'] ?? 0),
+            'messages' => (int) ($totals['messages'] ?? 0),
+            'items' => $items,
+        ];
     }
 
     /**
@@ -202,6 +275,45 @@ final class SessionStore
             $session['rootMessageId'] = (string) $slice[0]['id'];
         }
         return ['session' => $session, 'hasMore' => $hasMore];
+    }
+
+    /**
+     * 定位到某条消息所在的窗口：以该消息为窗口末尾，最多返回 $limit 条可见消息。
+     * 搜索结果跳转只需这一页，不再把它之后的全部内容一并返回。
+     *
+     * @return array{session: array, hasMore: bool}
+     */
+    public static function pageAround(array $session, string $messageId, int $limit): array
+    {
+        $limit = max(1, min(50, $limit));
+        $messages = array_values(array_filter(
+            is_array($session['messages'] ?? null) ? $session['messages'] : [],
+            static fn ($message): bool => is_array($message)
+        ));
+        $ordered = array_key_exists('rootMessageId', $session)
+            ? self::visiblePath($session, $messages)
+            : $messages;
+        if ($ordered === []) {
+            $ordered = $messages;
+        }
+        $index = null;
+        foreach ($ordered as $position => $message) {
+            if ((string) ($message['id'] ?? '') === $messageId) {
+                $index = $position;
+                break;
+            }
+        }
+        if ($index === null) {
+            return ['session' => $session, 'hasMore' => false];
+        }
+        $end = $index + 1;
+        $start = max(0, $end - $limit);
+        $slice = array_slice($ordered, $start, $end - $start);
+        $session['messages'] = $slice;
+        if ($slice !== []) {
+            $session['rootMessageId'] = (string) $slice[0]['id'];
+        }
+        return ['session' => $session, 'hasMore' => $start > 0];
     }
 
     public static function save(string $userId, string $sessionId, array $session, bool $partial = false): void

@@ -18,12 +18,17 @@ final class SessionController
         $cursor = (string) ($request->query('cursor') ?? '');
         $beforeUpdated = null;
         $beforeId = null;
-        // 游标格式：<updatedMs>_<sessionId>
-        if ($cursor !== '' && preg_match('/^([0-9]{1,16})_([0-9]{1,20})$/', $cursor, $m)) {
+        $beforePinned = null;
+        // 游标格式：<pinned>_<updatedMs>_<sessionId>；兼容旧格式 <updatedMs>_<sessionId>
+        if ($cursor !== '' && preg_match('/^([0-9])_([0-9]{1,16})_([0-9]{1,20})$/', $cursor, $m)) {
+            $beforePinned = (int) $m[1];
+            $beforeUpdated = (int) $m[2];
+            $beforeId = $m[3];
+        } elseif ($cursor !== '' && preg_match('/^([0-9]{1,16})_([0-9]{1,20})$/', $cursor, $m)) {
             $beforeUpdated = (int) $m[1];
             $beforeId = $m[2];
         }
-        Response::json(SessionStore::summaries((string) $user['id'], $limit, $beforeUpdated, $beforeId));
+        Response::json(SessionStore::summaries((string) $user['id'], $limit, $beforeUpdated, $beforeId, $beforePinned));
     }
 
     /** 搜索当前用户的会话：标题与消息正文，返回命中位置便于前端跳转 */
@@ -44,6 +49,16 @@ final class SessionController
         $limit = $request->query('limit');
         if ($limit === null || $limit === '') {
             Response::json($session);
+            return;
+        }
+        // around：定位到指定消息所在的窗口（搜索结果跳转）
+        $around = (string) ($request->query('around') ?? '');
+        if ($around !== '') {
+            $page = SessionStore::pageAround($session, $around, (int) $limit);
+            Response::json($page['session'] + [
+                'hasMore' => $page['hasMore'],
+                'nextCursor' => $page['hasMore'] ? (string) ($page['session']['messages'][0]['id'] ?? '') : null,
+            ]);
             return;
         }
         $before = $request->query('before');
@@ -68,7 +83,13 @@ final class SessionController
     {
         $user = Auth::requireUser();
         $body = $request->json();
-        SessionStore::rename((string) $user['id'], (string) $params['id'], (string) ($body['title'] ?? ''));
+        $id = (string) $params['id'];
+        if (array_key_exists('pinned', $body)) {
+            SessionStore::setPinned((string) $user['id'], $id, (bool) $body['pinned']);
+        }
+        if (array_key_exists('title', $body)) {
+            SessionStore::rename((string) $user['id'], $id, (string) $body['title']);
+        }
         Response::json(['ok' => true]);
     }
 

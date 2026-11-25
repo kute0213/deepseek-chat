@@ -47,7 +47,7 @@
   height: 18px;
   margin-right: 8px;
   border: 1.5px solid var(--dsw-alias-border-l3);
-  border-radius: 6px;
+  border-radius: 50%;
   color: var(--dsw-alias-label-primary-foreground);
   transition:
     background-color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
@@ -57,6 +57,19 @@
 .checkboxChecked {
   border-color: var(--dsw-alias-brand-primary);
   background-color: var(--dsw-alias-brand-primary);
+}
+
+.pin {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: 4px;
+  color: var(--dsw-alias-label-tertiary);
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
 }
 
 .title {

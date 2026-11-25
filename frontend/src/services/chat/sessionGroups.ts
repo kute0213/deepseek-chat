@@ -10,6 +10,16 @@ const startOfDay = (time: number) => new Date(time).setHours(0, 0, 0, 0)
 export const groupSessions = (sessions: SessionSummary[], now: number, t = translate) => {
   const groups: { key: string; label: string; sessions: SessionSummary[] }[] = []
   for (const session of sessions) {
+    // 置顶会话统一归入最上方的「置顶」分组
+    if (session.pinned) {
+      const last = groups.at(-1)
+      if (last?.key === 'pinned') {
+        last.sessions.push(session)
+      } else {
+        groups.push({ key: 'pinned', label: t('sessionHistoryTimelineLabelPinned'), sessions: [session] })
+      }
+      continue
+    }
     const diff = Math.floor((now - startOfDay(session.updatedAt)) / DAY)
     const key =
       diff <= 0

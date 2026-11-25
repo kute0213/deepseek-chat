@@ -26,7 +26,8 @@ final class ShareController
         if ($sessionId === '') {
             Response::error('缺少会话 ID', 422);
         }
-        Response::json(ShareService::create((string) $user['id'], $sessionId));
+        $messageIds = is_array($body['messageIds'] ?? null) ? $body['messageIds'] : [];
+        Response::json(ShareService::create((string) $user['id'], $sessionId, $messageIds));
     }
 
     /** 撤销自己的分享链接 */

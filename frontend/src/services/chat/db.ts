@@ -79,7 +79,7 @@ export const searchSessions = async (query: string): Promise<SearchResult[]> => 
 /** 打开会话时分页返回的消息窗口：hasMore 表示还有更早的消息，nextCursor 用于继续加载。 */
 export type SessionMessagesPage = Session & { hasMore?: boolean; nextCursor?: string | null }
 
-export type LoadSessionOptions = { limit?: number; before?: string | null }
+export type LoadSessionOptions = { limit?: number; before?: string | null; around?: string | null }
 
 export const loadSession = async (
   id: string,
@@ -91,6 +91,9 @@ export const loadSession = async (
   }
   if (options?.before) {
     params.set('before', options.before)
+  }
+  if (options?.around) {
+    params.set('around', options.around)
   }
   const query = params.toString()
   try {
@@ -129,6 +132,11 @@ export const saveSession = (
 /** 未打开的会话也可重命名，服务端只更新标题与更新时间 */
 export const renameSession = async (id: string, title: string): Promise<void> => {
   await requestJson<{ ok: boolean }>(`/api/sessions/${encodeURIComponent(id)}`, 'PATCH', { title })
+}
+
+/** 置顶 / 取消置顶会话 */
+export const setSessionPinned = async (id: string, pinned: boolean): Promise<void> => {
+  await requestJson<{ ok: boolean }>(`/api/sessions/${encodeURIComponent(id)}`, 'PATCH', { pinned })
 }
 
 /** 删除会话；服务端同时清理不再被任何会话引用的附件 */

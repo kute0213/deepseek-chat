@@ -41,8 +41,8 @@ final class ShareService
         self::$ready = true;
     }
 
-    /** 取当前选中分支的可见消息，并去掉附件原件、思考过程等不需要公开的内容。 */
-    private static function snapshot(array $session): array
+    /** 取当前选中分支的可见消息，并按选中的消息 ID 过滤（含其后的回答）。 */
+    private static function snapshot(array $session, array $messageIds = []): array
     {
         $messages = array_values(array_filter(
             is_array($session['messages'] ?? null) ? $session['messages'] : [],
@@ -50,25 +50,37 @@ final class ShareService
         ));
         // 旧版线性会话没有 rootMessageId，直接按存储顺序输出
         if (!array_key_exists('rootMessageId', $session)) {
-            return ['messages' => array_map([self::class, 'publicMessage'], $messages)];
-        }
-        $byId = [];
-        foreach ($messages as $message) {
-            if (isset($message['id'])) {
-                $byId[(string) $message['id']] = $message;
+            $ordered = $messages;
+        } else {
+            $byId = [];
+            foreach ($messages as $message) {
+                if (isset($message['id'])) {
+                    $byId[(string) $message['id']] = $message;
+                }
+            }
+            $root = $session['rootMessageId'] ?? null;
+            if (!is_string($root) || $root === '') {
+                $root = isset($messages[0]['id']) ? (string) $messages[0]['id'] : null;
+            }
+            $ordered = [];
+            while ($root !== null && isset($byId[$root])) {
+                $message = $byId[$root];
+                unset($byId[$root]);
+                $ordered[] = $message;
+                $next = $message['selectedChildId'] ?? null;
+                $root = is_string($next) && $next !== '' ? $next : null;
             }
         }
-        $root = $session['rootMessageId'] ?? null;
-        if (!is_string($root) || $root === '') {
-            $root = isset($messages[0]['id']) ? (string) $messages[0]['id'] : null;
-        }
+        $selected = array_fill_keys(array_map('strval', $messageIds), true);
         $path = [];
-        while ($root !== null && isset($byId[$root])) {
-            $message = $byId[$root];
-            unset($byId[$root]);
-            $path[] = self::publicMessage($message);
-            $next = $message['selectedChildId'] ?? null;
-            $root = is_string($next) && $next !== '' ? $next : null;
+        $includeNext = false;
+        foreach ($ordered as $message) {
+            $id = (string) ($message['id'] ?? '');
+            $take = $selected === [] || isset($selected[$id]) || ($includeNext && ($message['role'] ?? '') === 'assistant');
+            $includeNext = isset($selected[$id]);
+            if ($take) {
+                $path[] = self::publicMessage($message);
+            }
         }
         return ['messages' => $path];
     }
@@ -108,16 +120,20 @@ final class ShareService
         return $output;
     }
 
-    public static function create(string $userId, string $sessionId, int $ttlDays = 0): array
+    public static function create(string $userId, string $sessionId, array $messageIds = [], int $ttlDays = 0): array
     {
         self::ensureTable();
         $session = SessionStore::load($userId, $sessionId);
         if ($session === null) {
             throw new HttpError('会话不存在', 404);
         }
-        $snapshot = self::snapshot($session);
+        $messageIds = array_values(array_filter(array_map('strval', $messageIds), static fn ($id): bool => $id !== ''));
+        if ($messageIds === []) {
+            throw new HttpError('请选择要分享的消息', 422);
+        }
+        $snapshot = self::snapshot($session, $messageIds);
         if ($snapshot['messages'] === []) {
-            throw new HttpError('空会话无法分享', 422);
+            throw new HttpError('所选消息不存在', 422);
         }
         $title = mb_substr(trim((string) ($session['title'] ?? '')), 0, 200);
         $now = (int) floor(microtime(true) * 1000);
@@ -138,7 +154,7 @@ final class ShareService
             'sessionId' => $sessionId,
             'createdAt' => $now,
             'expiresAt' => $expires,
-            'url' => '/share/' . $token,
+            'url' => '/?share=' . $token,
         ];
     }
 
@@ -157,12 +173,11 @@ final class ShareService
         return ['shares' => $rows];
     }
 
+    /** 撤销分享：直接删除记录，不留历史痕迹 */
     public static function revoke(string $userId, string $token): void
     {
         self::ensureTable();
-        $stmt = Database::pdo()->prepare(
-            'UPDATE share_links SET revoked = 1 WHERE token = ? AND user_id = ?'
-        );
+        $stmt = Database::pdo()->prepare('DELETE FROM share_links WHERE token = ? AND user_id = ?');
         $stmt->execute([$token, $userId]);
     }
 
@@ -323,7 +338,7 @@ final class ShareService
             'revoked' => (int) $row['revoked'] === 1,
             'createdAt' => (int) $row['created_ms'],
             'expiresAt' => $row['expires_ms'] !== null ? (int) $row['expires_ms'] : null,
-            'url' => '/share/' . $row['token'],
+            'url' => '/?share=' . $row['token'],
         ];
     }
 }

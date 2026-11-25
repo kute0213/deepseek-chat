@@ -4,6 +4,7 @@ import { streamMessage } from '../api/client.js'
 import { ApiError } from '../http.js'
 import type { ChatModel, CreateMessageRequest } from '../api/types.js'
 import { extractFileIds, getFileErrorCode, isRetryableApiError } from '../api/errors.js'
+import { focusMessage } from './focus.js'
 import {
   cancelUpload,
   checkImageFileIds,
@@ -108,7 +109,11 @@ export const useChatStore = create<ChatState>(() => ({
 const { getState: get, setState: set } = useChatStore
 
 const sortSessions = (sessions: SessionSummary[]) =>
-  [...sessions].sort((a, b) => b.updatedAt - a.updatedAt)
+  [...sessions].sort((a, b) => {
+    const pinnedA = a.pinned === true ? 1 : 0
+    const pinnedB = b.pinned === true ? 1 : 0
+    return pinnedB - pinnedA || b.updatedAt - a.updatedAt
+  })
 
 const getSession = (id: string) => {
   const cache = get().sessionCache
@@ -121,7 +126,10 @@ const getStreamController = (id: string) => {
 }
 
 const sameSummary = (a: SessionSummary, b: SessionSummary) =>
-  a.title === b.title && a.createdAt === b.createdAt && a.updatedAt === b.updatedAt
+  a.title === b.title &&
+  a.createdAt === b.createdAt &&
+  a.updatedAt === b.updatedAt &&
+  (a.pinned === true) === (b.pinned === true)
 
 const sessionAccess = new Map<string, number>()
 const unsavedSessions = new Set<string>()
@@ -188,7 +196,9 @@ const updateSession = (id: string, update: (session: Session) => Session) =>
         ? state.sessions
         : sortSessions(
             state.sessions.map((summary) =>
-              summary.id === id ? toSessionSummary(session) : summary
+              summary.id === id
+                ? { ...toSessionSummary(session), pinned: summary.pinned === true }
+                : summary
             )
           ),
     }
@@ -732,6 +742,55 @@ export const selectSession = (id: string) => {
     void ensureSessionLoaded(id)
     trimSessionCache()
   }
+}
+
+/** 搜索结果跳转：加载包含该消息的 20 条窗口，再定位到对应消息，不拉取其后全部内容。 */
+export const openSessionAtMessage = async (sessionId: string, messageId: string): Promise<void> => {
+  if (get().importingHistory || !get().sessions.some((session) => session.id === sessionId)) {
+    return
+  }
+  const cached = getSession(sessionId)
+  if (cached?.messages.some((message) => message.id === messageId)) {
+    touchSession(sessionId)
+    set({ activeId: sessionId })
+    focusMessage(sessionId, messageId)
+    return
+  }
+  const epoch = historyEpoch
+  touchSession(sessionId)
+  set({ activeId: sessionId })
+  try {
+    const stored = await db.loadSession(sessionId, { limit: MESSAGE_PAGE_SIZE, around: messageId })
+    if (epoch !== historyEpoch || !stored) {
+      return
+    }
+    const { hasMore, nextCursor, ...payload } = stored
+    const session = normalizeSession(payload)
+    set((state) => ({
+      sessionCache: { ...state.sessionCache, [sessionId]: session },
+      messagePages: {
+        ...state.messagePages,
+        [sessionId]: { hasMore: hasMore === true, cursor: nextCursor ?? null, loading: false },
+      },
+    }))
+    focusMessage(sessionId, messageId)
+    trimSessionCache()
+  } catch (error) {
+    db.reportStorageError('read session window')(error)
+  }
+}
+
+/** 置顶 / 取消置顶：本地立即重排，再同步服务端 */
+export const togglePinned = (id: string, pinned: boolean) => {
+  if (get().importingHistory) {
+    return
+  }
+  set((state) => ({
+    sessions: sortSessions(
+      state.sessions.map((session) => (session.id === id ? { ...session, pinned } : session))
+    ),
+  }))
+  void db.setSessionPinned(id, pinned).catch(db.reportStorageError('pin session'))
 }
 
 export const renameSession = (id: string, title: string) => {

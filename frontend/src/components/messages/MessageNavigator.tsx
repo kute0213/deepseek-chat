@@ -5,9 +5,13 @@ import { useTranslate } from '../../i18n/index.js'
 import { getVisibleMessages } from '../../services/chat/branches.js'
 import { loadOlderMessages, useChatStore } from '../../services/chat/store.js'
 import type { Message, Session } from '../../services/chat/types.js'
+import { IconChevronDownOutline14 } from '../base/icons.js'
 import styles from './MessageNavigator.module.css'
 
-/** 右侧圆点导航里的一条记录：一条用户提问。 */
+/** 右侧导航每页显示的记录数（和原版一致） */
+const PAGE_SIZE = 20
+
+/** 右侧短横导航里的一条记录：一条用户提问。 */
 const previewText = (message: Message): string => {
   if (message.role !== 'user') {
     return ''
@@ -20,8 +24,8 @@ const previewText = (message: Message): string => {
 }
 
 /**
- * 会话右侧的消息导航：圆点对应每条用户提问，悬浮展开预览列表，
- * 点击跳转到对应记录；预览列表滚动到顶部时加载更早的一页消息。
+ * 会话右侧的消息导航：短横对应每条用户提问，悬浮展开预览列表，点击直接跳转；
+ * 每页 20 条，可用上下箭头翻页；预览列表滚动到顶部时加载更早的一页消息。
  */
 export const MessageNavigator = ({ session }: { session: Session }) => {
   const t = useTranslate()
@@ -35,9 +39,15 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   const [open, setOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  /** 距离最后一页的页数：即便更早消息加载进来，也默认停留在最新一页 */
+  const [pageFromEnd, setPageFromEnd] = useState(0)
   const panelRef = useRef<HTMLDivElement>(null)
   const closeTimer = useRef<number>()
   const pendingPanelRef = useRef<{ height: number; top: number } | null>(null)
+
+  const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
+  const pageIndex = Math.max(0, pages - 1 - Math.min(pageFromEnd, pages - 1))
+  const pageItems = items.slice(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE)
 
   const openPanel = useCallback(() => {
     window.clearTimeout(closeTimer.current)
@@ -54,7 +64,7 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), [])
 
-  // 跟随主列表滚动，标记当前停留在的提问
+  // 跟随主列表滚动，标记当前停留在的提问；若不在当前页则自动翻到对应页
   useEffect(() => {
     const container = document.querySelector<HTMLElement>('[data-message-scroll]')
     if (!container || items.length === 0) {
@@ -65,7 +75,9 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
       frame = 0
       const top = container.getBoundingClientRect().top
       let current: string | null = null
-      for (const item of items) {
+      let currentIndex = -1
+      for (let index = 0; index < items.length; index += 1) {
+        const item = items[index]
         const el = container.querySelector<HTMLElement>(
           `[data-message-id="${CSS.escape(item.id)}"]`
         )
@@ -74,11 +86,19 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
         }
         if (el.getBoundingClientRect().top - top <= 88) {
           current = item.id
+          currentIndex = index
         } else {
           break
         }
       }
       setActiveId(current)
+      if (currentIndex >= 0) {
+        const target = Math.floor(currentIndex / PAGE_SIZE)
+        setPageFromEnd((previous) => {
+          const next = pages - 1 - target
+          return next === previous ? previous : Math.max(0, next)
+        })
+      }
     }
     const onScroll = () => {
       if (!frame) {
@@ -91,9 +111,9 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
       container.removeEventListener('scroll', onScroll)
       cancelAnimationFrame(frame)
     }
-  }, [items, session.id])
+  }, [items, pages, session.id])
 
-  // 展开时定位到最近浏览的记录；悬浮某个圆点时定位到对应记录
+  // 展开时定位到最近浏览的记录；悬浮某个短横时定位到对应记录
   useLayoutEffect(() => {
     if (!open) {
       return
@@ -110,7 +130,7 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     } else {
       panel.scrollTop = panel.scrollHeight
     }
-  }, [open, hoveredId, items.length])
+  }, [open, hoveredId, pageIndex, items.length])
 
   // 预览列表顶部插入更早记录后保持滚动位置
   useLayoutEffect(() => {
@@ -136,26 +156,34 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     void loadOlderMessages(session.id)
   }
 
+  // 点击后直接跳转，不做平滑滚动；触屏端先展开预览面板
   const jump = (messageId: string) => {
     const target = document.querySelector<HTMLElement>(
       `[data-message-id="${CSS.escape(messageId)}"]`
     )
-    target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    target?.scrollIntoView({ block: 'start' })
     setActiveId(messageId)
-    if (isMobile) {
-      setOpen(false)
-    }
+    setOpen(false)
   }
 
-  if (isMobile || items.length === 0) {
+  const onRailClick = (messageId: string) => {
+    if (isMobile) {
+      setHoveredId(messageId)
+      openPanel()
+      return
+    }
+    jump(messageId)
+  }
+
+  if (items.length === 0) {
     return null
   }
 
   return (
     <div
-      className={styles.root}
-      onMouseEnter={openPanel}
-      onMouseLeave={scheduleClose}
+      className={clsx(styles.root, isMobile && styles.mobile)}
+      onMouseEnter={isMobile ? undefined : openPanel}
+      onMouseLeave={isMobile ? undefined : scheduleClose}
       aria-label={t('messageNavigator')}
     >
       {open ? (
@@ -166,7 +194,7 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
             </div>
           ) : null}
           <div className={styles.list}>
-            {items.map((item) => (
+            {pageItems.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -187,14 +215,25 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
         </div>
       ) : null}
       <div className={styles.rail}>
-        {items.map((item) => (
+        {pages > 1 ? (
+          <button
+            type="button"
+            className={clsx(styles.pageButton, styles.pageButtonUp)}
+            disabled={pageFromEnd >= pages - 1}
+            aria-label={t('messageNavigatorPrev')}
+            onClick={() => setPageFromEnd((value) => Math.min(pages - 1, value + 1))}
+          >
+            <IconChevronDownOutline14 />
+          </button>
+        ) : null}
+        {pageItems.map((item) => (
           <button
             key={item.id}
             type="button"
             className={clsx(
-              styles.dot,
-              activeId === item.id && styles.dotActive,
-              hoveredId === item.id && styles.dotHovered
+              styles.bar,
+              activeId === item.id && styles.barActive,
+              hoveredId === item.id && styles.barHovered
             )}
             onMouseEnter={() => {
               setHoveredId(item.id)
@@ -204,10 +243,21 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
               setHoveredId(item.id)
               openPanel()
             }}
-            onClick={() => jump(item.id)}
+            onClick={() => onRailClick(item.id)}
             aria-label={previewText(item).slice(0, 40)}
           />
         ))}
+        {pages > 1 ? (
+          <button
+            type="button"
+            className={styles.pageButton}
+            disabled={pageFromEnd <= 0}
+            aria-label={t('messageNavigatorNext')}
+            onClick={() => setPageFromEnd((value) => Math.max(0, value - 1))}
+          >
+            <IconChevronDownOutline14 />
+          </button>
+        ) : null}
       </div>
     </div>
   )

@@ -1,3 +1,21 @@
+/* 搜索框先展开在上方，结果框随后在其下方展开 */
+.dialog {
+  align-self: flex-start;
+  margin-top: 8vh;
+  animation: searchDialogIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes searchDialogIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .input {
   box-sizing: border-box;
   width: 100%;

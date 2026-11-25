@@ -536,3 +536,24 @@ export const IconUserOutline16 = () => (
     />
   </svg>
 )
+
+/** 批量管理：三行滑块（与原版一致，不使用齿轮） */
+export const IconSliderOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" />
+    <circle cx={5} cy={4} r={1.7} fill="currentColor" />
+    <circle cx={11} cy={8} r={1.7} fill="currentColor" />
+    <circle cx={6} cy={12} r={1.7} fill="currentColor" />
+  </svg>
+)
+
+/** 置顶：图钉 */
+export const IconPinOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M9.6 1.9 14.1 6.4l-1.5.5-1.3 3.3-1.5-.6-3.9 4-.6-.6 3.9-3.9-.6-1.5 3.3-1.3.5-1.5Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+

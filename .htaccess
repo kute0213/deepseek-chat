@@ -20,6 +20,10 @@ RewriteRule ^install(?:\.php)?$ index.php [L,QSA]
 RewriteRule ^terms(?:\.html)?$ index.php [L,QSA]
 RewriteRule ^404(?:\.html)?$ index.php?_r=/404 [L,QSA]
 
+# 分享页与文档页由前端路由渲染，交给 PHP 输出入口，避免未建目录时直接 404
+RewriteRule ^share(?:/|$) index.php [L,QSA]
+RewriteRule ^docs(?:/|$) index.php [L,QSA]
+
 # 已存在的文件/目录直接返回
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
@@ -33,5 +37,5 @@ RewriteRule ^ - [R=404,L]
 RewriteRule ^ index.php [L]
 
 # 内部目录与杂物禁止访问
-RedirectMatch 403 ^/(app|uploads|docs|frontend|scripts)(/|$)
+RedirectMatch 403 ^/(app|uploads|frontend|scripts)(/|$)
 RedirectMatch 403 ^/\.(git|gitignore)

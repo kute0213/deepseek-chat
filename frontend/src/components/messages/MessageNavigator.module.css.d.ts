@@ -1,9 +1,12 @@
 declare const styles: {
   readonly "root": string;
+  readonly "mobile": string;
   readonly "rail": string;
-  readonly "dot": string;
-  readonly "dotHovered": string;
-  readonly "dotActive": string;
+  readonly "bar": string;
+  readonly "barHovered": string;
+  readonly "barActive": string;
+  readonly "pageButton": string;
+  readonly "pageButtonUp": string;
   readonly "panel": string;
   readonly "panelLoading": string;
   readonly "list": string;

@@ -1,15 +1,16 @@
 import clsx from 'clsx'
-import { useState } from 'react'
+import { useMemo } from 'react'
 import { useIsMobile } from '../../app/viewport.js'
 import { useTranslate } from '../../i18n/index.js'
 import { useAuth } from '../../services/auth.js'
+import { getVisibleMessages } from '../../services/chat/branches.js'
 import type { Session } from '../../services/chat/types.js'
 import { IconLinkOutline16 } from '../base/icons.js'
 import { IconButton } from '../base/IconButton.js'
 import { ChatInput } from '../chatInput/ChatInput.js'
 import { MessageList } from '../messages/MessageList.js'
 import { MessageNavigator } from '../messages/MessageNavigator.js'
-import { ShareDialog } from '../share/ShareDialog.js'
+import { openShare } from '../share/shareDialogState.js'
 import { MobileHeader } from './MobileHeader.js'
 import styles from './SessionView.module.css'
 
@@ -26,14 +27,30 @@ export const SessionView = ({
   const t = useTranslate()
   const isMobile = useIsMobile()
   const loggedIn = useAuth((state) => state.user !== null)
-  const [sharing, setSharing] = useState(false)
   const title = session.title || t('untitledChat')
+  // 当前可见分支的 Token 用量：与服务端统计口径一致
+  const usage = useMemo(() => {
+    let input = 0
+    let output = 0
+    for (const message of getVisibleMessages(session)) {
+      if (message.role !== 'assistant' || !message.usage) {
+        continue
+      }
+      input +=
+        (message.usage.input_tokens ?? 0) +
+        (message.usage.cache_creation_input_tokens ?? 0) +
+        (message.usage.cache_read_input_tokens ?? 0)
+      output += message.usage.output_tokens ?? 0
+    }
+    return { input, output }
+  }, [session])
+
   return (
     <div className={styles.view}>
       {isMobile ? (
         <MobileHeader
           title={title}
-          onShare={loggedIn ? () => setSharing(true) : undefined}
+          onShare={loggedIn ? () => openShare(session.id) : undefined}
         />
       ) : (
         <div className={styles.header}>
@@ -45,9 +62,9 @@ export const SessionView = ({
               <IconButton
                 size="m"
                 icon={<IconLinkOutline16 />}
-                tooltip={t('shareDialogTitle')}
+                tooltip={t('shareSelectTitle')}
                 tooltipPlacement="bottom"
-                onClick={() => setSharing(true)}
+                onClick={() => openShare(session.id)}
               />
             </div>
           ) : null}
@@ -59,14 +76,17 @@ export const SessionView = ({
         footer={
           <div className={styles.inputContainer}>
             <ChatInput sessionId={session.id} />
-            <div className={styles.caveat}>{t('contentCaveat')}</div>
+            <div className={styles.caveatRow}>
+              <div className={styles.caveat}>{t('contentCaveat')}</div>
+              <div className={styles.tokenUsage}>
+                <span>{t('tokenUsageInput', { count: usage.input })}</span>
+                <span>{t('tokenUsageOutput', { count: usage.output })}</span>
+              </div>
+            </div>
           </div>
         }
       />
       <MessageNavigator session={session} />
-      {sharing ? (
-        <ShareDialog sessionId={session.id} onClose={() => setSharing(false)} />
-      ) : null}
     </div>
   )
 }
