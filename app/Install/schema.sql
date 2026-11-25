@@ -50,6 +50,16 @@ CREATE TABLE IF NOT EXISTS sessions (
     KEY idx_sessions_created (created_ms)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 已删除会话的用量归档：保证账号 Token 总量包含被删除的会话
+CREATE TABLE IF NOT EXISTS usage_archives (
+    user_id BIGINT UNSIGNED NOT NULL,
+    input_tokens BIGINT NOT NULL DEFAULT 0,
+    output_tokens BIGINT NOT NULL DEFAULT 0,
+    messages BIGINT NOT NULL DEFAULT 0,
+    sessions BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS files (
     user_id BIGINT UNSIGNED NOT NULL,
     id VARCHAR(64) NOT NULL,

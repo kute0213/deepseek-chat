@@ -8,8 +8,12 @@ import type { Message, Session } from '../../services/chat/types.js'
 import { IconChevronDownOutline14 } from '../base/icons.js'
 import styles from './MessageNavigator.module.css'
 
-/** 右侧导航每页显示的记录数（和原版一致） */
-const PAGE_SIZE = 10
+/** 右侧导航每页显示的记录数 */
+const PAGE_SIZE = 7
+
+/** 是否允许平滑滚动（尊重系统的减少动态效果） */
+const smoothBehavior = (): ScrollBehavior =>
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
 
 /** 右侧短横导航里的一条记录：一条用户提问。 */
 const previewText = (
@@ -140,8 +144,12 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     }
     const panelRect = panel.getBoundingClientRect()
     const targetRect = target.getBoundingClientRect()
-    panel.scrollTop +=
-      targetRect.top - panelRect.top - panel.clientHeight / 2 + target.clientHeight / 2
+    const top =
+      panel.scrollTop +
+      (targetRect.top - panelRect.top) -
+      panel.clientHeight / 2 +
+      target.clientHeight / 2
+    panel.scrollTo({ top: Math.max(0, top), behavior: smoothBehavior() })
   }, [open, hoveredId, activeId, pageIndex, pageItems])
 
   // 预览列表顶部插入更早记录后保持滚动位置
@@ -199,7 +207,14 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
       aria-label={t('messageNavigator')}
     >
       {open ? (
-        <div className={styles.panel} ref={panelRef} onScroll={onPanelScroll}>
+        <div
+          className={styles.panel}
+          ref={panelRef}
+          onScroll={onPanelScroll}
+          onMouseEnter={() => {
+            window.clearTimeout(closeTimer.current)
+          }}
+        >
           {hasMore ? (
             <div className={styles.panelLoading} role="status" aria-live="polite">
               {loading ? t('messagesLoadingMore') : ''}

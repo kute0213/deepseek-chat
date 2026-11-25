@@ -12,12 +12,29 @@ use App\Support\Request;
 
 require dirname(__DIR__) . '/app/Bootstrap.php';
 Bootstrap::boot();
+\App\Support\Lang::setLocale(($_COOKIE['dsw_locale'] ?? '') === 'en-US' ? 'en-US' : 'zh-CN');
 
 const ADMIN_PER_PAGE = 20;
 
 function e(mixed $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+/** 当前后台语言：前端写入 dsw_locale Cookie，未设置时使用中文。 */
+function admin_locale(): string
+{
+    return ($_COOKIE['dsw_locale'] ?? '') === 'en-US' ? 'en-US' : 'zh-CN';
+}
+
+/** 服务端文案，{name} 形式的占位符会被替换。 */
+function t(string $key, array $params = []): string
+{
+    $text = \App\Support\Lang::get($key, $key);
+    foreach ($params as $name => $value) {
+        $text = str_replace('{' . $name . '}', (string) $value, $text);
+    }
+    return $text;
 }
 
 function admin_url(array $params = []): string
@@ -76,17 +93,17 @@ if (Request::method() === 'POST' && ($_POST['action'] ?? '') === 'login') {
         $row = $username === '' ? null : UserService::findByUsername($username);
         if ($row === null || !password_verify($password, (string) $row['password_hash'])) {
             UserService::recordLoginFailure($username, $ip);
-            admin_redirect('login', null, '用户名或密码错误');
+            admin_redirect('login', null, t('admin.flash.bad_credentials'));
         }
         if ((string) $row['role'] !== 'admin') {
-            admin_redirect('login', null, '该账号没有管理权限');
+            admin_redirect('login', null, t('admin.flash.no_permission'));
         }
         if ((int) $row['status'] !== 1) {
-            admin_redirect('login', null, '该账号已被禁用');
+            admin_redirect('login', null, t('admin.flash.disabled'));
         }
         UserService::clearLoginFailures($username, $ip);
         Auth::login((string) $row['id']);
-        admin_redirect('dashboard', '登录成功');
+        admin_redirect('dashboard', t('admin.flash.login_success'));
     } catch (\App\Support\HttpError $error) {
         admin_redirect('login', null, $error->getMessage());
     }
@@ -103,7 +120,7 @@ if (Request::method() === 'POST') {
     $action = (string) ($_POST['action'] ?? '');
     $csrf = (string) ($_POST['csrf'] ?? '');
     if (!hash_equals((string) $user['csrf_token'], $csrf)) {
-        admin_redirect('dashboard', null, '表单已过期，请重试');
+        admin_redirect('dashboard', null, t('admin.flash.csrf'));
     }
     $id = (string) ($_POST['id'] ?? '');
     $back = (string) ($_POST['back'] ?? 'dashboard');
@@ -117,47 +134,47 @@ if (Request::method() === 'POST') {
             case 'create_user':
                 $role = ($_POST['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
                 AdminService::createUser(trim((string) ($_POST['username'] ?? '')), (string) ($_POST['password'] ?? ''), $role);
-                admin_redirect('users', '用户已创建');
+                admin_redirect('users', t('admin.flash.user_created'));
             case 'user_role':
                 if ($id === (string) $user['id']) {
-                    throw new \App\Support\HttpError('不能修改自己的角色', 422);
+                    throw new \App\Support\HttpError(t('admin.error.self_role'), 422);
                 }
                 $role = ($_POST['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
                 AdminService::setRole($id, $role);
-                admin_redirect($back, '角色已更新', null, $backExtra);
+                admin_redirect($back, t('admin.flash.role_updated'), null, $backExtra);
             case 'user_status':
                 $enabled = ($_POST['status'] ?? '1') === '1';
                 AdminService::setStatus($id, $enabled);
-                admin_redirect($back, '状态已更新', null, $backExtra);
+                admin_redirect($back, t('admin.flash.status_updated'), null, $backExtra);
             case 'user_password':
                 $password = (string) ($_POST['password'] ?? '');
                 if (strlen($password) < 8) {
-                    throw new \App\Support\HttpError('新密码至少 8 位', 422);
+                    throw new \App\Support\HttpError(t('admin.error.password_min'), 422);
                 }
                 UserService::updatePassword($id, $password);
                 Auth::revokeOtherTokens($id);
-                admin_redirect($back, '密码已重置', null, $backExtra);
+                admin_redirect($back, t('admin.flash.password_reset'), null, $backExtra);
             case 'user_clear_key':
                 UserService::deleteApiKey($id);
-                admin_redirect($back, 'API Key 已清除', null, $backExtra);
+                admin_redirect($back, t('admin.flash.key_cleared'), null, $backExtra);
             case 'user_delete':
                 if ($id === (string) $user['id']) {
-                    throw new \App\Support\HttpError('不能删除当前登录的账号', 422);
+                    throw new \App\Support\HttpError(t('admin.error.self_delete'), 422);
                 }
                 AdminService::deleteUser($id);
-                admin_redirect('users', '用户及其数据已删除');
+                admin_redirect('users', t('admin.flash.user_deleted'));
             case 'session_delete':
                 AdminService::deleteSession($id);
-                admin_redirect('sessions', '会话已删除');
+                admin_redirect('sessions', t('admin.flash.session_deleted'));
             case 'share_revoke':
                 ShareService::setRevoked($id, true);
-                admin_redirect($back === 'shares' ? 'shares' : 'dashboard', '分享已撤销');
+                admin_redirect($back === 'shares' ? 'shares' : 'dashboard', t('admin.flash.share_revoked'));
             case 'share_restore':
                 ShareService::setRevoked($id, false);
-                admin_redirect('shares', '分享已恢复');
+                admin_redirect('shares', t('admin.flash.share_restored'));
             case 'share_delete':
                 ShareService::delete($id);
-                admin_redirect('shares', '分享已删除');
+                admin_redirect('shares', t('admin.flash.share_deleted'));
             case 'settings_save':
                 $fields = [
                     'site_name' => mb_substr(trim((string) ($_POST['site_name'] ?? '')), 0, 64),
@@ -168,14 +185,14 @@ if (Request::method() === 'POST') {
                     'api_base_url' => rtrim(trim((string) ($_POST['api_base_url'] ?? '')), '/'),
                 ];
                 if ($fields['site_name'] === '') {
-                    throw new \App\Support\HttpError('站点名称不能为空', 422);
+                    throw new \App\Support\HttpError(t('admin.error.site_name'), 422);
                 }
                 foreach ($fields as $key => $value) {
                     SiteSettings::set($key, $value);
                 }
-                admin_redirect('settings', '设置已保存');
+                admin_redirect('settings', t('admin.flash.settings_saved'));
             default:
-                admin_redirect('dashboard', null, '未知操作');
+                admin_redirect('dashboard', null, t('admin.flash.unknown'));
         }
     } catch (\App\Support\HttpError $error) {
         admin_redirect((string) ($_POST['back'] ?? 'dashboard'), null, $error->getMessage());
@@ -191,10 +208,10 @@ if ($export !== '') {
     $out = fopen('php://output', 'wb');
     fwrite($out, "\xEF\xBB\xBF");
     if ($export === 'users') {
-        fputcsv($out, ['ID', '用户名', '角色', '状态', 'API Key', '会话数', '注册时间', '最后登录']);
+        fputcsv($out, ['ID', t('admin.common.username'), t('admin.common.role'), t('admin.common.status'), 'API Key', t('admin.common.sessions'), t('admin.common.created'), t('admin.common.last_login')]);
         foreach (AdminService::listUsers((string) ($_GET['q'] ?? ''), 1, 10000)['rows'] as $row) {
             fputcsv($out, [
-                $row['id'], $row['username'], $row['role'], (int) $row['status'] === 1 ? '正常' : '禁用',
+                $row['id'], $row['username'], $row['role'], (int) $row['status'] === 1 ? t('admin.common.enabled') : t('admin.common.disabled'),
                 $row['api_key'] ?? '', (int) $row['sessions_count'],
                 fmt_ms((int) $row['created_ms']), fmt_ms($row['last_login_ms'] !== null ? (int) $row['last_login_ms'] : null),
             ]);
@@ -225,7 +242,7 @@ switch ($page) {
     case 'user':
         $detail = AdminService::userDetail((string) ($_GET['id'] ?? ''));
         if ($detail === null) {
-            admin_redirect('users', null, '用户不存在');
+            admin_redirect('users', null, t('admin.flash.user_not_found'));
         }
         $data = ['detail' => $detail];
         break;
@@ -235,7 +252,7 @@ switch ($page) {
     case 'session':
         $session = AdminService::getSession((string) ($_GET['id'] ?? ''));
         if ($session === null) {
-            admin_redirect('sessions', null, '会话不存在');
+            admin_redirect('sessions', null, t('admin.flash.session_not_found'));
         }
         $data = ['session' => $session];
         break;
@@ -248,13 +265,13 @@ switch ($page) {
 }
 
 $titles = [
-    'dashboard' => '概览',
-    'users' => '用户管理',
-    'user' => '用户详情',
-    'sessions' => '会话管理',
-    'session' => '会话详情',
-    'shares' => '分享管理',
-    'settings' => '站点设置',
+    'dashboard' => t('admin.page.dashboard'),
+    'users' => t('admin.page.users'),
+    'user' => t('admin.page.user'),
+    'sessions' => t('admin.page.sessions'),
+    'session' => t('admin.page.session'),
+    'shares' => t('admin.page.shares'),
+    'settings' => t('admin.page.settings'),
 ];
 $title = $titles[$page];
 $ok = isset($_GET['ok']) ? (string) $_GET['ok'] : null;

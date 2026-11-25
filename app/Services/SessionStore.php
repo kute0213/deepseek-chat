@@ -10,6 +10,7 @@ use PDO;
 final class SessionStore
 {
     private static bool $columnsReady = false;
+    private static bool $archiveReady = false;
 
     /** 已安装站点没有迁移脚本，首次使用时补齐新增列（置顶）。 */
     private static function ensureColumns(): void
@@ -25,6 +26,84 @@ final class SessionStore
             }
         } catch (\Throwable) {
             // 建表权限不足时保持原有行为：置顶字段缺省为 0
+        }
+    }
+
+    /** 已删除会话的用量汇总表：删除会话时把统计值累加进来，保证账号总用量不因删除而减少。 */
+    private static function ensureArchive(): void
+    {
+        if (self::$archiveReady) {
+            return;
+        }
+        self::$archiveReady = true;
+        try {
+            Database::pdo()->exec(
+                'CREATE TABLE IF NOT EXISTS usage_archives (
+                    user_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+                    input_tokens BIGINT NOT NULL DEFAULT 0,
+                    output_tokens BIGINT NOT NULL DEFAULT 0,
+                    messages BIGINT NOT NULL DEFAULT 0,
+                    sessions BIGINT NOT NULL DEFAULT 0
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+            );
+        } catch (\Throwable) {
+            // 无建表权限时忽略，用量退化为仅当前会话
+        }
+    }
+
+    /** 把单个会话的统计值累加到归档表（删除前调用）。 */
+    public static function archiveSession(string $userId, string $sessionId): void
+    {
+        self::ensureArchive();
+        try {
+            $pdo = Database::pdo();
+            $stmt = $pdo->prepare(
+                'SELECT input_tokens, output_tokens, messages_count FROM sessions WHERE user_id = ? AND id = ?'
+            );
+            $stmt->execute([$userId, $sessionId]);
+            $row = $stmt->fetch();
+            if ($row === false) {
+                return;
+            }
+            $stmt = $pdo->prepare(
+                'INSERT INTO usage_archives (user_id, input_tokens, output_tokens, messages, sessions)
+                 VALUES (?, ?, ?, ?, 1)
+                 ON DUPLICATE KEY UPDATE
+                    input_tokens = input_tokens + VALUES(input_tokens),
+                    output_tokens = output_tokens + VALUES(output_tokens),
+                    messages = messages + VALUES(messages),
+                    sessions = sessions + 1'
+            );
+            $stmt->execute([
+                $userId,
+                (int) $row['input_tokens'],
+                (int) $row['output_tokens'],
+                (int) $row['messages_count'],
+            ]);
+        } catch (\Throwable) {
+            // 归档失败不影响删除流程
+        }
+    }
+
+    /** 导入历史覆盖全部会话前，先把现有统计值归档。 */
+    public static function archiveAll(string $userId): void
+    {
+        self::ensureArchive();
+        try {
+            $stmt = Database::pdo()->prepare(
+                'INSERT INTO usage_archives (user_id, input_tokens, output_tokens, messages, sessions)
+                 SELECT user_id, COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0),
+                        COALESCE(SUM(messages_count), 0), COUNT(*)
+                 FROM sessions WHERE user_id = ? GROUP BY user_id
+                 ON DUPLICATE KEY UPDATE
+                    input_tokens = input_tokens + VALUES(input_tokens),
+                    output_tokens = output_tokens + VALUES(output_tokens),
+                    messages = messages + VALUES(messages),
+                    sessions = sessions + VALUES(sessions)'
+            );
+            $stmt->execute([$userId]);
+        } catch (\Throwable) {
+            // 归档失败时不影响导入
         }
     }
 
@@ -89,6 +168,7 @@ final class SessionStore
     public static function usage(string $userId): array
     {
         self::ensureColumns();
+        self::ensureArchive();
         $pdo = Database::pdo();
         $stmt = $pdo->prepare(
             'SELECT COUNT(*) AS sessions, COALESCE(SUM(input_tokens), 0) AS input_tokens,
@@ -97,6 +177,24 @@ final class SessionStore
         );
         $stmt->execute([$userId]);
         $totals = $stmt->fetch() ?: [];
+        $archived = ['input_tokens' => 0, 'output_tokens' => 0, 'messages' => 0, 'sessions' => 0];
+        try {
+            $stmt = $pdo->prepare(
+                'SELECT input_tokens, output_tokens, messages, sessions FROM usage_archives WHERE user_id = ?'
+            );
+            $stmt->execute([$userId]);
+            $row = $stmt->fetch();
+            if ($row !== false) {
+                $archived = [
+                    'input_tokens' => (int) $row['input_tokens'],
+                    'output_tokens' => (int) $row['output_tokens'],
+                    'messages' => (int) $row['messages'],
+                    'sessions' => (int) $row['sessions'],
+                ];
+            }
+        } catch (\Throwable) {
+            // 归档表不可用时仅统计当前会话
+        }
         $stmt = $pdo->prepare(
             'SELECT id, title, messages_count, input_tokens, output_tokens, updated_ms
              FROM sessions WHERE user_id = ? ORDER BY (input_tokens + output_tokens) DESC LIMIT 50'
@@ -113,14 +211,14 @@ final class SessionStore
                 'updatedAt' => (int) $row['updated_ms'],
             ];
         }
-        $input = (int) ($totals['input_tokens'] ?? 0);
-        $output = (int) ($totals['output_tokens'] ?? 0);
+        $input = (int) ($totals['input_tokens'] ?? 0) + $archived['input_tokens'];
+        $output = (int) ($totals['output_tokens'] ?? 0) + $archived['output_tokens'];
         return [
             'inputTokens' => $input,
             'outputTokens' => $output,
             'totalTokens' => $input + $output,
-            'sessions' => (int) ($totals['sessions'] ?? 0),
-            'messages' => (int) ($totals['messages'] ?? 0),
+            'sessions' => (int) ($totals['sessions'] ?? 0) + $archived['sessions'],
+            'messages' => (int) ($totals['messages'] ?? 0) + $archived['messages'],
             'items' => $items,
         ];
     }
@@ -441,6 +539,7 @@ final class SessionStore
 
     public static function delete(string $userId, string $sessionId): void
     {
+        self::archiveSession($userId, $sessionId);
         Database::tx(function () use ($userId, $sessionId): void {
             $pdo = Database::pdo();
             $stmt = $pdo->prepare('DELETE FROM session_files WHERE user_id = ? AND session_id = ?');

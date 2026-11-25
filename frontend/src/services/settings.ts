@@ -97,6 +97,12 @@ export const useSettings = create<Settings>(() => ({
 
 export const setLocale = (locale: Locale) => {
   write(KEYS.locale, locale)
+  try {
+    // 让服务端渲染的管理后台 / 文档页也能读取当前语言
+    document.cookie = `dsw_locale=${locale}; path=/; max-age=31536000; samesite=lax`
+  } catch {
+    // Cookie 不可用时忽略
+  }
   useSettings.setState({ locale })
 }
 

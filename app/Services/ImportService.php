@@ -109,6 +109,7 @@ final class ImportService
         $oldFileIds = $stmt->fetchAll(\PDO::FETCH_COLUMN);
 
         Database::tx(function () use ($pdo, $userId, $prepared, $stagingFiles): void {
+            SessionStore::archiveAll($userId);
             $stmt = $pdo->prepare('DELETE FROM session_files WHERE user_id = ?');
             $stmt->execute([$userId]);
             $stmt = $pdo->prepare('DELETE FROM files WHERE user_id = ?');

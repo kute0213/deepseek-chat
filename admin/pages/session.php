@@ -4,31 +4,31 @@ $messages = is_array($session['data']['messages'] ?? null) ? $session['data']['m
 ?>
 <div class="panel">
     <dl class="meta">
-        <dt>会话 ID</dt><dd class="mono"><?= e($session['id']) ?></dd>
-        <dt>标题</dt><dd><?= e($session['title'] !== '' ? $session['title'] : '（未命名）') ?></dd>
-        <dt>所属用户</dt><dd><?= e($session['username']) ?></dd>
-        <dt>消息数</dt><dd><?= (int) $session['messages_count'] ?></dd>
-        <dt>Token</dt><dd>输入 <?= number_format((int) $session['input_tokens']) ?> / 输出 <?= number_format((int) $session['output_tokens']) ?></dd>
-        <dt>创建时间</dt><dd><?= e(fmt_ms((int) $session['created_ms'])) ?></dd>
-        <dt>更新时间</dt><dd><?= e(fmt_ms((int) $session['updated_ms'])) ?></dd>
+        <dt><?= e(t('admin.common.session_id')) ?></dt><dd class="mono"><?= e($session['id']) ?></dd>
+        <dt><?= e(t('admin.common.title')) ?></dt><dd><?= e($session['title'] !== '' ? $session['title'] : t('common.unnamed')) ?></dd>
+        <dt><?= e(t('admin.session.owner')) ?></dt><dd><?= e($session['username']) ?></dd>
+        <dt><?= e(t('admin.common.messages')) ?></dt><dd><?= (int) $session['messages_count'] ?></dd>
+        <dt><?= e(t('admin.common.token')) ?></dt><dd><?= e(t('admin.dashboard.input')) ?> <?= number_format((int) $session['input_tokens']) ?> / <?= e(t('admin.dashboard.output')) ?> <?= number_format((int) $session['output_tokens']) ?></dd>
+        <dt><?= e(t('admin.common.created_at')) ?></dt><dd><?= e(fmt_ms((int) $session['created_ms'])) ?></dd>
+        <dt><?= e(t('admin.common.updated')) ?></dt><dd><?= e(fmt_ms((int) $session['updated_ms'])) ?></dd>
     </dl>
     <div class="quick">
-        <a class="btn" href="<?= e(admin_url(['page' => 'sessions'])) ?>">返回列表</a>
-        <form class="mini" method="post" data-confirm="确定删除该会话？">
+        <a class="btn" href="<?= e(admin_url(['page' => 'sessions'])) ?>"><?= e(t('common.back')) ?></a>
+        <form class="mini" method="post" data-confirm="<?= e(t('admin.session.confirm_delete')) ?>">
             <input type="hidden" name="action" value="session_delete">
             <input type="hidden" name="csrf" value="<?= e($user['csrf_token']) ?>">
             <input type="hidden" name="back" value="sessions">
             <input type="hidden" name="id" value="<?= e($session['id']) ?>">
-            <button class="btn danger" type="submit">删除会话</button>
+            <button class="btn danger" type="submit"><?= e(t('admin.session.delete')) ?></button>
         </form>
     </div>
 </div>
 
 <div class="panel">
-    <h2>消息列表</h2>
+    <h2><?= e(t('admin.session.messages')) ?></h2>
     <table>
         <thead>
-        <tr><th>ID</th><th>角色</th><th>内容摘要</th><th>附件</th></tr>
+        <tr><th><?= e(t('admin.common.id')) ?></th><th><?= e(t('admin.common.role')) ?></th><th><?= e(t('admin.session.content')) ?></th><th><?= e(t('admin.session.attachments')) ?></th></tr>
         </thead>
         <tbody>
         <?php foreach ($messages as $message): ?>
@@ -48,7 +48,7 @@ $messages = is_array($session['data']['messages'] ?? null) ? $session['data']['m
             ?>
             <tr>
                 <td class="mono"><?= e($message['id'] ?? '') ?></td>
-                <td><?= e($role === 'user' ? '用户' : ($role === 'assistant' ? '助手' : $role)) ?></td>
+                <td><?= e($role === 'user' ? t('admin.role.user') : ($role === 'assistant' ? t('admin.role.assistant') : $role)) ?></td>
                 <td class="preview"><?= e(mb_substr(trim($text), 0, 120)) ?></td>
                 <td><?= $fileCount ?></td>
             </tr>
@@ -58,6 +58,6 @@ $messages = is_array($session['data']['messages'] ?? null) ? $session['data']['m
 </div>
 
 <details class="panel">
-    <summary>原始 JSON</summary>
+    <summary><?= e(t('admin.session.raw_json')) ?></summary>
     <pre class="json"><?= e(json_encode($session['data'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '') ?></pre>
 </details>

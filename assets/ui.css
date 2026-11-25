@@ -23,7 +23,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme='light']) {
         --bg: #151517;
         --bg-soft: #1b1b1c;
         --modal: #2c2c2e;
@@ -42,6 +42,32 @@
         --ok: #4ed17e;
         --shadow: 0 0 1px 0 rgba(0, 0, 0, 0.4), 0 12px 32px 0 rgba(0, 0, 0, 0.4);
     }
+}
+
+/* 手动主题：优先于系统深浅色 */
+:root[data-theme='dark'] {
+    --bg: #151517;
+    --bg-soft: #1b1b1c;
+    --modal: #2c2c2e;
+    --input: #1b1b1c;
+    --text: #f9fafb;
+    --text-2: #cfd3d6;
+    --text-3: #adb2b8;
+    --line: rgba(255, 255, 255, 0.12);
+    --line-soft: rgba(255, 255, 255, 0.06);
+    --hover: rgba(255, 255, 255, 0.08);
+    --active: #2c2c2e;
+    --brand: #5686fe;
+    --brand-hover: #3964fe;
+    --danger: #f25a5a;
+    --danger-soft: #f25a5a;
+    --ok: #4ed17e;
+    --shadow: 0 0 1px 0 rgba(0, 0, 0, 0.4), 0 12px 32px 0 rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+    color-scheme: light;
 }
 
 * {

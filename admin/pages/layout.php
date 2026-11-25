@@ -6,30 +6,52 @@
 /** @var string|null $ok */
 /** @var string|null $error */
 $nav = [
-    'dashboard' => ['概览', '概'],
-    'users' => ['用户', '用'],
-    'sessions' => ['会话', '会'],
-    'shares' => ['分享', '分'],
-    'settings' => ['站点设置', '设'],
+    'dashboard' => [t('admin.nav.dashboard'), '概'],
+    'users' => [t('admin.nav.users'), '用'],
+    'sessions' => [t('admin.nav.sessions'), '会'],
+    'shares' => [t('admin.nav.shares'), '分'],
+    'settings' => [t('admin.nav.settings'), '设'],
 ];
 $active = static fn (string $key): bool => $page === $key
     || ($page === 'session' && $key === 'sessions')
     || ($page === 'user' && $key === 'users');
 ?>
 <!doctype html>
-<html lang="zh-CN">
+<html lang="<?= admin_locale() === 'en-US' ? 'en' : 'zh-CN' ?>" data-locale="<?= e(admin_locale()) ?>">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title) ?> - <?= e(\App\Support\Lang::siteName()) ?></title>
-    <link rel="stylesheet" href="/assets/ui.css">
+    <script>
+    /* 首屏前按站点设置应用明暗与语言，避免闪烁 */
+    (function () {
+        try {
+            var pref = localStorage.getItem('chat-demo:theme-preference');
+            var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var theme = pref === 'dark' || (pref !== 'light' && dark) ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            var saved = localStorage.getItem('chat-demo:locale');
+            var locale = saved ? (saved === 'en-US' ? 'en-US' : 'zh-CN') : ((navigator.language || 'zh').toLowerCase().indexOf('zh') === 0 ? 'zh-CN' : 'en-US');
+            document.documentElement.setAttribute('data-locale', locale);
+            if (locale !== <?= json_encode(admin_locale()) ?>) {
+                document.cookie = 'dsw_locale=' + locale + '; path=/; max-age=31536000; samesite=lax';
+                if (!sessionStorage.getItem('ds-admin-locale-sync')) {
+                    sessionStorage.setItem('ds-admin-locale-sync', '1');
+                    location.reload();
+                    return;
+                }
+            }
+        } catch (e) {}
+    })();
+    </script>
+    <link rel="stylesheet" href="/assets/ui.css?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/ui.css') ?>">
 </head>
 <body>
 <div class="shell">
     <aside class="side" id="admin-side">
         <div class="side-head">
             <div class="side-title"><span class="side-title-text"><?= e(\App\Support\Lang::siteName()) ?></span></div>
-            <button class="side-toggle" type="button" id="side-toggle" aria-label="展开或收起侧边栏">‹</button>
+            <button class="side-toggle" type="button" id="side-toggle" aria-label="<?= e(t('admin.expand_sidebar')) ?>">‹</button>
         </div>
         <nav>
             <?php foreach ($nav as $key => $item): ?>
@@ -44,11 +66,11 @@ $active = static fn (string $key): bool => $page === $key
                 <span class="who"><?= e($user['username']) ?></span>
             </div>
             <div class="side-links">
-                <a class="link" href="/" target="_blank" rel="noopener">打开网站</a>
+                <a class="link" href="/" target="_blank" rel="noopener"><?= e(t('admin.open_site')) ?></a>
                 <form method="post">
                     <input type="hidden" name="action" value="logout">
                     <input type="hidden" name="csrf" value="<?= e($user['csrf_token']) ?>">
-                    <button class="link danger" type="submit">退出登录</button>
+                    <button class="link danger" type="submit"><?= e(t('admin.logout')) ?></button>
                 </form>
             </div>
         </div>
@@ -68,13 +90,13 @@ $active = static fn (string $key): bool => $page === $key
         </div>
     </main>
 </div>
-<div class="modal-mask" id="confirm-modal" hidden>
+<div class="modal-mask" id="confirm-modal" data-default="<?= e(t('admin.confirm.default')) ?>" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-        <h2 class="modal-title" id="confirm-title">确认操作</h2>
+        <h2 class="modal-title" id="confirm-title"><?= e(t('admin.confirm.title')) ?></h2>
         <p class="modal-body" id="confirm-text"></p>
         <div class="modal-actions">
-            <button class="btn" type="button" data-confirm-cancel>取消</button>
-            <button class="btn primary" type="button" data-confirm-ok>确定</button>
+            <button class="btn" type="button" data-confirm-cancel><?= e(t('common.cancel')) ?></button>
+            <button class="btn primary" type="button" data-confirm-ok><?= e(t('common.confirm')) ?></button>
         </div>
     </div>
 </div>
@@ -92,7 +114,7 @@ $active = static fn (string $key): bool => $page === $key
     }
 
     function open(form) {
-        text.textContent = form.getAttribute('data-confirm') || '确定执行该操作？';
+        text.textContent = form.getAttribute('data-confirm') || mask.getAttribute('data-default') || '';
         mask.hidden = false;
         ok.focus();
         pending = form;
@@ -141,7 +163,34 @@ $active = static fn (string $key): bool => $page === $key
     var toggle = document.getElementById('side-toggle');
     var content = document.getElementById('admin-content');
     var title = document.getElementById('admin-title');
+    if (!side || !toggle || !content || !title) {
+        return;
+    }
     var storageKey = 'dsw-admin-side-collapsed';
+    var titles = <?= json_encode([
+        'dashboard' => t('admin.page.dashboard'),
+        'users' => t('admin.page.users'),
+        'user' => t('admin.page.user'),
+        'sessions' => t('admin.page.sessions'),
+        'session' => t('admin.page.session'),
+        'shares' => t('admin.page.shares'),
+        'settings' => t('admin.page.settings'),
+    ], JSON_UNESCAPED_UNICODE) ?>;
+    var fallbackTitle = <?= json_encode(t('admin.page.dashboard'), JSON_UNESCAPED_UNICODE) ?>;
+
+    function readCollapsed() {
+        try {
+            return localStorage.getItem(storageKey) === '1';
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function saveCollapsed(collapsed) {
+        try {
+            localStorage.setItem(storageKey, collapsed ? '1' : '0');
+        } catch (error) {}
+    }
 
     function applyCollapsed(collapsed) {
         side.classList.toggle('collapsed', collapsed);
@@ -149,11 +198,11 @@ $active = static fn (string $key): bool => $page === $key
         toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
     }
 
-    applyCollapsed(localStorage.getItem(storageKey) === '1');
+    applyCollapsed(readCollapsed());
     toggle.addEventListener('click', function () {
         var collapsed = !side.classList.contains('collapsed');
         applyCollapsed(collapsed);
-        localStorage.setItem(storageKey, collapsed ? '1' : '0');
+        saveCollapsed(collapsed);
     });
 
     function markActive(href) {
@@ -164,16 +213,7 @@ $active = static fn (string $key): bool => $page === $key
             var match = key === page || (page === 'session' && key === 'sessions') || (page === 'user' && key === 'users');
             link.classList.toggle('active', match);
         });
-        var titles = {
-            dashboard: '概览',
-            users: '用户管理',
-            user: '用户详情',
-            sessions: '会话管理',
-            session: '会话详情',
-            shares: '分享管理',
-            settings: '站点设置'
-        };
-        title.textContent = titles[page] || '概览';
+        title.textContent = titles[page] || fallbackTitle;
     }
 
     function load(href) {

@@ -77,12 +77,23 @@ export const SessionView = ({
   }
 
   const toggleShare = (messageId: string) => {
+    const path = getVisibleMessages(session)
+    const index = path.findIndex((message) => message.id === messageId)
+    if (index < 0) {
+      return
+    }
+    const target = path[index]
+    const partner = target.role === 'user' ? path[index + 1] : path[index - 1]
+    const ids = [target.id]
+    if (partner && partner.role !== target.role) {
+      ids.push(partner.id)
+    }
     setSelected((previous) => {
       const next = new Set(previous)
-      if (next.has(messageId)) {
-        next.delete(messageId)
+      if (previous.has(target.id)) {
+        ids.forEach((id) => next.delete(id))
       } else {
-        next.add(messageId)
+        ids.forEach((id) => next.add(id))
       }
       return next
     })

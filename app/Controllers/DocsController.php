@@ -28,8 +28,13 @@ final class DocsController
                     continue;
                 }
                 $content = (string) file_get_contents($path);
+                $lower = strtolower($name);
+                $english = str_ends_with($lower, '.en.md');
+                $base = $english ? (string) preg_replace('/\.en\.md$/i', '', $name) : (string) preg_replace('/\.md$/i', '', $name);
                 $docs[] = [
                     'name' => $name,
+                    'base' => $base,
+                    'lang' => $english ? 'en-US' : 'zh-CN',
                     'title' => self::title($content, $name),
                     'content' => $content,
                 ];

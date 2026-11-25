@@ -22,14 +22,25 @@ final class AdminService
         )->fetch();
         $files = $pdo->query('SELECT COUNT(*) AS total, COALESCE(SUM(size), 0) AS bytes FROM files')->fetch();
         $shares = ShareService::stats();
+        $archivedInput = 0;
+        $archivedOutput = 0;
+        try {
+            $archived = $pdo->query(
+                'SELECT COALESCE(SUM(input_tokens), 0) AS input_tokens, COALESCE(SUM(output_tokens), 0) AS output_tokens FROM usage_archives'
+            )->fetch();
+            $archivedInput = (int) ($archived['input_tokens'] ?? 0);
+            $archivedOutput = (int) ($archived['output_tokens'] ?? 0);
+        } catch (\Throwable) {
+            // 旧库未建归档表时按当前会话统计
+        }
 
         return [
             'users' => (int) $users['total'],
             'activeUsers' => (int) $users['active'],
             'sessions' => (int) $sessions['total'],
             'messages' => (int) $sessions['messages'],
-            'inputTokens' => (int) $sessions['input_tokens'],
-            'outputTokens' => (int) $sessions['output_tokens'],
+            'inputTokens' => (int) $sessions['input_tokens'] + $archivedInput,
+            'outputTokens' => (int) $sessions['output_tokens'] + $archivedOutput,
             'files' => (int) $files['total'],
             'fileBytes' => (int) $files['bytes'],
             'shares' => $shares['total'],
@@ -95,6 +106,22 @@ final class AdminService
         $stmt->execute([$userId]);
         $tokens = (int) $stmt->fetchColumn();
 
+        $archivedInput = 0;
+        $archivedOutput = 0;
+        try {
+            $stmt = $pdo->prepare(
+                'SELECT input_tokens, output_tokens FROM usage_archives WHERE user_id = ?'
+            );
+            $stmt->execute([$userId]);
+            $archived = $stmt->fetch();
+            if ($archived !== false) {
+                $archivedInput = (int) $archived['input_tokens'];
+                $archivedOutput = (int) $archived['output_tokens'];
+            }
+        } catch (\Throwable) {
+            // 旧库未建归档表时按当前会话统计
+        }
+
         $stmt = $pdo->prepare(
             'SELECT id, title, messages_count, input_tokens, output_tokens, created_ms, updated_ms
              FROM sessions WHERE user_id = ? ORDER BY updated_ms DESC LIMIT 50'
@@ -114,8 +141,8 @@ final class AdminService
             'stats' => [
                 'sessions' => (int) $sessions['total'],
                 'messages' => (int) $sessions['messages'],
-                'inputTokens' => (int) $sessions['input_tokens'],
-                'outputTokens' => (int) $sessions['output_tokens'],
+                'inputTokens' => (int) $sessions['input_tokens'] + $archivedInput,
+                'outputTokens' => (int) $sessions['output_tokens'] + $archivedOutput,
                 'files' => (int) $files['total'],
                 'fileBytes' => (int) $files['bytes'],
                 'tokens' => $tokens,

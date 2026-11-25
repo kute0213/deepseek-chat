@@ -296,7 +296,17 @@ export const MessageList = ({
               }
               const checked = shareSelected?.has(message.id) ?? false
               return (
-                <div key={message.id} className={styles.shareRow}>
+                <div
+                  key={message.id}
+                  className={clsx(styles.shareRow, checked && styles.shareRowOn)}
+                  onClick={(event) => {
+                    const element = event.target instanceof Element ? event.target : null
+                    if (element?.closest('a, button, input, textarea, select, [role="menu"]')) {
+                      return
+                    }
+                    onToggleShare?.(message.id)
+                  }}
+                >
                   <button
                     type="button"
                     className={clsx(styles.shareCheck, checked && styles.shareCheckOn)}
