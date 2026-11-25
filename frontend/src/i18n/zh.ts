@@ -281,6 +281,7 @@ export const zh = {
   shareSelectTitle: '分享对话',
   shareSelectHint: '勾选需要分享的消息，只会分享勾选的内容。',
   shareSelectEmpty: '当前会话还没有可分享的消息',
+  shareAttachmentCount: '[{count} 个附件]',
   shareSelectRequired: '请至少选择一条消息',
   shareCreate: '创建分享链接',
   mySharesLinks: '我的分享链接',

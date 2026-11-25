@@ -5,7 +5,7 @@ import { getVisibleMessages } from '../../services/chat/branches.js'
 import { loadSession } from '../../services/chat/db.js'
 import { createShare, revokeShare, type ShareSummary } from '../../services/chat/shares.js'
 import { useChatStore } from '../../services/chat/store.js'
-import type { Message } from '../../services/chat/types.js'
+import type { Message, UserMessage } from '../../services/chat/types.js'
 import { copyText } from '../../utils/clipboard.js'
 import { Button } from '../base/Button.js'
 import { IconCheckOutline16 } from '../base/icons.js'
@@ -15,14 +15,6 @@ import { closeShare, useShareDialog } from './shareDialogState.js'
 import styles from './ShareDialog.module.css'
 
 const shareUrl = (share: ShareSummary) => `${window.location.origin}${share.url}`
-
-const previewOf = (message: Message) => {
-  const text = message.content.trim()
-  if (text) {
-    return text
-  }
-  return message.files.length > 0 ? `[${message.files.length} 个附件]` : ''
-}
 
 /** 分享会话：必须先勾选一条或多条消息，只生成所选内容的只读快照 */
 export const ShareDialog = ({ sessionId, onClose }: { sessionId: string; onClose: () => void }) => {
@@ -47,9 +39,19 @@ export const ShareDialog = ({ sessionId, onClose }: { sessionId: string; onClose
   }, [messages, sessionId])
 
   const questions = useMemo(
-    () => (messages ?? []).filter((message) => message.role === 'user'),
+    () => (messages ?? []).filter((message): message is UserMessage => message.role === 'user'),
     [messages]
   )
+
+  const previewOf = (message: UserMessage) => {
+    const text = message.content.trim()
+    if (text) {
+      return text
+    }
+    return message.files.length > 0
+      ? t('shareAttachmentCount', { count: message.files.length })
+      : ''
+  }
 
   const toggle = (id: string) => {
     setSelected((previous) => {

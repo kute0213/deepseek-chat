@@ -17,6 +17,7 @@ import { SessionView } from '../components/session/SessionView.js'
 import { MobileHeader } from '../components/session/MobileHeader.js'
 import { Welcome } from '../components/session/Welcome.js'
 import { SettingsDialog } from '../components/settings/SettingsDialog.js'
+import { ShareDialogHost } from '../components/share/ShareDialog.js'
 import { openSettings } from '../components/settings/settingsDialogState.js'
 import { Toast } from '../components/base/Toast.js'
 import { showToast } from '../components/base/toastState.js'
@@ -194,6 +195,7 @@ const ChatApp = () => {
         </main>
         <SearchPanel />
       </div>
+      <ShareDialogHost />
       <SettingsDialog />
       <Toast />
     </>

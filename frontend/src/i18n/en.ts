@@ -295,6 +295,7 @@ export const en = {
   shareSelectTitle: 'Share chat',
   shareSelectHint: 'Select the messages to share. Only the selected content is shared.',
   shareSelectEmpty: 'This chat has no messages to share yet',
+  shareAttachmentCount: '[{count} attachments]',
   shareSelectRequired: 'Select at least one message',
   shareCreate: 'Create share link',
   mySharesLinks: 'My share links',
