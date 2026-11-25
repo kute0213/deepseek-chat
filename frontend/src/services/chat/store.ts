@@ -1026,7 +1026,11 @@ export const editMessage = (sessionId: string, messageId: string, content: strin
  * 撤销某一轮对话：删除该轮提问、回答以及之后的全部消息，并同步到服务端。
  * 生成中或正在导入时不允许操作；先补齐全部分页，避免保存时被服务端合并回旧消息。
  */
-export const undoRound = async (sessionId: string, assistantId: string): Promise<boolean> => {
+/**
+ * 撤销某一轮对话：可传入该轮的用户提问或回答，删除该轮及之后的全部消息。
+ * 生成中或正在导入时不允许操作；先补齐全部分页，避免保存时被服务端合并回旧消息。
+ */
+export const undoRound = async (sessionId: string, messageId: string): Promise<boolean> => {
   if (get().importingHistory || deletingSessions.has(sessionId)) {
     return false
   }
@@ -1043,9 +1047,13 @@ export const undoRound = async (sessionId: string, assistantId: string): Promise
     return false
   }
   const path = getVisibleMessages(session)
-  const index = path.findIndex((message) => message.id === assistantId)
-  const question = path[index - 1]
-  if (index < 1 || question?.role !== 'user') {
+  const index = path.findIndex((message) => message.id === messageId)
+  if (index < 0) {
+    return false
+  }
+  const target = path[index]
+  const question = target.role === 'user' ? target : path[index - 1]
+  if (!question || question.role !== 'user') {
     return false
   }
   updateSession(sessionId, (current) => ({

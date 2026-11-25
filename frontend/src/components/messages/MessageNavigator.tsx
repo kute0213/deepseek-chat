@@ -9,7 +9,7 @@ import { IconChevronDownOutline14 } from '../base/icons.js'
 import styles from './MessageNavigator.module.css'
 
 /** 右侧导航每页显示的记录数（和原版一致） */
-const PAGE_SIZE = 20
+const PAGE_SIZE = 10
 
 /** 右侧短横导航里的一条记录：一条用户提问。 */
 const previewText = (
@@ -29,7 +29,7 @@ const previewText = (
 
 /**
  * 会话右侧的消息导航：短横对应每条用户提问，悬浮展开预览列表，点击直接跳转；
- * 每页 20 条，可用上下箭头翻页；预览列表滚动到顶部时加载更早的一页消息。
+ * 每页 10 条，可用上下箭头翻页；展开时自动把当前记录滚动到预览列表中间。
  */
 export const MessageNavigator = ({ session }: { session: Session }) => {
   const t = useTranslate()
@@ -53,7 +53,10 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
 
   const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
   const pageIndex = Math.max(0, pages - 1 - Math.min(pageFromEnd, pages - 1))
-  const pageItems = items.slice(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE)
+  const pageItems = useMemo(
+    () => items.slice(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE),
+    [items, pageIndex]
+  )
 
   const openPanel = useCallback(() => {
     window.clearTimeout(closeTimer.current)
@@ -119,7 +122,7 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     }
   }, [items, pages, session.id])
 
-  // 展开时定位到最近浏览的记录；悬浮某个短横时定位到对应记录
+  // 展开时把当前记录（没有则最近一条）滚动到预览列表中间
   useLayoutEffect(() => {
     if (!open) {
       return
@@ -128,15 +131,18 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     if (!panel) {
       return
     }
-    const target = hoveredId
-      ? panel.querySelector<HTMLElement>(`[data-nav-id="${CSS.escape(hoveredId)}"]`)
+    const targetId = hoveredId ?? activeId ?? pageItems.at(-1)?.id
+    const target = targetId
+      ? panel.querySelector<HTMLElement>(`[data-nav-id="${CSS.escape(targetId)}"]`)
       : null
-    if (target) {
-      target.scrollIntoView({ block: 'nearest' })
-    } else {
-      panel.scrollTop = panel.scrollHeight
+    if (!target) {
+      return
     }
-  }, [open, hoveredId, pageIndex, items.length])
+    const panelRect = panel.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+    panel.scrollTop +=
+      targetRect.top - panelRect.top - panel.clientHeight / 2 + target.clientHeight / 2
+  }, [open, hoveredId, activeId, pageIndex, pageItems])
 
   // 预览列表顶部插入更早记录后保持滚动位置
   useLayoutEffect(() => {

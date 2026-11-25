@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import clsx from 'clsx'
 import { useIsMobile } from '../../app/viewport.js'
 import {
   buildMessageVersions,
@@ -10,6 +11,7 @@ import { clearMessageFocus, useMessageFocus } from '../../services/chat/focus.js
 import type { Session } from '../../services/chat/types.js'
 import { useTranslate } from '../../i18n/index.js'
 import { closeSearchPanel } from '../search/searchPanelState.js'
+import { IconCheckOutline16 } from '../base/icons.js'
 import { AssistantMessage } from './AssistantMessage.js'
 import { ScrollToBottomContext } from './scrollContext.js'
 import { UserMessage } from './UserMessage.js'
@@ -41,10 +43,16 @@ export const MessageList = ({
   session,
   streaming,
   footer,
+  shareMode = false,
+  shareSelected,
+  onToggleShare,
 }: {
   session: Session
   streaming: boolean
   footer: React.ReactNode
+  shareMode?: boolean
+  shareSelected?: Set<string>
+  onToggleShare?: (messageId: string) => void
 }) => {
   const isMobile = useIsMobile()
   const t = useTranslate()
@@ -257,32 +265,51 @@ export const MessageList = ({
                 {loadingOlder ? t('messagesLoadingMore') : ''}
               </div>
             ) : null}
-            {messages.map((message, index) =>
-              message.role === 'user' ? (
-                <UserMessage
-                  key={message.id}
-                  sessionId={session.id}
-                  message={message}
-                  retryUploadId={uploadRetryId}
-                  isFirst={index === 0}
-                  isLast={index === lastIndex || index === lastIndex - 1}
-                  busy={streaming}
-                  versions={versions.get(message.id) ?? EMPTY_VERSIONS}
-                  onSelectVersion={selectVersion}
-                />
-              ) : (
-                <AssistantMessage
-                  key={message.id}
-                  sessionId={session.id}
-                  message={message}
-                  isLast={index === lastIndex}
-                  streaming={streaming && index === lastIndex}
-                  busy={streaming}
-                  versions={versions.get(message.id) ?? EMPTY_VERSIONS}
-                  onSelectVersion={selectVersion}
-                />
+            {messages.map((message, index) => {
+              const content =
+                message.role === 'user' ? (
+                  <UserMessage
+                    key={message.id}
+                    sessionId={session.id}
+                    message={message}
+                    retryUploadId={uploadRetryId}
+                    isFirst={index === 0}
+                    isLast={index === lastIndex || index === lastIndex - 1}
+                    busy={streaming}
+                    versions={versions.get(message.id) ?? EMPTY_VERSIONS}
+                    onSelectVersion={selectVersion}
+                  />
+                ) : (
+                  <AssistantMessage
+                    key={message.id}
+                    sessionId={session.id}
+                    message={message}
+                    isLast={index === lastIndex}
+                    streaming={streaming && index === lastIndex}
+                    busy={streaming}
+                    versions={versions.get(message.id) ?? EMPTY_VERSIONS}
+                    onSelectVersion={selectVersion}
+                  />
+                )
+              if (!shareMode) {
+                return content
+              }
+              const checked = shareSelected?.has(message.id) ?? false
+              return (
+                <div key={message.id} className={styles.shareRow}>
+                  <button
+                    type="button"
+                    className={clsx(styles.shareCheck, checked && styles.shareCheckOn)}
+                    aria-pressed={checked}
+                    aria-label={t('shareSelectMessage')}
+                    onClick={() => onToggleShare?.(message.id)}
+                  >
+                    {checked ? <IconCheckOutline16 /> : null}
+                  </button>
+                  <div className={styles.shareContent}>{content}</div>
+                </div>
               )
-            )}
+            })}
           </div>
         </div>
         {footer}

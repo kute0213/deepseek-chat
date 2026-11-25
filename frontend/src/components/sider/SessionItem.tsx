@@ -5,8 +5,9 @@ import {
   IconCheckOutline16,
   IconEditOutline16,
   IconEllipsisOutline16,
-  IconLinkOutline16,
   IconPinOutline16,
+  IconShareOutline16,
+  IconSliderOutline16,
   IconTrashOutline16,
 } from '../base/icons.js'
 import { renameSession, selectSession, togglePinned } from '../../services/chat/store.js'
@@ -106,13 +107,13 @@ export const SessionItem = memo(function SessionItem({
               {
                 key: 'share',
                 label: t('sessionItemMenuShareOption'),
-                icon: <IconLinkOutline16 />,
+                icon: <IconShareOutline16 />,
                 onSelect: () => onShare?.(),
               },
               {
                 key: 'select',
                 label: t('sessionItemMenuSelectOption'),
-                icon: <IconCheckOutline16 />,
+                icon: <IconSliderOutline16 />,
                 onSelect: () => onBatchSelect?.(),
               },
               {

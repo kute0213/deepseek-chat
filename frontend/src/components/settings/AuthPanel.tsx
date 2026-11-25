@@ -127,7 +127,7 @@ export const AuthPanel = () => {
           />
           <span>
             {t('authAgreementPrefix')}
-            <a href="/terms.html" target="_blank" rel="noopener noreferrer">
+            <a href="/docs?doc=%E7%94%A8%E6%88%B7%E5%8D%8F%E8%AE%AE.md" target="_blank" rel="noopener noreferrer">
               {t('authAgreementLink')}
             </a>
           </span>

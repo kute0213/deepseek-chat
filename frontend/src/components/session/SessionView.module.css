@@ -97,3 +97,48 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* 分享选择模式：底部操作条替代输入框 */
+.shareBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 4px;
+  animation: shareBarIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.shareCount {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.shareActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@keyframes shareBarIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shareBar {
+    animation: none;
+  }
+}

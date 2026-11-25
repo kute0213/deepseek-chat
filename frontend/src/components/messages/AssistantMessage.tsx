@@ -2,20 +2,21 @@ import { useTranslate } from '../../i18n/index.js'
 import clsx from 'clsx'
 import { memo, useState } from 'react'
 import {
+  IconEllipsisOutline16,
   IconRefreshOutline16,
-  IconTrashOutline16,
+  IconUndoOutline16,
   IconWarningOutline16,
 } from '../base/icons.js'
 import { describeReply } from '../../services/chat/describe.js'
 import { canContinueReply } from '../../services/chat/reply.js'
-import { continueReply, regenerateReply, undoRound } from '../../services/chat/store.js'
+import { continueReply, regenerateReply } from '../../services/chat/store.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
 import type { AssistantMessage as AssistantMessageType } from '../../services/chat/types.js'
 import { openSettings } from '../settings/settingsDialogState.js'
 import { IconButton } from '../base/IconButton.js'
 import { Button } from '../base/Button.js'
-import { Modal } from '../base/Modal.js'
-import { showToast } from '../base/toastState.js'
+import { Menu } from '../base/Menu.js'
+import { UndoRoundDialog } from './UndoRoundDialog.js'
 import { Markdown } from '../markdown/Markdown.js'
 import { SiteThumbnails } from '../search/SiteLogo.js'
 import { toggleSearchPanel, useSearchPanel } from '../search/searchPanelState.js'
@@ -163,13 +164,26 @@ export const AssistantMessage = memo(function AssistantMessage({
                 regenerateReply(sessionId, message.id)
               }}
             />
-            <IconButton
-              icon={<IconTrashOutline16 />}
-              tooltip={t('undoRound')}
-              tooltipPlacement="bottom"
-              disabled={busy}
-              onClick={() => setUndoOpen(true)}
-            />
+            <Menu
+              options={[
+                {
+                  key: 'undo',
+                  label: t('undoRound'),
+                  icon: <IconUndoOutline16 />,
+                  danger: true,
+                  onSelect: () => setUndoOpen(true),
+                },
+              ]}
+            >
+              {({ toggle }) => (
+                <IconButton
+                  icon={<IconEllipsisOutline16 />}
+                  aria-label={t('more')}
+                  disabled={busy}
+                  onClick={toggle}
+                />
+              )}
+            </Menu>
           </div>
           {isLast && canContinueReply(message) ? (
             <Button
@@ -188,33 +202,11 @@ export const AssistantMessage = memo(function AssistantMessage({
         </div>
       )}
       {undoOpen ? (
-        <Modal
-          title={t('undoRoundTitle')}
+        <UndoRoundDialog
+          sessionId={sessionId}
+          messageId={message.id}
           onClose={() => setUndoOpen(false)}
-          footer={
-            <>
-              <Button variant="outlined" onClick={() => setUndoOpen(false)}>
-                {t('cancel')}
-              </Button>
-              <Button
-                variant="danger"
-                onClick={async () => {
-                  setUndoOpen(false)
-                  stopReadAloud()
-                  if (await undoRound(sessionId, message.id)) {
-                    showToast({ key: 'undoRoundDone' })
-                  } else {
-                    showToast({ key: 'undoRoundFailed', type: 'error' })
-                  }
-                }}
-              >
-                {t('undoRound')}
-              </Button>
-            </>
-          }
-        >
-          {t('undoRoundDescription')}
-        </Modal>
+        />
       ) : null}
     </div>
   )

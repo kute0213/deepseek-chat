@@ -551,7 +551,27 @@ export const IconSliderOutline16 = () => (
 export const IconPinOutline16 = () => (
   <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
-      d="M9.6 1.9 14.1 6.4l-1.5.5-1.3 3.3-1.5-.6-3.9 4-.6-.6 3.9-3.9-.6-1.5 3.3-1.3.5-1.5Z"
+      d="M9.2 1.3a1 1 0 0 1 1.4 0l4.1 4.1a1 1 0 0 1 0 1.4l-1.2 1.2-1.6.4-2.6 2.6.4 2.1-1.1 1.1-2.5-2.5-3.1 3.1-1-1 3.1-3.1-2.5-2.5 1.1-1.1 2.1.4L9 4.6l.4-1.6L9.2 1.3Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
+/** 分享：弯箭头 */
+export const IconShareOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M9.5 2.5 14 7l-4.5 4.5V8.6C5.8 8.6 3.6 10.1 2 13c.3-4 2.5-6.7 7.5-7.1V2.5Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
+/** 撤销：向左弯箭头 */
+export const IconUndoOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M5.3 2.2 1 6.5l4.3 4.3V7.9c2.7 0 4.7.9 6.2 2.7.5.6.9 1.3 1.2 2.1.4-4.4-2.2-7.3-7.4-7.4V2.2Z"
       fill="currentColor"
     />
   </svg>

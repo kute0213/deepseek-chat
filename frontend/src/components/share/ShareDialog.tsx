@@ -17,26 +17,35 @@ import styles from './ShareDialog.module.css'
 const shareUrl = (share: ShareSummary) => `${window.location.origin}${share.url}`
 
 /** 分享会话：必须先勾选一条或多条消息，只生成所选内容的只读快照 */
-export const ShareDialog = ({ sessionId, onClose }: { sessionId: string; onClose: () => void }) => {
+export const ShareDialog = ({
+  sessionId,
+  onClose,
+  share: initialShare,
+}: {
+  sessionId: string
+  onClose: () => void
+  /** 已创建好的分享（聊天页选完消息后直接展示链接） */
+  share?: ShareSummary
+}) => {
   const t = useTranslate()
   const cached = useChatStore((state) => state.sessionCache[sessionId])
   const [messages, setMessages] = useState<Message[] | null>(() =>
     cached ? getVisibleMessages(cached) : null
   )
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
-  const [share, setShare] = useState<ShareSummary | null>(null)
+  const [share, setShare] = useState<ShareSummary | null>(initialShare ?? null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
   const creating = useRef(false)
 
   useEffect(() => {
-    if (messages !== null) {
+    if (messages !== null || initialShare) {
       return
     }
     void loadSession(sessionId)
       .then((session) => setMessages(session ? getVisibleMessages(session) : []))
       .catch(() => setMessages([]))
-  }, [messages, sessionId])
+  }, [messages, sessionId, initialShare])
 
   const questions = useMemo(
     () => (messages ?? []).filter((message): message is UserMessage => message.role === 'user'),
@@ -97,7 +106,7 @@ export const ShareDialog = ({ sessionId, onClose }: { sessionId: string; onClose
 
   return (
     <Modal
-      title={t('shareSelectTitle')}
+      title={initialShare ? t('shareDialogTitle') : t('shareSelectTitle')}
       closable
       onClose={onClose}
       footer={

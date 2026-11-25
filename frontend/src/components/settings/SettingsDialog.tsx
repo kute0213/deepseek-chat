@@ -178,7 +178,21 @@ const SettingsContent = () => {
                   </Button>
                 }
               />
-              <TokenUsageCell onOpen={() => setPanel('usage')} />
+              <SettingCell
+                label={t('tokenUsageTitle')}
+                description={t('tokenUsageEntryDescription')}
+                status={null}
+                action={
+                  <Button
+                    variant="outlined"
+                    size="m"
+                    className={styles.cellButton}
+                    onClick={() => setPanel('usage')}
+                  >
+                    {t('tokenUsageView')}
+                  </Button>
+                }
+              />
               <SettingCell
                 label={t('deleteAllSessions')}
                 status={null}
@@ -958,65 +972,6 @@ const ImportHistory = ({
 }
 
 const formatTokens = (value: number) => value.toLocaleString()
-
-/** 数据管理里的 Token 用量条：展示输入 / 输出占比，右侧「查看」进入二级面板 */
-const TokenUsageCell = ({ onOpen }: { onOpen: () => void }) => {
-  const t = useTranslate()
-  const [usage, setUsage] = useState<UsageSummary | null>(null)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    void loadUsage()
-      .then((data) => {
-        if (active) {
-          setUsage(data)
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setFailed(true)
-        }
-      })
-    return () => {
-      active = false
-    }
-  }, [])
-
-  const total = usage?.totalTokens ?? 0
-  const inputPercent = total > 0 && usage ? (usage.inputTokens / total) * 100 : 0
-  return (
-    <div className={styles.tokenCell}>
-      <div className={styles.tokenHead}>
-        <div>
-          <div className={styles.label}>{t('tokenUsageTitle')}</div>
-          <div className={styles.description}>
-            {failed
-              ? t('tokenUsageLoadFailed')
-              : usage
-                ? `${t('tokenUsageTotal')} ${formatTokens(total)}`
-                : t('sessionLoading')}
-          </div>
-        </div>
-        <Button variant="outlined" size="m" className={styles.cellButton} onClick={onOpen}>
-          {t('tokenUsageView')}
-        </Button>
-      </div>
-      <div className={styles.tokenBar} aria-hidden>
-        <span className={styles.tokenBarInput} style={{ width: `${inputPercent}%` }} />
-        <span className={styles.tokenBarOutput} style={{ width: `${100 - inputPercent}%` }} />
-      </div>
-      <div className={styles.tokenLegend}>
-        <span>
-          {t('tokenUsageInputLabel')} {formatTokens(usage?.inputTokens ?? 0)}
-        </span>
-        <span>
-          {t('tokenUsageOutputLabel')} {formatTokens(usage?.outputTokens ?? 0)}
-        </span>
-      </div>
-    </div>
-  )
-}
 
 /** Token 用量二级面板：总量、会话明细 */
 const UsageSetting = () => {

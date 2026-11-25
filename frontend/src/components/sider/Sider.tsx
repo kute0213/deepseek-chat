@@ -16,6 +16,7 @@ import {
   loadMoreSessions,
   newChat,
   removeSession,
+  selectSession,
   togglePinned,
   useChatStore,
 } from '../../services/chat/store.js'
@@ -25,7 +26,7 @@ import { IconButton } from '../base/IconButton.js'
 import { Modal } from '../base/Modal.js'
 import { showToast } from '../base/toastState.js'
 import { openSettings } from '../settings/settingsDialogState.js'
-import { openShare } from '../share/shareDialogState.js'
+import { startShareSelection } from '../../services/chat/shareSelection.js'
 import { closeMobileSider, useMobileSider } from './mobileSiderState.js'
 import { SessionItem } from './SessionItem.js'
 import { SearchDialog } from './SearchDialog.js'
@@ -146,17 +147,17 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
         <div className={styles.topActions}>
           <IconButton
             size="m"
-            icon={<IconPanelLeftOutline16 />}
-            tooltip={t('collapseSiderbarButton')}
-            tooltipPlacement="bottom"
-            onClick={() => (mobile ? closeMobileSider() : setSiderCollapsed(true))}
-          />
-          <IconButton
-            size="m"
             icon={<IconSearchOutline16 />}
             tooltip={t('searchChats')}
             tooltipPlacement="bottom"
             onClick={() => setSearchOpen(true)}
+          />
+          <IconButton
+            size="m"
+            icon={<IconPanelLeftOutline16 />}
+            tooltip={t('collapseSiderbarButton')}
+            tooltipPlacement="bottom"
+            onClick={() => (mobile ? closeMobileSider() : setSiderCollapsed(true))}
           />
         </div>
       </div>
@@ -211,7 +212,11 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
                   selected={selected.has(session.id)}
                   onToggle={() => toggleSelected(session.id)}
                   onDelete={() => setDeleting(session)}
-                  onShare={() => openShare(session.id)}
+                  onShare={() => {
+                    selectSession(session.id)
+                    closeMobileSider()
+                    startShareSelection(session.id)
+                  }}
                   onBatchSelect={() => {
                     setBatching(true)
                     setSelected(new Set([session.id]))
@@ -328,16 +333,20 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   )
 }
 
-/** 移动端抽屉：遮罩 + 展开的侧边栏 */
+/** 移动端抽屉：遮罩 + 平滑滑入的侧边栏，展开时带投影 */
 export const MobileSider = () => {
   const open = useMobileSider((state) => state.open)
-  if (!open) {
-    return null
-  }
   return (
     <>
-      <div className={styles.drawerMask} onClick={closeMobileSider} />
-      <div className={styles.drawer}>
+      <div
+        className={clsx(styles.drawerMask, open && styles.drawerMaskOpen)}
+        onClick={closeMobileSider}
+        aria-hidden
+      />
+      <div
+        className={clsx(styles.drawer, open && styles.drawerOpen)}
+        aria-hidden={!open}
+      >
         <Sider mobile />
       </div>
     </>

@@ -74,3 +74,40 @@
     background-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 10%, transparent);
   }
 }
+
+/* 分享选择模式：每条消息左侧的圆形复选框 */
+.shareRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.shareContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.shareCheck {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  margin-top: 6px;
+  padding: 0;
+  border: 1.5px solid var(--dsw-alias-border-l3);
+  border-radius: 50%;
+  background: none;
+  color: var(--dsw-alias-label-primary-foreground);
+  cursor: pointer;
+  transition:
+    background-color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shareCheckOn {
+  border-color: var(--dsw-alias-brand-primary);
+  background-color: var(--dsw-alias-brand-primary);
+}

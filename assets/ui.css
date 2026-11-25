@@ -80,31 +80,86 @@ a:hover {
     width: 248px;
     height: 100vh;
     flex-shrink: 0;
-    padding: 16px 12px;
+    padding: 8px;
     border-right: 1px solid var(--line-soft);
     background: var(--bg-soft);
+    overflow: hidden;
+    transition: width 0.24s var(--ease), padding 0.24s var(--ease);
+}
+
+.side.collapsed {
+    width: 60px;
+    padding: 8px 6px;
+}
+
+.side-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 2px 2px 6px;
 }
 
 .side-title {
-    padding: 4px 12px 16px;
+    flex: 1;
+    min-width: 0;
+    padding: 6px 10px;
+    overflow: hidden;
     color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.18s var(--ease), padding 0.24s var(--ease);
+}
+
+.side.collapsed .side-head {
+    justify-content: center;
+}
+
+.side.collapsed .side-title {
+    display: none;
+}
+
+.side-toggle {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-3);
     font-size: 16px;
-    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.side-toggle:hover {
+    background: var(--hover);
+    color: var(--text);
 }
 
 .side nav {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    margin-top: 6px;
 }
 
 .nav {
+    position: relative;
     display: flex;
     align-items: center;
     height: 40px;
     padding: 0 12px;
     border-radius: 12px;
     color: var(--text-2);
+    white-space: nowrap;
+    overflow: hidden;
     transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
@@ -118,6 +173,44 @@ a:hover {
     background: var(--active);
     color: var(--brand);
     font-weight: 500;
+}
+
+/* 收起后仅保留首字，保持列表观感 */
+.side.collapsed .nav {
+    justify-content: center;
+    padding: 0;
+    color: transparent;
+    font-size: 0;
+}
+
+.side.collapsed .nav::after {
+    content: attr(data-short);
+    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.side.collapsed .nav.active::after {
+    color: var(--brand);
+}
+
+.side.collapsed .nav:hover::after {
+    color: var(--text);
+}
+
+.side.collapsed .side-foot {
+    align-items: center;
+    padding-top: 8px;
+}
+
+.side.collapsed .user-chip {
+    padding: 8px 0;
+    justify-content: center;
+}
+
+.side.collapsed .who,
+.side.collapsed .side-links {
+    display: none;
 }
 
 .side-foot {
@@ -213,6 +306,13 @@ a:hover {
 .content {
     max-width: 1180px;
     padding: 24px 32px 56px;
+    transition: opacity 0.18s var(--ease);
+}
+
+/* 无刷新切换时的轻量过渡 */
+.content.loading {
+    opacity: 0.45;
+    pointer-events: none;
 }
 
 .panel {

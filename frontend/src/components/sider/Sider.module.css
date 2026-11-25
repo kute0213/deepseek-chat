@@ -363,12 +363,38 @@
   bottom: 0;
   left: 0;
   z-index: 800;
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.drawerOpen {
+  transform: translateX(0);
+  pointer-events: auto;
 }
 
 .drawerMask {
   position: absolute;
   inset: 0;
   z-index: 799;
+  background-color: rgba(0, 0, 0, 0.32);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drawerMaskOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer,
+  .drawerMask {
+    transition: none;
+  }
 }
 
 .mobile {

@@ -2,7 +2,7 @@ import { useTranslate } from '../../i18n/index.js'
 import clsx from 'clsx'
 import { memo, useLayoutEffect, useRef, useState } from 'react'
 import { useIsMobile } from '../../app/viewport.js'
-import { IconEditOutline16 } from '../base/icons.js'
+import { IconEditOutline16, IconUndoOutline16 } from '../base/icons.js'
 import { getFileViewType, isImage } from '../../services/attachments.js'
 import { editMessage, retryUpload } from '../../services/chat/store.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
@@ -17,6 +17,7 @@ import {
 } from './BranchSwitcher.js'
 import { MessageFile } from './MessageFile.js'
 import { CopyButton } from './CopyButton.js'
+import { UndoRoundDialog } from './UndoRoundDialog.js'
 import styles from './UserMessage.module.css'
 
 export const UserMessage = memo(function UserMessage({
@@ -41,6 +42,7 @@ export const UserMessage = memo(function UserMessage({
 }) {
   const t = useTranslate()
   const [editing, setEditing] = useState(false)
+  const [undoOpen, setUndoOpen] = useState(false)
   const [draft, setDraft] = useState(message.content)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isMobile = useIsMobile()
@@ -131,11 +133,25 @@ export const UserMessage = memo(function UserMessage({
                   setEditing(true)
                 }}
               />
+              <IconButton
+                icon={<IconUndoOutline16 />}
+                tooltip={t('undoRound')}
+                tooltipPlacement="bottom"
+                disabled={busy}
+                onClick={() => setUndoOpen(true)}
+              />
             </div>
             <BranchSwitcher versions={versions} disabled={busy} onSelect={onSelectVersion} />
           </div>
         </>
       )}
+      {undoOpen ? (
+        <UndoRoundDialog
+          sessionId={sessionId}
+          messageId={message.id}
+          onClose={() => setUndoOpen(false)}
+        />
+      ) : null}
     </div>
   )
 })

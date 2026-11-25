@@ -261,4 +261,16 @@ $ok = isset($_GET['ok']) ? (string) $_GET['ok'] : null;
 $error = isset($_GET['err']) ? (string) $_GET['err'] : null;
 extract($data);
 
+// 侧边栏切换时只返回内容片段，前端无刷新替换
+if (($_SERVER['HTTP_X_ADMIN_PARTIAL'] ?? '') === '1') {
+    if ($ok !== null) {
+        echo '<div class="flash ok">' . e($ok) . '</div>';
+    }
+    if ($error !== null) {
+        echo '<div class="flash error">' . e($error) . '</div>';
+    }
+    require __DIR__ . '/pages/' . $page . '.php';
+    exit;
+}
+
 require __DIR__ . '/pages/layout.php';

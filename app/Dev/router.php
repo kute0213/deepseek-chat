@@ -23,8 +23,8 @@ if (is_file($root . $path)) {
     return false;
 }
 
-// 安装向导、服务协议与 404 页面由根入口分发
-$views = ['/install', '/install.php', '/terms', '/terms.html', '/404', '/404.html'];
+// 安装向导与 404 页面由根入口分发
+$views = ['/install', '/install.php', '/404', '/404.html'];
 if (in_array($path, $views, true)) {
     require $root . '/index.php';
     return true;

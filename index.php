@@ -36,9 +36,9 @@ if (!Config::installed()) {
     exit;
 }
 
-// 静态页面：服务协议与 404
+// 旧版服务协议页面已由 docs 路由统一承载，访问旧地址时直接跳转
 if ($method === 'GET' && ($path === '/terms' || $path === '/terms.html')) {
-    HomePage::renderView('terms.html');
+    header('Location: /docs?doc=' . rawurlencode('用户协议.md'), true, 302);
     exit;
 }
 if ($method === 'GET' && $path === '/404') {
