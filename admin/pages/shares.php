@@ -28,7 +28,7 @@ $base = ['page' => 'shares', 'q' => $q];
         <?php foreach ($list['rows'] as $row): ?>
             <tr>
                 <td>
-                    <a class="link" href="/share/<?= e($row['token']) ?>" target="_blank" rel="noopener"><?= e($row['title'] !== '' ? $row['title'] : '（未命名）') ?></a>
+                    <a class="link" href="/?share=<?= e($row['token']) ?>" target="_blank" rel="noopener"><?= e($row['title'] !== '' ? $row['title'] : '（未命名）') ?></a>
                     <div class="mono muted"><?= e($row['token']) ?></div>
                 </td>
                 <td><?= e($row['username']) ?></td>

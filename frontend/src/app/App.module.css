@@ -24,6 +24,25 @@
   min-width: 0;
 }
 
+/* 侧边栏收起 / 展开：容器宽度过渡，内容保持不变，动画与原版一致 */
+.siderSlot {
+  flex-shrink: 0;
+  width: 261px;
+  overflow: hidden;
+  transition: width 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.siderSlotCollapsed {
+  width: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .siderSlot {
+    transition: none;
+  }
+}
+
 .content {
   position: relative;
   flex: 1;

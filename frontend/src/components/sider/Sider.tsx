@@ -185,23 +185,23 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
           {t('newChat')}
         </button>
       )}
-      {!batching && sessions.length > 0 ? (
-        <div className={styles.manageRow}>
-          <IconButton
-            size="xs"
-            icon={<IconSliderOutline16 />}
-            tooltip={t('batchManage')}
-            tooltipPlacement="bottom"
-            className={styles.manageButton}
-            onClick={() => setBatching(true)}
-          />
-        </div>
-      ) : null}
       <div className={styles.listWrap}>
         <div ref={listRef} className={clsx(styles.list, batching && styles.listBatch)}>
-          {groups.map((group) => (
+          {groups.map((group, groupIndex) => (
             <div key={group.key} className={styles.section}>
-              <div className={styles.sectionHeader}>{group.label}</div>
+              <div className={styles.sectionHeader}>
+                <span>{group.label}</span>
+                {groupIndex === 0 && !batching && sessions.length > 0 ? (
+                  <IconButton
+                    size="xs"
+                    icon={<IconSliderOutline16 />}
+                    tooltip={t('batchManage')}
+                    tooltipPlacement="bottom"
+                    className={styles.manageButton}
+                    onClick={() => setBatching(true)}
+                  />
+                ) : null}
+              </div>
               {group.sessions.map((session) => (
                 <SessionItem
                   key={session.id}

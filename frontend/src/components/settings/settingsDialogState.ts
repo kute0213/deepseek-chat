@@ -2,8 +2,8 @@ import { create } from 'zustand'
 import { useAuth } from '../../services/auth.js'
 import { showToast } from '../base/toastState.js'
 
-/** 设置弹窗的分组：通用设置 / 账号 / 数据管理 */
-export type SettingsSection = 'general' | 'account' | 'data'
+/** 设置弹窗的分组：通用设置 / 账号 / 数据管理 / 用户协议 */
+export type SettingsSection = 'general' | 'account' | 'data' | 'terms'
 
 /** 设置弹窗：侧边栏底部、登录入口与 401 提示都可以打开；section 为打开时选中的分组 */
 export const useSettingsDialog = create(() => ({

@@ -11,7 +11,6 @@ $nav = [
     'sessions' => '会话',
     'shares' => '分享',
     'settings' => '站点设置',
-    'logs' => '操作日志',
 ];
 $active = static fn (string $key): bool => $page === $key
     || ($page === 'session' && $key === 'sessions')

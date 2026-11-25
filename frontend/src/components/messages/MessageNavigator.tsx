@@ -12,7 +12,11 @@ import styles from './MessageNavigator.module.css'
 const PAGE_SIZE = 20
 
 /** 右侧短横导航里的一条记录：一条用户提问。 */
-const previewText = (message: Message): string => {
+const previewText = (
+  message: Message,
+  attachmentLabel: (count: number) => string,
+  emptyLabel: string
+): string => {
   if (message.role !== 'user') {
     return ''
   }
@@ -20,7 +24,7 @@ const previewText = (message: Message): string => {
   if (text) {
     return text
   }
-  return message.files.length > 0 ? `[${message.files.length} 个附件]` : '（空消息）'
+  return message.files.length > 0 ? attachmentLabel(message.files.length) : emptyLabel
 }
 
 /**
@@ -30,6 +34,8 @@ const previewText = (message: Message): string => {
 export const MessageNavigator = ({ session }: { session: Session }) => {
   const t = useTranslate()
   const isMobile = useIsMobile()
+  const preview = (message: Message) =>
+    previewText(message, (count) => t('shareAttachmentCount', { count }), t('emptyMessagePreview'))
   const hasMore = useChatStore((state) => state.messagePages[session.id]?.hasMore ?? false)
   const loading = useChatStore((state) => state.messagePages[session.id]?.loading ?? false)
   const items = useMemo(
@@ -208,7 +214,7 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
                 onFocus={() => setHoveredId(item.id)}
                 onClick={() => jump(item.id)}
               >
-                <span className={styles.itemText}>{previewText(item)}</span>
+                <span className={styles.itemText}>{preview(item)}</span>
               </button>
             ))}
           </div>
@@ -244,7 +250,7 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
               openPanel()
             }}
             onClick={() => onRailClick(item.id)}
-            aria-label={previewText(item).slice(0, 40)}
+            aria-label={preview(item).slice(0, 40)}
           />
         ))}
         {pages > 1 ? (

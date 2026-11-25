@@ -117,7 +117,6 @@ if (Request::method() === 'POST') {
             case 'create_user':
                 $role = ($_POST['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
                 AdminService::createUser(trim((string) ($_POST['username'] ?? '')), (string) ($_POST['password'] ?? ''), $role);
-                AdminService::log((string) $user['id'], 'user.create', 'user', '', trim((string) ($_POST['username'] ?? '')));
                 admin_redirect('users', '用户已创建');
             case 'user_role':
                 if ($id === (string) $user['id']) {
@@ -125,12 +124,10 @@ if (Request::method() === 'POST') {
                 }
                 $role = ($_POST['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
                 AdminService::setRole($id, $role);
-                AdminService::log((string) $user['id'], 'user.role', 'user', $id, $role);
                 admin_redirect($back, '角色已更新', null, $backExtra);
             case 'user_status':
                 $enabled = ($_POST['status'] ?? '1') === '1';
                 AdminService::setStatus($id, $enabled);
-                AdminService::log((string) $user['id'], 'user.status', 'user', $id, $enabled ? 'enabled' : 'disabled');
                 admin_redirect($back, '状态已更新', null, $backExtra);
             case 'user_password':
                 $password = (string) ($_POST['password'] ?? '');
@@ -139,34 +136,27 @@ if (Request::method() === 'POST') {
                 }
                 UserService::updatePassword($id, $password);
                 Auth::revokeOtherTokens($id);
-                AdminService::log((string) $user['id'], 'user.password', 'user', $id);
                 admin_redirect($back, '密码已重置', null, $backExtra);
             case 'user_clear_key':
                 UserService::deleteApiKey($id);
-                AdminService::log((string) $user['id'], 'user.apiKey.clear', 'user', $id);
                 admin_redirect($back, 'API Key 已清除', null, $backExtra);
             case 'user_delete':
                 if ($id === (string) $user['id']) {
                     throw new \App\Support\HttpError('不能删除当前登录的账号', 422);
                 }
                 AdminService::deleteUser($id);
-                AdminService::log((string) $user['id'], 'user.delete', 'user', $id);
                 admin_redirect('users', '用户及其数据已删除');
             case 'session_delete':
                 AdminService::deleteSession($id);
-                AdminService::log((string) $user['id'], 'session.delete', 'session', $id);
                 admin_redirect('sessions', '会话已删除');
             case 'share_revoke':
                 ShareService::setRevoked($id, true);
-                AdminService::log((string) $user['id'], 'share.revoke', 'share', $id);
                 admin_redirect($back === 'shares' ? 'shares' : 'dashboard', '分享已撤销');
             case 'share_restore':
                 ShareService::setRevoked($id, false);
-                AdminService::log((string) $user['id'], 'share.restore', 'share', $id);
                 admin_redirect('shares', '分享已恢复');
             case 'share_delete':
                 ShareService::delete($id);
-                AdminService::log((string) $user['id'], 'share.delete', 'share', $id);
                 admin_redirect('shares', '分享已删除');
             case 'settings_save':
                 $fields = [
@@ -183,7 +173,6 @@ if (Request::method() === 'POST') {
                 foreach ($fields as $key => $value) {
                     SiteSettings::set($key, $value);
                 }
-                AdminService::log((string) $user['id'], 'settings.update', 'setting', 'site');
                 admin_redirect('settings', '设置已保存');
             default:
                 admin_redirect('dashboard', null, '未知操作');
@@ -210,14 +199,6 @@ if ($export !== '') {
                 fmt_ms((int) $row['created_ms']), fmt_ms($row['last_login_ms'] !== null ? (int) $row['last_login_ms'] : null),
             ]);
         }
-    } elseif ($export === 'logs') {
-        fputcsv($out, ['时间', '管理员', '操作', '对象', '对象 ID', '详情', 'IP']);
-        foreach (AdminService::listLogs(1, 10000)['rows'] as $row) {
-            fputcsv($out, [
-                fmt_ms((int) $row['created_ms']), $row['username'] ?? '',
-                $row['action'], $row['target_type'], $row['target_id'], $row['detail'], $row['ip'],
-            ]);
-        }
     }
     fclose($out);
     exit;
@@ -226,7 +207,7 @@ if ($export !== '') {
 /* ---------------------------------------------------------------- 页面数据 */
 
 $page = (string) ($_GET['page'] ?? 'dashboard');
-$pages = ['dashboard', 'users', 'user', 'sessions', 'session', 'shares', 'settings', 'logs'];
+$pages = ['dashboard', 'users', 'user', 'sessions', 'session', 'shares', 'settings'];
 if (!in_array($page, $pages, true)) {
     $page = 'dashboard';
 }
@@ -264,9 +245,6 @@ switch ($page) {
     case 'settings':
         $data = ['settings' => SiteSettings::all()];
         break;
-    case 'logs':
-        $data = ['list' => AdminService::listLogs($pageNo, ADMIN_PER_PAGE)];
-        break;
 }
 
 $titles = [
@@ -277,7 +255,6 @@ $titles = [
     'session' => '会话详情',
     'shares' => '分享管理',
     'settings' => '站点设置',
-    'logs' => '操作日志',
 ];
 $title = $titles[$page];
 $ok = isset($_GET['ok']) ? (string) $_GET['ok'] : null;

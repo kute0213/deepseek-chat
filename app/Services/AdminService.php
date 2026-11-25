@@ -21,7 +21,6 @@ final class AdminService
              FROM sessions'
         )->fetch();
         $files = $pdo->query('SELECT COUNT(*) AS total, COALESCE(SUM(size), 0) AS bytes FROM files')->fetch();
-        $logs = $pdo->query('SELECT COUNT(*) FROM admin_logs')->fetchColumn();
         $shares = ShareService::stats();
 
         return [
@@ -33,7 +32,6 @@ final class AdminService
             'outputTokens' => (int) $sessions['output_tokens'],
             'files' => (int) $files['total'],
             'fileBytes' => (int) $files['bytes'],
-            'logs' => (int) $logs,
             'shares' => $shares['total'],
             'activeShares' => $shares['active'],
             'shareViews' => $shares['views'],
@@ -226,24 +224,5 @@ final class AdminService
             throw new HttpError('会话不存在', 404);
         }
         SessionStore::delete((string) $userId, $sessionId);
-    }
-
-    public static function listLogs(int $page, int $perPage): array
-    {
-        $pdo = Database::pdo();
-        $total = (int) $pdo->query('SELECT COUNT(*) FROM admin_logs')->fetchColumn();
-        $meta = self::page($total, $perPage, $page);
-        $stmt = $pdo->prepare(
-            'SELECT l.*, u.username FROM admin_logs l LEFT JOIN users u ON u.id = l.admin_id
-             ORDER BY l.created_ms DESC LIMIT ' . $perPage . ' OFFSET ' . $meta['offset']
-        );
-        $stmt->execute();
-        $meta['rows'] = $stmt->fetchAll();
-        return $meta;
-    }
-
-    public static function log(string $adminId, string $action, string $targetType, string $targetId, string $detail = ''): void
-    {
-        UserService::logAdminAction($adminId, $action, $targetType, $targetId, $detail);
     }
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import clsx from 'clsx'
 import { useTranslate } from '../i18n/index.js'
 import { useSettings } from '../services/settings.js'
 import { initAuth, useAuth } from '../services/auth.js'
@@ -139,7 +140,16 @@ const ChatApp = () => {
   return (
     <>
       <div ref={frameRef} className={styles.frame}>
-        {isMobile ? <MobileSider /> : siderCollapsed ? null : <Sider />}
+        {isMobile ? (
+          <MobileSider />
+        ) : (
+          <div
+            className={clsx(styles.siderSlot, siderCollapsed && styles.siderSlotCollapsed)}
+            aria-hidden={siderCollapsed}
+          >
+            <Sider />
+          </div>
+        )}
         <main className={styles.main}>
           {saveError ? (
             <div className={styles.saveError} role="alert">

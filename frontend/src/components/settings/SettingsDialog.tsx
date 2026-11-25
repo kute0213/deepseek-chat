@@ -1,6 +1,8 @@
 import clsx from 'clsx'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
+  IconBrowseOutline16,
+  IconChevronRightOutline14,
   IconDarkOutline16,
   IconDataOutline16,
   IconDownloadOutline16,
@@ -17,6 +19,7 @@ import {
   importHistory,
 } from '../../services/chat/backup.js'
 import { changePassword, logout, renameUsername, useAuth } from '../../services/auth.js'
+import { deleteAccount, loadUsage, type UsageSummary } from '../../services/account.js'
 import { loadMyShares, revokeShare, type ShareSummary } from '../../services/chat/shares.js'
 import { formatDate } from '../../utils/format.js'
 import { copyText } from '../../utils/clipboard.js'
@@ -34,6 +37,7 @@ import {
 } from '../../services/settings.js'
 import { useTranslate, type TranslationKey, type TranslationMessage } from '../../i18n/index.js'
 import { Button } from '../base/Button.js'
+import { IconButton } from '../base/IconButton.js'
 import { Modal } from '../base/Modal.js'
 import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
@@ -59,7 +63,18 @@ const sections: { value: SettingsSection; label: TranslationKey; icon: ReactNode
   },
   { value: 'account', label: 'settingDialogAsideAccountOptionLabel', icon: <IconUserOutline16 /> },
   { value: 'data', label: 'settingDialogAsideDataOptionLabel', icon: <IconDataOutline16 /> },
+  { value: 'terms', label: 'settingDialogAsideTermsOptionLabel', icon: <IconBrowseOutline16 /> },
 ]
+
+/** 设置弹窗内的二级面板：不离开弹窗即可修改账号、查看分享与用量 */
+type SettingsPanel = 'username' | 'password' | 'shares' | 'usage'
+
+const panelTitles: Record<SettingsPanel, TranslationKey> = {
+  username: 'accountChangeUsernameEntry',
+  password: 'accountChangePasswordEntry',
+  shares: 'mySharesLinks',
+  usage: 'tokenUsageTitle',
+}
 
 const SettingsContent = () => {
   const t = useTranslate()
@@ -67,6 +82,7 @@ const SettingsContent = () => {
   const user = useAuth((state) => state.user)
   // 打开时按调用方指定的分组选中，之后在弹窗内切换
   const [section, setSection] = useState(() => useSettingsDialog.getState().section)
+  const [panel, setPanel] = useState<SettingsPanel | null>(null)
   // 切换分组不丢失正在输入的 API Key 与导入状态
   const apiKeyEditor = useApiKeyEditor()
   const historyImport = useHistoryImport()
@@ -95,7 +111,10 @@ const SettingsContent = () => {
               role="tab"
               aria-selected={section === item.value}
               className={clsx(styles.navItem, section === item.value && styles.navItemActive)}
-              onClick={() => setSection(item.value)}
+              onClick={() => {
+                setSection(item.value)
+                setPanel(null)
+              }}
             >
               {item.icon}
               {t(item.value === 'account' && !user ? 'authLoginRegister' : item.label)}
@@ -103,24 +122,63 @@ const SettingsContent = () => {
           ))}
         </div>
         <div role="tabpanel" className={styles.content}>
-          {section === 'general' ? (
+          {panel !== null ? (
+            <div className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <IconButton
+                  size="m"
+                  icon={<IconChevronRightOutline14 />}
+                  aria-label={t('back')}
+                  className={styles.panelBack}
+                  onClick={() => setPanel(null)}
+                />
+                <span className={styles.panelTitle}>{t(panelTitles[panel])}</span>
+              </div>
+              {panel === 'username' ? (
+                <UsernameSetting />
+              ) : panel === 'password' ? (
+                <PasswordSetting />
+              ) : panel === 'shares' ? (
+                <MyShares />
+              ) : (
+                <UsageSetting />
+              )}
+            </div>
+          ) : section === 'general' ? (
             <>
               <ThemeSetting />
               <LocaleSetting />
               <TtsVoiceSetting />
               <LocationSetting />
             </>
+          ) : section === 'terms' ? (
+            <TermsSetting />
           ) : !user ? (
             <AuthPanel />
           ) : section === 'account' ? (
-            <AccountSetting />
+            <AccountSetting onOpen={setPanel} />
           ) : (
             <>
               <ApiKeyField editor={apiKeyEditor} />
               <DeepSeekPlatformSetting />
               <ImportHistory historyImport={historyImport} disabled={historyBusy} />
               <ExportHistory disabled={historyBusy} />
-              <MyShares />
+              <SettingCell
+                label={t('mySharesLinks')}
+                description={t('mySharesManageDescription')}
+                status={null}
+                action={
+                  <Button
+                    variant="outlined"
+                    size="m"
+                    className={styles.cellButton}
+                    onClick={() => setPanel('shares')}
+                  >
+                    {t('mySharesManage')}
+                  </Button>
+                }
+              />
+              <TokenUsageCell onOpen={() => setPanel('usage')} />
               <SettingCell
                 label={t('deleteAllSessions')}
                 status={null}
@@ -227,10 +285,134 @@ const UsernameSetting = () => {
   )
 }
 
-/** 账号：用户名、修改密码、管理员入口（仅管理员可见）与退出登录 */
-const AccountSetting = () => {
+/** 账号：用户名与密码改为两个入口，点击进入二级面板；再往下是管理员入口、退出与注销 */
+const AccountSetting = ({ onOpen }: { onOpen: (panel: 'username' | 'password') => void }) => {
   const t = useTranslate()
   const user = useAuth((state) => state.user)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  return (
+    <>
+      <SettingCell
+        label={t('accountUsername')}
+        description={user?.username ?? undefined}
+        status={null}
+        action={
+          <Button variant="outlined" size="m" onClick={() => onOpen('username')}>
+            {t('accountChangeUsernameEntry')}
+          </Button>
+        }
+      />
+      <SettingCell
+        label={t('accountChangePassword')}
+        status={null}
+        action={
+          <Button variant="outlined" size="m" onClick={() => onOpen('password')}>
+            {t('accountChangePasswordEntry')}
+          </Button>
+        }
+      />
+      {user?.role === 'admin' ? (
+        <SettingCell
+          label={t('accountAdminConsole')}
+          status={null}
+          action={
+            <Button variant="outlined" size="m" onClick={() => window.location.assign('/admin/')}>
+              {t('accountOpen')}
+            </Button>
+          }
+        />
+      ) : null}
+      <SettingCell
+        label={t('accountLogout')}
+        status={null}
+        action={
+          <Button
+            variant="dangerOutlined"
+            size="m"
+            onClick={() => {
+              closeSettings()
+              void logout()
+            }}
+          >
+            {t('accountLogout')}
+          </Button>
+        }
+      />
+      <SettingCell
+        label={t('accountDelete')}
+        description={t('accountDeleteDescription')}
+        status={null}
+        action={
+          <Button variant="dangerOutlined" size="m" onClick={() => setDeleteOpen(true)}>
+            {t('accountDelete')}
+          </Button>
+        }
+      />
+      {deleteOpen ? <DeleteAccountConfirm onClose={() => setDeleteOpen(false)} /> : null}
+    </>
+  )
+}
+
+/** 注销账号：输入当前密码确认，成功后清空本地登录态并回到首页 */
+const DeleteAccountConfirm = ({ onClose }: { onClose: () => void }) => {
+  const t = useTranslate()
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const submit = async () => {
+    if (busy || !password) {
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      await deleteAccount(password)
+      closeSettings()
+      window.location.assign('/')
+    } catch (cause) {
+      setError(
+        cause instanceof Error && cause.message ? cause.message : t('accountDeleteFailed')
+      )
+      setBusy(false)
+    }
+  }
+  return (
+    <Modal
+      title={t('accountDelete')}
+      onClose={busy ? () => {} : onClose}
+      footer={
+        <>
+          <Button variant="outlined" disabled={busy} onClick={onClose}>
+            {t('cancel')}
+          </Button>
+          <Button variant="danger" disabled={busy || !password} onClick={() => void submit()}>
+            {t('accountDeleteConfirm')}
+          </Button>
+        </>
+      }
+    >
+      <p className={styles.description}>{t('accountDeleteDescription')}</p>
+      <input
+        type="password"
+        className={styles.accountInput}
+        placeholder={t('accountDeletePassword')}
+        autoComplete="current-password"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+            void submit()
+          }
+        }}
+      />
+      {error ? <div className={styles.error}>{error}</div> : null}
+    </Modal>
+  )
+}
+
+/** 修改密码表单（账号二级面板） */
+const PasswordSetting = () => {
+  const t = useTranslate()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -270,79 +452,79 @@ const AccountSetting = () => {
   }
 
   return (
-    <>
-      <UsernameSetting />
-      <div className={styles.cell}>
-        <div className={styles.label}>{t('accountChangePassword')}</div>
-        <div className={styles.accountForm}>
-          <input
-            type="password"
-            className={styles.accountInput}
-            placeholder={t('accountCurrentPassword')}
-            autoComplete="current-password"
-            value={currentPassword}
-            onChange={(event) => setCurrentPassword(event.target.value)}
-          />
-          <input
-            type="password"
-            className={styles.accountInput}
-            placeholder={t('accountNewPassword')}
-            autoComplete="new-password"
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-          />
-          <input
-            type="password"
-            className={styles.accountInput}
-            placeholder={t('accountConfirmPassword')}
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                void submit()
-              }
-            }}
-          />
-          {error ? <div className={styles.error}>{error}</div> : null}
-          {changed && !error ? (
-            <div className={styles.description}>{t('accountPasswordChanged')}</div>
-          ) : null}
-          <Button
-            variant="outlined"
-            size="m"
-            className={styles.accountSubmit}
-            disabled={busy || !currentPassword || !newPassword || !confirmPassword}
-            onClick={() => void submit()}
-          >
-            {t('accountSavePassword')}
-          </Button>
-        </div>
-      </div>
-      {user?.role === 'admin' ? (
-        <SettingCell
-          label={t('accountAdminConsole')}
-          status={null}
-          action={
-            <Button variant="outlined" size="m" onClick={() => window.location.assign('/admin/')}>
-              {t('accountOpen')}
-            </Button>
-          }
+    <div className={styles.cell}>
+      <div className={styles.label}>{t('accountChangePassword')}</div>
+      <div className={styles.accountForm}>
+        <input
+          type="password"
+          className={styles.accountInput}
+          placeholder={t('accountCurrentPassword')}
+          autoComplete="current-password"
+          value={currentPassword}
+          onChange={(event) => setCurrentPassword(event.target.value)}
         />
-      ) : null}
+        <input
+          type="password"
+          className={styles.accountInput}
+          placeholder={t('accountNewPassword')}
+          autoComplete="new-password"
+          value={newPassword}
+          onChange={(event) => setNewPassword(event.target.value)}
+        />
+        <input
+          type="password"
+          className={styles.accountInput}
+          placeholder={t('accountConfirmPassword')}
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+              void submit()
+            }
+          }}
+        />
+        {error ? <div className={styles.error}>{error}</div> : null}
+        {changed && !error ? (
+          <div className={styles.description}>{t('accountPasswordChanged')}</div>
+        ) : null}
+        <Button
+          variant="outlined"
+          size="m"
+          className={styles.accountSubmit}
+          disabled={busy || !currentPassword || !newPassword || !confirmPassword}
+          onClick={() => void submit()}
+        >
+          {t('accountSavePassword')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** 用户协议与隐私政策：打开 /docs 路由中的对应文档 */
+const TermsSetting = () => {
+  const t = useTranslate()
+  const openDoc = (name: string) => {
+    window.open(`/docs?doc=${encodeURIComponent(name)}`, '_blank', 'noopener')
+  }
+  return (
+    <>
       <SettingCell
-        label={t('accountLogout')}
+        label={t('termsUserAgreement')}
         status={null}
         action={
-          <Button
-            variant="dangerOutlined"
-            size="m"
-            onClick={() => {
-              closeSettings()
-              void logout()
-            }}
-          >
-            {t('accountLogout')}
+          <Button variant="outlined" size="m" onClick={() => openDoc('用户协议.md')}>
+            {t('termsOpen')}
+          </Button>
+        }
+      />
+      <SettingCell
+        label={t('termsPrivacyPolicy')}
+        status={null}
+        action={
+          <Button variant="outlined" size="m" onClick={() => openDoc('隐私政策.md')}>
+            {t('termsOpen')}
           </Button>
         }
       />
@@ -775,6 +957,150 @@ const ImportHistory = ({
   )
 }
 
+const formatTokens = (value: number) => value.toLocaleString()
+
+/** 数据管理里的 Token 用量条：展示输入 / 输出占比，右侧「查看」进入二级面板 */
+const TokenUsageCell = ({ onOpen }: { onOpen: () => void }) => {
+  const t = useTranslate()
+  const [usage, setUsage] = useState<UsageSummary | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    void loadUsage()
+      .then((data) => {
+        if (active) {
+          setUsage(data)
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setFailed(true)
+        }
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const total = usage?.totalTokens ?? 0
+  const inputPercent = total > 0 && usage ? (usage.inputTokens / total) * 100 : 0
+  return (
+    <div className={styles.tokenCell}>
+      <div className={styles.tokenHead}>
+        <div>
+          <div className={styles.label}>{t('tokenUsageTitle')}</div>
+          <div className={styles.description}>
+            {failed
+              ? t('tokenUsageLoadFailed')
+              : usage
+                ? `${t('tokenUsageTotal')} ${formatTokens(total)}`
+                : t('sessionLoading')}
+          </div>
+        </div>
+        <Button variant="outlined" size="m" className={styles.cellButton} onClick={onOpen}>
+          {t('tokenUsageView')}
+        </Button>
+      </div>
+      <div className={styles.tokenBar} aria-hidden>
+        <span className={styles.tokenBarInput} style={{ width: `${inputPercent}%` }} />
+        <span className={styles.tokenBarOutput} style={{ width: `${100 - inputPercent}%` }} />
+      </div>
+      <div className={styles.tokenLegend}>
+        <span>
+          {t('tokenUsageInputLabel')} {formatTokens(usage?.inputTokens ?? 0)}
+        </span>
+        <span>
+          {t('tokenUsageOutputLabel')} {formatTokens(usage?.outputTokens ?? 0)}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/** Token 用量二级面板：总量、会话明细 */
+const UsageSetting = () => {
+  const t = useTranslate()
+  const [usage, setUsage] = useState<UsageSummary | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  const load = async () => {
+    setFailed(false)
+    try {
+      setUsage(await loadUsage())
+    } catch {
+      setFailed(true)
+    }
+  }
+
+  useEffect(() => {
+    void load()
+  }, [])
+
+  if (failed) {
+    return (
+      <div className={styles.shareEmpty}>
+        <span>{t('tokenUsageLoadFailed')}</span>
+        <Button variant="outlined" size="s" className={styles.cellButton} onClick={() => void load()}>
+          {t('retry')}
+        </Button>
+      </div>
+    )
+  }
+  if (usage === null) {
+    return (
+      <div className={styles.shareEmpty} role="status" aria-live="polite">
+        {t('sessionLoading')}
+      </div>
+    )
+  }
+  const inputPercent = usage.totalTokens > 0 ? (usage.inputTokens / usage.totalTokens) * 100 : 0
+  return (
+    <div className={styles.usage}>
+      <div className={styles.usageStats}>
+        {[
+          [t('tokenUsageTotal'), formatTokens(usage.totalTokens)],
+          [t('tokenUsageInputLabel'), formatTokens(usage.inputTokens)],
+          [t('tokenUsageOutputLabel'), formatTokens(usage.outputTokens)],
+          [t('tokenUsageSessions'), formatTokens(usage.sessions)],
+          [t('tokenUsageMessages'), formatTokens(usage.messages)],
+        ].map(([label, value]) => (
+          <div key={label} className={styles.usageStat}>
+            <div className={styles.usageStatValue}>{value}</div>
+            <div className={styles.usageStatLabel}>{label}</div>
+          </div>
+        ))}
+      </div>
+      <div className={styles.tokenBar} aria-hidden>
+        <span className={styles.tokenBarInput} style={{ width: `${inputPercent}%` }} />
+        <span className={styles.tokenBarOutput} style={{ width: `${100 - inputPercent}%` }} />
+      </div>
+      {usage.items.length === 0 ? (
+        <div className={styles.shareEmpty}>{t('tokenUsageEmpty')}</div>
+      ) : (
+        <div className={styles.usageList}>
+          {usage.items.map((item) => (
+            <div key={item.id} className={styles.usageRow}>
+              <div className={styles.usageInfo}>
+                <div className={styles.usageTitle}>{item.title || t('untitledChat')}</div>
+                <div className={styles.usageMeta}>
+                  {t('tokenUsageMessages')} {formatTokens(item.messages)}
+                  <span>·</span>
+                  {formatDate(item.updatedAt)}
+                </div>
+              </div>
+              <div className={styles.usageTokens}>
+                <span>{t('tokenUsageInput', { count: formatTokens(item.inputTokens) })}</span>
+                <span>{t('tokenUsageOutput', { count: formatTokens(item.outputTokens) })}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** 我的分享：列出当前账号创建的分享链接，可复制、打开或撤销 */
 const MyShares = () => {
   const t = useTranslate()
@@ -802,10 +1128,7 @@ const MyShares = () => {
     setRevoking(token)
     try {
       await revokeShare(token)
-      setShares((previous) =>
-        previous?.map((item) => (item.token === token ? { ...item, revoked: true } : item)) ??
-        previous
-      )
+      setShares((previous) => previous?.filter((item) => item.token !== token) ?? previous)
       showToast({ key: 'shareRevoked' })
     } catch {
       showToast({ key: 'shareRevokeFailed', type: 'error' })

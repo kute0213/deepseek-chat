@@ -629,3 +629,169 @@ a.shareTitleLink:hover {
     animation: none;
   }
 }
+
+/* 设置内的二级面板：返回按钮 + 标题，内容沿用同一套单元样式 */
+.panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 2px 0 12px;
+}
+
+.panelBack {
+  transform: rotate(180deg);
+}
+
+.panelTitle {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Token 用量条与图例 */
+.tokenCell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  padding: 12px 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  line-height: 22px;
+  box-shadow: inset 0 1px 0 0 var(--dsw-alias-border-l2-darkmode-thin);
+}
+
+.tokenHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tokenBar {
+  display: flex;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4096px;
+  background-color: var(--dsw-alias-interactive-bg-hover);
+}
+
+.tokenBarInput {
+  height: 100%;
+  background-color: var(--dsw-alias-brand-primary);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tokenBarOutput {
+  height: 100%;
+  background-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 38%, transparent);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tokenLegend {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.usage {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 12px;
+}
+
+.usageStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.usageStat {
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background-color: var(--dsw-alias-bg-layer-2);
+}
+
+.usageStatValue {
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.usageStatLabel {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.usageList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.usageRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background-color: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+.usageInfo {
+  min-width: 0;
+}
+
+.usageTitle {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.usageMeta {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.usageTokens {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tokenBarInput,
+  .tokenBarOutput {
+    transition: none;
+  }
+}
