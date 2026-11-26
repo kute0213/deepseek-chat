@@ -29,10 +29,23 @@ final class SessionStore
         }
     }
 
+    /**
+     * 事务开始前预建归档表。
+     * MySQL 的 DDL 会隐式提交当前事务，因此建表必须放在事务之外。
+     */
+    public static function prepareArchive(): void
+    {
+        self::ensureArchive();
+    }
+
     /** 已删除会话的用量汇总表：删除会话时把统计值累加进来，保证账号总用量不因删除而减少。 */
     private static function ensureArchive(): void
     {
         if (self::$archiveReady) {
+            return;
+        }
+        if (Database::pdo()->inTransaction()) {
+            // 事务内执行 DDL 会隐式提交，交由调用方在事务外预建
             return;
         }
         self::$archiveReady = true;

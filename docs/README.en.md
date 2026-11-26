@@ -20,7 +20,7 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 - Docs: `/docs` renders Markdown files with a collapsible list; Chinese and English versions use the `.md` / `.en.md` naming convention.
 - Settings: terms and privacy entries, account panels, token usage (entry only), and share management.
 - Token accounting: monotonic. Token totals only grow; undoing messages, switching branches, deleting chats or deleting users never reduces them (usage is archived before removal).
-- Full admin console: users, user details, roles, status, sessions, shares, site settings, and CSV export. The sidebar collapses and remembers its state; navigation and detail views switch without a full reload.
+- Full admin console: users, user details, roles, status, sessions, shares, site settings, and CSV export. A fixed sidebar holds the tabs; navigation and detail views switch without a full reload.
 - The admin console, installer, 404 page, and docs share the same `assets/ui.css` design tokens and follow the site language and light/dark preference.
 - Site name is centralized in `app/lang/zh-CN.php` and `app/lang/en-US.php`.
 

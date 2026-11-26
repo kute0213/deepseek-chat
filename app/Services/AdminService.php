@@ -190,6 +190,9 @@ final class AdminService
     public static function deleteUser(string $userId): void
     {
         $pdo = Database::pdo();
+        // 建表必须放在事务外，否则 MySQL 会隐式提交事务导致“已删除却报错”
+        SessionStore::prepareArchive();
+        ShareService::prepare();
         Database::tx(function () use ($pdo, $userId): void {
             // 先归档用量再删除会话，保证 Token 统计只增不减
             SessionStore::archiveAll($userId);

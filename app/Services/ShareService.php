@@ -16,9 +16,18 @@ final class ShareService
     private static bool $ready = false;
 
     /** 已安装站点没有迁移脚本，首次调用时按需建表。 */
+    /** 事务开始前预建分享表，避免 DDL 在事务中隐式提交。 */
+    public static function prepare(): void
+    {
+        self::ensureTable();
+    }
+
     private static function ensureTable(): void
     {
         if (self::$ready) {
+            return;
+        }
+        if (Database::pdo()->inTransaction()) {
             return;
         }
         Database::pdo()->exec(

@@ -106,87 +106,31 @@ a:hover {
     width: 248px;
     height: 100vh;
     flex-shrink: 0;
-    padding: 8px;
+    padding: 16px 12px;
     border-right: 1px solid var(--line-soft);
     background: var(--bg-soft);
-    overflow: hidden;
-    transition: width 0.24s var(--ease), padding 0.24s var(--ease);
-}
-
-.side.collapsed {
-    width: 60px;
-    padding: 8px 6px;
-}
-
-.side-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    padding: 2px 2px 6px;
 }
 
 .side-title {
-    flex: 1;
-    min-width: 0;
-    padding: 6px 10px;
-    overflow: hidden;
+    padding: 4px 12px 16px;
     color: var(--text);
-    font-size: 15px;
-    font-weight: 600;
-    white-space: nowrap;
-    opacity: 1;
-    transition: opacity 0.18s var(--ease), padding 0.24s var(--ease);
-}
-
-.side.collapsed .side-head {
-    justify-content: center;
-}
-
-.side.collapsed .side-title {
-    display: none;
-}
-
-.side-toggle {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    flex-shrink: 0;
-    padding: 0;
-    border: none;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--text-3);
     font-size: 16px;
-    line-height: 1;
-    cursor: pointer;
-    transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
-}
-
-.side-toggle:hover {
-    background: var(--hover);
-    color: var(--text);
+    font-weight: 500;
 }
 
 .side nav {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    margin-top: 6px;
 }
 
 .nav {
-    position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
     height: 40px;
     padding: 0 12px;
     border-radius: 12px;
     color: var(--text-2);
-    white-space: nowrap;
-    overflow: hidden;
     transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
@@ -200,45 +144,6 @@ a:hover {
     background: var(--active);
     color: var(--brand);
     font-weight: 500;
-}
-
-.nav-icon {
-    display: grid;
-    place-items: center;
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-}
-
-.nav-text {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* 收起后仅保留图标，保持列表观感 */
-.side.collapsed .nav {
-    justify-content: center;
-    padding: 0;
-}
-
-.side.collapsed .nav-text {
-    display: none;
-}
-
-.side.collapsed .side-foot {
-    align-items: center;
-    padding-top: 8px;
-}
-
-.side.collapsed .user-chip {
-    padding: 8px 0;
-    justify-content: center;
-}
-
-.side.collapsed .who,
-.side.collapsed .side-links {
-    display: none;
 }
 
 .side-foot {

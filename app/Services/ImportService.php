@@ -108,6 +108,9 @@ final class ImportService
         $stmt->execute([$userId]);
         $oldFileIds = $stmt->fetchAll(\PDO::FETCH_COLUMN);
 
+        // 建表放在事务外，避免 DDL 隐式提交导致导入写入不完整
+        SessionStore::prepareArchive();
+
         Database::tx(function () use ($pdo, $userId, $prepared, $stagingFiles): void {
             SessionStore::archiveAll($userId);
             $stmt = $pdo->prepare('DELETE FROM session_files WHERE user_id = ?');
