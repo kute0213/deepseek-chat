@@ -6,11 +6,18 @@
 /** @var string|null $ok */
 /** @var string|null $error */
 $nav = [
-    'dashboard' => [t('admin.nav.dashboard'), '概'],
-    'users' => [t('admin.nav.users'), '用'],
-    'sessions' => [t('admin.nav.sessions'), '会'],
-    'shares' => [t('admin.nav.shares'), '分'],
-    'settings' => [t('admin.nav.settings'), '设'],
+    'dashboard' => t('admin.nav.dashboard'),
+    'users' => t('admin.nav.users'),
+    'sessions' => t('admin.nav.sessions'),
+    'shares' => t('admin.nav.shares'),
+    'settings' => t('admin.nav.settings'),
+];
+$navIcons = [
+    'dashboard' => '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/></svg>',
+    'users' => '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="5.5" r="2.4"/><path d="M3.2 13.4c.6-2.5 2.4-3.9 4.8-3.9s4.2 1.4 4.8 3.9"/></svg>',
+    'sessions' => '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M13 9.3a1.5 1.5 0 0 1-1.5 1.5H7l-3 2.2v-2.2h-.5A1.5 1.5 0 0 1 2 9.3V4.7A1.5 1.5 0 0 1 3.5 3.2h8A1.5 1.5 0 0 1 13 4.7Z"/></svg>',
+    'shares' => '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h5v5"/><path d="M14 2 7.5 8.5"/><path d="M13 9.5v3A1.5 1.5 0 0 1 11.5 14h-7A1.5 1.5 0 0 1 3 12.5v-7A1.5 1.5 0 0 1 4.5 4H8"/></svg>',
+    'settings' => '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 4h4M10 4h4M2 8h5M11 8h3M2 12h2M8 12h6"/><circle cx="8" cy="4" r="1.5"/><circle cx="9.5" cy="8" r="1.5"/><circle cx="6" cy="12" r="1.5"/></svg>',
 ];
 $active = static fn (string $key): bool => $page === $key
     || ($page === 'session' && $key === 'sessions')
@@ -44,7 +51,7 @@ $active = static fn (string $key): bool => $page === $key
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="/assets/ui.css?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/ui.css') ?>">
+    <link rel="stylesheet" href="/assets/ui.css?v=<?= (int) @filemtime(dirname(__DIR__, 3) . '/assets/ui.css') ?>">
 </head>
 <body>
 <div class="shell">
@@ -54,10 +61,12 @@ $active = static fn (string $key): bool => $page === $key
             <button class="side-toggle" type="button" id="side-toggle" aria-label="<?= e(t('admin.expand_sidebar')) ?>">‹</button>
         </div>
         <nav>
-            <?php foreach ($nav as $key => $item): ?>
+            <?php foreach ($nav as $key => $label): ?>
                 <a class="nav<?= $active($key) ? ' active' : '' ?>" data-page="<?= e($key) ?>"
-                   data-short="<?= e($item[1]) ?>"
-                   href="<?= e(admin_url(['page' => $key])) ?>"><?= e($item[0]) ?></a>
+                   href="<?= e(admin_url(['page' => $key])) ?>">
+                    <span class="nav-icon"><?= $navIcons[$key] ?></span>
+                    <span class="nav-text"><?= e($label) ?></span>
+                </a>
             <?php endforeach; ?>
         </nav>
         <div class="side-foot">

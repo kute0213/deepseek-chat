@@ -2,7 +2,6 @@ import { useTranslate } from '../../i18n/index.js'
 import clsx from 'clsx'
 import { memo, useState } from 'react'
 import {
-  IconEllipsisOutline16,
   IconRefreshOutline16,
   IconUndoOutline16,
   IconWarningOutline16,
@@ -15,7 +14,6 @@ import type { AssistantMessage as AssistantMessageType } from '../../services/ch
 import { openSettings } from '../settings/settingsDialogState.js'
 import { IconButton } from '../base/IconButton.js'
 import { Button } from '../base/Button.js'
-import { Menu } from '../base/Menu.js'
 import { UndoRoundDialog } from './UndoRoundDialog.js'
 import { Markdown } from '../markdown/Markdown.js'
 import { SiteThumbnails } from '../search/SiteLogo.js'
@@ -164,26 +162,13 @@ export const AssistantMessage = memo(function AssistantMessage({
                 regenerateReply(sessionId, message.id)
               }}
             />
-            <Menu
-              options={[
-                {
-                  key: 'undo',
-                  label: t('undoRound'),
-                  icon: <IconUndoOutline16 />,
-                  danger: true,
-                  onSelect: () => setUndoOpen(true),
-                },
-              ]}
-            >
-              {({ toggle }) => (
-                <IconButton
-                  icon={<IconEllipsisOutline16 />}
-                  aria-label={t('more')}
-                  disabled={busy}
-                  onClick={toggle}
-                />
-              )}
-            </Menu>
+            <IconButton
+              icon={<IconUndoOutline16 />}
+              tooltip={t('undoRound')}
+              tooltipPlacement="bottom"
+              disabled={busy}
+              onClick={() => setUndoOpen(true)}
+            />
           </div>
           {isLast && canContinueReply(message) ? (
             <Button

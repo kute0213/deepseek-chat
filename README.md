@@ -13,13 +13,13 @@
 - 会话与附件保存在服务器：支持多设备登录，历史会话列表按游标分页，支持重命名、删除、清空。
 - 删除会话时自动删除不再被引用的附件文件，并清理空目录。
 - 消息分段加载：打开会话先加载最近 20 条消息，向上滚动到顶部自动加载更早的 20 条，并保持当前阅读位置；列表顶部会显示「正在加载更早的对话」，没有更早记录时自动隐藏。
-- 右侧消息导航：与官方网页版一致，右侧短横对应每条提问，间距更宽松；桌面端鼠标悬浮即展开预览、点击直接跳转；每页 7 条，可用上下箭头翻页，展开时平滑把当前记录滚动到预览列表中间；移动端同样显示，触屏点按先展开预览再点击跳转。
-- 会话分享：会话标题栏或会话菜单点击分享后直接进入选择模式，所有消息左侧出现圆形复选框，点击消息任意位置即可选中，用户名与 AI 回复成对勾选，聊天输入框隐藏；勾选后生成只读快照链接（`/?share={token}`，同时兼容 `/share/{token}`）；公开分享页可查看所选对话，登录后可一键「继续对话」，把快照复制成自己的新会话继续使用；「设置 → 数据管理 → 我的分享链接」可进入二级面板查看与撤销，撤销后记录直接删除，管理后台保留分享管理。
+- 右侧消息导航：与官方网页版一致，收起时固定展示约 7 条更短、更粗、更圆滑的短横，间距更宽松；桌面端鼠标悬浮即展开完整预览，可用鼠标滚轮平滑滑动，点击直接跳转；移动端点击展开后同样可滑动；预览文本由 `/api/sessions/{id}/outline` 一次性返回全部提问的前几个字，不再分页加载；展开时自动把当前记录滚动到预览列表中间。
+- 会话分享：会话标题栏或会话菜单点击分享后直接进入选择模式，所有消息左侧出现圆形复选框，点击消息任意位置即可选中，用户名与 AI 回复成对勾选，聊天输入框隐藏；选择条左侧提供「全选 / 取消全选」，勾选后生成只读快照链接（`/?share={token}`，同时兼容 `/share/{token}`）；公开分享页可查看所选对话，登录后可一键「继续对话」，把快照复制成自己的新会话继续使用；「设置 → 数据管理 → 我的分享链接」可进入二级面板查看与撤销，撤销后记录直接删除，管理后台保留分享管理。
 - 对话搜索：侧边栏搜索按钮支持按标题与消息正文检索全部会话；弹窗顶部输入，输入关键词后才展开结果框，点击结果直接打开命中消息所在的 20 条窗口并定位高亮。
 - 会话批量管理：侧边栏「最近」标题右侧的滑块图标进入多选模式，会话前出现圆形复选框，新建对话变为「选择对话 + 关闭」，底部设置替换为置顶与删除，支持全选 / 取消全选与批量置顶 / 删除。
-- 会话置顶：会话菜单支持置顶（粗头钉子图标）/ 取消置顶、分享与多选，置顶会话固定排在列表最前。
-- 撤销某轮对话：用户消息下方与 AI 回答的「更多」菜单都提供撤销图标，确认后删除该轮提问、回答及其后的所有消息（含其他分支），并立即同步服务端。
-- 文档路由：`/docs` 读取 `docs/` 下的 Markdown 并自动渲染为 HTML，左侧为可折叠文档列表；`docs/index.php` 作为目录入口，避免真实目录被服务器判定为 403；中英文文档采用 `名称.md` / `名称.en.md` 命名，按当前界面语言自动选择对应版本。
+- 会话置顶：会话菜单支持置顶（空心图钉图标）/ 取消置顶、分享与多选，置顶会话固定排在列表最前。
+- 撤销某轮对话：用户消息下方与 AI 回答的操作区都提供空心撤销图标（与复制、重新生成等按钮并排），确认后删除该轮提问、回答及其后的所有消息（含其他分支），并立即同步服务端。
+- 文档路由：`/docs` 读取 `docs/` 下的 Markdown 并自动渲染为 HTML，左侧为可折叠文档列表；入口统一由 `index.php` 分发，不再依赖目录索引；中英文文档采用 `名称.md` / `名称.en.md` 命名，按当前界面语言自动选择对应版本。
 - 设置中心：新增「用户协议」标签页（用户协议 / 隐私政策入口）；账号页将修改用户名、修改密码改为两个按钮并进入二级面板，退出登录下方新增注销账号；数据管理新增 Token 用量入口（仅保留「查看」入口，不再内嵌预览进度条，总量包含已删除会话）、「查看」进入用量二级面板，以及「我的分享链接 → 去管理」。
 - 交互动画与官方保持一致：侧边栏展开 / 收起宽度过渡、弹窗淡入上浮、菜单缩放、会话项悬浮过渡、批量操作栏滑入、搜索结果与分享页逐条淡入、搜索跳转短暂高亮，并完整适配 `prefers-reduced-motion`。
 - 支持官方格式聊天记录 ZIP 导入（导入即彻底覆盖服务器上的全部会话与附件），导入过程带进度条，并兼容不带索引的旧版归档；导出时由浏览器先向服务端拉取全部会话与消息，再在本地生成 ZIP，全程显示进度，不上传任何数据到第三方。
@@ -31,30 +31,31 @@
 
 ```text
 .
-├── index.php              # 入口：PHP 输出首页 + API 路由 + 安装/文档/404 分发
-├── .user.ini              # PHP-FPM/CGI 上传与执行时间限制
+├── index.php              # 唯一 PHP 入口：首页输出 + API 路由 + 安装/文档/后台/404 分发
 ├── index.html             # 前端构建产物（由 frontend 构建生成）
-├── static/                # 前端构建产物
-├── 404.html               # 公开错误页（Apache/Nginx 直接指向它）
-├── install/               # 安装向导目录入口（/install/）
+├── .user.ini              # PHP-FPM/CGI 上传与执行时间限制
+├── .htaccess              # Apache 重写与安全规则
 ├── assets/                # 服务端页面共享样式（ui.css，官方组件规范唯一来源）
-├── app/                   # 业务代码
-│   ├── Controllers/       # API 控制器
+├── static/                # 前端构建产物（css / js / media）
+├── app/                   # 全部后端业务代码（按模块分类）
+│   ├── Admin/             # 服务端渲染管理后台（/admin/，含 pages 模板）
+│   ├── Controllers/       # API 控制器（统一 JSON 通信）
 │   ├── Services/          # 会话、附件、导入、验证码、首页渲染、后台数据
 │   ├── Support/           # 配置、数据库、认证、雪花、请求响应、语言文件读取
-│   ├── lang/              # 站点文案（zh-CN.php / en-US.php）
+│   ├── Views/             # 服务端渲染的公共页面（404.html）
 │   ├── Install/           # 安装向导逻辑与建表脚本
+│   ├── lang/              # 站点文案（zh-CN.php / en-US.php）
 │   └── Dev/               # PHP 内置服务器开发路由
-├── admin/                 # 服务端渲染管理后台（/admin/）
 ├── docs/                  # 中英文 Markdown 文档 + /docs 目录入口 index.php
 ├── frontend/              # 官方前端源码（独立构建）
-├── scripts/               # 官方 demo 参考仓库（不提交 Git）
 └── uploads/               # 运行期数据（不入库）
     ├── config/            # config.php、installed.lock（安装生成）
     ├── logs/              # 应用日志
     ├── attachments/{用户ID}/{附件ID}
     └── staging/{用户ID}/  # 历史导入暂存
 ```
+
+> 结构与通信约定：前端只有一个 React 应用，所有动态数据统一通过 `/api/*` 的 JSON 接口读写；后端只有一个 `index.php` 入口，管理后台作为 `app/Admin` 模块挂在 `/admin/`，页面间切换使用局部 HTML 片段（`X-Admin-Partial: 1`），根目录不再散落多个入口文件。
 
 ## 环境要求
 
@@ -103,34 +104,121 @@ cd frontend && pnpm dev
 - 所有写接口校验 `Origin` 与 `X-CSRF-Token`；登录失败有频率限制。
 - 登录 / 注册与后台登录均校验图形验证码：答案仅存 SHA-256，校验后立即销毁，5 分钟过期，错误一次即失效。
 - 登录 / 注册必须勾选同意服务协议（文档页 `/docs` 中的「用户协议」），服务端仍会校验账号、密码与验证码。
-- 建议生产环境只启用 HTTPS，并限制 `uploads/`、`app/` 的直接访问。Apache 由根目录 `.htaccess` 自动处理；Nginx 参考：
+- 建议生产环境只启用 HTTPS，并限制 `uploads/`、`app/` 的直接访问。Apache 由根目录 `.htaccess` 自动处理；Nginx 可直接使用下方完整配置（按实际域名、项目路径、PHP-FPM socket 和证书路径修改即可）。
+
+### Nginx 完整生产配置
 
 ```nginx
+# /etc/nginx/conf.d/deepseek.conf
+# 使用前按实际环境替换：
+#   example.com            域名
+#   /var/www/deepseek      项目根目录（包含 index.php 的那一层）
+#   /run/php/php8.2-fpm.sock  PHP-FPM socket
+#   /etc/letsencrypt/...   SSL 证书路径
+# 修改后执行：nginx -t && systemctl reload nginx
+
+# ---------- HTTP：全部跳转 HTTPS ----------
 server {
     listen 80;
-    server_name example.com;
+    listen [::]:80;
+    server_name example.com www.example.com;
+    return 301 https://$host$request_uri;
+}
+
+# ---------- HTTPS：主站 ----------
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;                      # 旧版 Nginx 改为：listen 443 ssl http2;
+    server_name example.com www.example.com;
+
     root /var/www/deepseek;
     index index.php index.html;
 
-    client_max_body_size 128m;
-    error_page 404 /404.html;
+    # ---------- SSL ----------
+    ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1d;
 
-    location ~ ^/(app|uploads|frontend|scripts)(/|$) { deny all; }
-    location ~ ^/\.(git|gitignore) { deny all; }
+    # ---------- 上传、请求体与超时（导入历史 / 大附件 / 长回复） ----------
+    client_max_body_size   128m;
+    client_body_timeout    900s;
+    send_timeout           900s;
+    fastcgi_read_timeout   900s;
+    fastcgi_send_timeout   900s;
 
-    location /api/ { try_files $uri /index.php$is_args$args; }
-    location /admin/ { try_files $uri $uri/ /admin/index.php$is_args$args; }
-    location / { try_files $uri $uri/ /index.php$is_args$args; }
+    # ---------- 安全响应头 ----------
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header Permissions-Policy "geolocation=(), microphone=(self)" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
+    # ---------- 内部目录与隐藏文件禁止访问 ----------
+    location ~ ^/(app|uploads|frontend|scripts)(/|$) {
+        deny all;
+    }
+    location ~ /\.(?!well-known) {
+        deny all;
+    }
+
+    # ---------- 统一入口：安装 / 文档 / 管理后台 / 分享 / 旧协议 / 404 ----------
+    location = /install        { try_files /index.php =404; }
+    location = /install.php    { try_files /index.php =404; }
+    location = /terms          { try_files /index.php =404; }
+    location = /terms.html     { try_files /index.php =404; }
+    location = /404.html       { rewrite ^ /index.php?_r=/404 last; }
+    location = /docs           { try_files /index.php =404; }
+    location ^~ /docs/         { try_files /index.php =404; }
+    location = /admin          { try_files /index.php =404; }
+    location ^~ /admin/        { try_files /index.php =404; }
+    location = /share          { try_files /index.php =404; }
+    location ^~ /share/        { try_files /index.php =404; }
+
+    # ---------- 静态资源长缓存（构建产物带 hash，可放心 immutable） ----------
+    location ^~ /static/ {
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000, immutable";
+        try_files $uri =404;
+    }
+    location = /assets/ui.css {
+        expires 7d;
+        add_header Cache-Control "public, max-age=604800";
+        try_files $uri =404;
+    }
+    location = /index.html {
+        add_header Cache-Control "no-store";
+    }
+
+    # ---------- PHP：仅执行真实存在的 PHP 文件 ----------
     location ~ \.php$ {
+        try_files $uri =404;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param SCRIPT_NAME     $fastcgi_script_name;
         fastcgi_pass unix:/run/php/php8.2-fpm.sock;
-        fastcgi_read_timeout 900s;
-        fastcgi_buffering off;
+        fastcgi_buffering off;          # 流式回复必须关闭缓冲
+        fastcgi_request_buffering off;  # 大文件上传边收边转发
     }
+
+    # ---------- 其余请求交给唯一入口（SPA / API） ----------
+    location / {
+        try_files $uri /index.php$is_args$args;
+    }
+
+    # ---------- 错误页 ----------
+    error_page 404 /index.php?_r=/404;
+
+    access_log /var/log/nginx/deepseek.access.log;
+    error_log  /var/log/nginx/deepseek.error.log;
 }
 ```
+
+> Nginx 环境无需 `.htaccess`；`.user.ini` 仅 PHP-FPM/CGI 读取，本配置已通过 `client_max_body_size` 与 `fastcgi_read_timeout` 覆盖上传和超时限制。若使用子目录部署，需要同步修改前端 `publicPath` 与接口前缀。
 
 ## 访问全站 404 排查
 
@@ -144,7 +232,7 @@ server {
 
 ## 错误页
 
-`404.html` 为根目录下的公开错误页，与安装向导、管理后台、文档页共用 `assets/ui.css`，配色、控件、圆角与动画完全一致。Apache 通过 `.htaccess` 的 `ErrorDocument 404 /404.html` 生效；Nginx 需配置 `error_page 404 /404.html;`；开发用的 `app/Dev/router.php` 会把缺失路径交给 `index.php` 处理。
+公开错误页位于 `app/Views/404.html`，由 `index.php` 统一输出，与安装向导、管理后台、文档页共用 `assets/ui.css`，配色、控件、圆角与动画完全一致。Apache 通过 `.htaccess` 的 `ErrorDocument 404 /index.php?_r=/404` 生效；Nginx 使用上文配置中的 `error_page 404 /index.php?_r=/404;`；开发用的 `app/Dev/router.php` 会把缺失路径交给 `index.php` 处理。
 
 ## 文档
 
@@ -167,7 +255,7 @@ server {
 
 ```bash
 # PHP 语法检查
-find app admin -name '*.php' -print0 | xargs -0 -n1 php -l
+find app -name '*.php' -print0 | xargs -0 -n1 php -l
 
 # 前端类型检查与构建
 cd frontend && pnpm run type && pnpm run build

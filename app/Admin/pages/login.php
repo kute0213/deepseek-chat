@@ -26,7 +26,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="/assets/ui.css?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/ui.css') ?>">
+    <link rel="stylesheet" href="/assets/ui.css?v=<?= (int) @filemtime(dirname(__DIR__, 3) . '/assets/ui.css') ?>">
 </head>
 <body class="login-body">
 <form class="login-card" method="post" action="/admin/">

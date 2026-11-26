@@ -1,6 +1,6 @@
 Options -Indexes
 DirectoryIndex index.php index.html
-ErrorDocument 404 /404.html
+ErrorDocument 404 /index.php?_r=/404
 
 # 导入历史与附件上传需要更大的请求体（mod_php 环境）
 <IfModule mod_php.c>
@@ -12,18 +12,24 @@ ErrorDocument 404 /404.html
 
 RewriteEngine On
 
+# 关闭目录自动补斜杠，避免 /docs 等真实目录被 mod_dir 抢先处理导致 403
+DirectorySlash Off
+
+# 管理后台补全斜杠（关闭 DirectorySlash 后需要手动处理）
+RewriteRule ^admin$ /admin/ [R=301,L]
+
 # API 统一入口
 RewriteRule ^api/ index.php [L,QSA]
 
-# 安装向导、服务协议与 404 页面（实际文件位于 app/ 下，由 index.php 统一输出）
-RewriteRule ^install(?:\.php)?$ index.php [L,QSA]
+# 安装向导、旧协议兼容与 404 页面（实际文件位于 app/ 下，由 index.php 统一输出）
+RewriteRule ^install(?:\.php)?/?$ index.php [L,QSA]
 RewriteRule ^terms(?:\.html)?$ index.php [L,QSA]
 RewriteRule ^404(?:\.html)?$ index.php?_r=/404 [L,QSA]
 
-# 分享页由前端路由渲染，交给 PHP 输出入口
+# 分享页、文档页与管理后台由 PHP 入口统一分发，避免真实目录被直接访问
 RewriteRule ^share(?:/|$) index.php [L,QSA]
-
-# 文档目录自带 index.php，/docs 可直接由目录入口渲染；其余请求正常回退
+RewriteRule ^docs(?:/|$) index.php [L,QSA]
+RewriteRule ^admin(?:/|$) index.php [L,QSA]
 
 # 已存在的文件/目录直接返回
 RewriteCond %{REQUEST_FILENAME} -f [OR]

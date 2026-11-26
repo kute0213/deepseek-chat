@@ -110,6 +110,53 @@
   animation: shareBarIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
+.shareSummary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.shareSelectAll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shareSelectAll:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.shareAllCheck {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--dsw-alias-border-l3);
+  border-radius: 50%;
+  color: var(--dsw-alias-label-primary-foreground);
+  transition:
+    background-color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shareAllCheckOn {
+  border-color: var(--dsw-alias-brand-primary);
+  background-color: var(--dsw-alias-brand-primary);
+}
+
 .shareCount {
   min-width: 0;
   overflow: hidden;
@@ -117,6 +164,16 @@
   color: var(--dsw-alias-label-secondary);
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+@media (max-width: 560px) {
+  .shareBar {
+    flex-wrap: wrap;
+  }
+
+  .shareSummary {
+    flex: 1 1 100%;
+  }
 }
 
 .shareActions {

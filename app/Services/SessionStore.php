@@ -224,6 +224,46 @@ final class SessionStore
     }
 
     /**
+     * 右侧导航大纲：一次性返回当前可见分支中所有用户提问的截断文本，
+     * 前端无需逐页加载消息即可展示完整导航与预览。
+     */
+    public static function outline(string $userId, string $sessionId): ?array
+    {
+        $session = self::load($userId, $sessionId);
+        if ($session === null) {
+            return null;
+        }
+        $messages = array_values(array_filter(
+            is_array($session['messages'] ?? null) ? $session['messages'] : [],
+            static fn ($message): bool => is_array($message)
+        ));
+        $ordered = array_key_exists('rootMessageId', $session)
+            ? self::visiblePath($session, $messages)
+            : $messages;
+        if ($ordered === []) {
+            $ordered = $messages;
+        }
+        $items = [];
+        foreach ($ordered as $message) {
+            if (($message['role'] ?? '') !== 'user') {
+                continue;
+            }
+            $id = (string) ($message['id'] ?? '');
+            if ($id === '') {
+                continue;
+            }
+            $text = trim((string) ($message['content'] ?? ''));
+            $files = is_array($message['files'] ?? null) ? count($message['files']) : 0;
+            $items[] = [
+                'id' => $id,
+                'text' => mb_substr($text, 0, 80, 'UTF-8'),
+                'files' => $files,
+            ];
+        }
+        return ['items' => $items];
+    }
+
+    /**
      * 会话搜索：标题或消息正文命中的会话，按更新时间倒序返回；
      * 命中正文时给出该条消息的 ID 与片段，前端据此跳转到对应位置。
      */

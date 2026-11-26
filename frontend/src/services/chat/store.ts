@@ -15,6 +15,7 @@ import {
 import { useSettings } from '../settings.js'
 import { appendBranch, getVisibleMessages, normalizeSession, selectVersion, truncateFrom } from './branches.js'
 import * as db from './db.js'
+import type { SessionOutlineItem } from './db.js'
 import {
   clearAllDrafts,
   clearDraft,
@@ -85,6 +86,9 @@ type ChatState = {
   messagePages: Record<string, { hasMore: boolean; cursor: string | null; loading: boolean }>
   sessionLoadErrors: Record<string, boolean>
   sessionSaveErrors: Record<string, boolean>
+  /** 右侧导航大纲：按会话缓存全部用户提问的截断文本 */
+  outlines: Record<string, SessionOutlineItem[]>
+  outlineLoading: Record<string, boolean>
   /** null 表示新对话（欢迎页） */
   activeId: string | null
   /** 正在生成回复的会话 */
@@ -102,6 +106,8 @@ export const useChatStore = create<ChatState>(() => ({
   messagePages: {},
   sessionLoadErrors: {},
   sessionSaveErrors: {},
+  outlines: {},
+  outlineLoading: {},
   activeId: null,
   streaming: {},
 }))
@@ -744,6 +750,39 @@ export const selectSession = (id: string) => {
   }
 }
 
+/** 右侧导航大纲：每个会话只拉取一次，切换会话时直接复用缓存。 */
+export const ensureSessionOutline = (sessionId: string): void => {
+  const state = get()
+  if (Object.hasOwn(state.outlines, sessionId) || state.outlineLoading[sessionId]) {
+    return
+  }
+  set((current) => ({
+    outlineLoading: { ...current.outlineLoading, [sessionId]: true },
+  }))
+  void db
+    .loadSessionOutline(sessionId)
+    .then((items) => {
+      set((current) => ({
+        outlines: { ...current.outlines, [sessionId]: items },
+        outlineLoading: { ...current.outlineLoading, [sessionId]: false },
+      }))
+    })
+    .catch(() => {
+      set((current) => ({
+        outlines: { ...current.outlines, [sessionId]: [] },
+        outlineLoading: { ...current.outlineLoading, [sessionId]: false },
+      }))
+    })
+}
+
+/** 发送、撤销或删除消息后刷新大纲，避免导航仍指向已不存在的记录。 */
+export const refreshSessionOutline = (sessionId: string): void => {
+  const outlines = { ...get().outlines }
+  delete outlines[sessionId]
+  set({ outlines })
+  ensureSessionOutline(sessionId)
+}
+
 /** 搜索结果跳转：加载包含该消息的 20 条窗口，再定位到对应消息，不拉取其后全部内容。 */
 export const openSessionAtMessage = async (sessionId: string, messageId: string): Promise<void> => {
   if (get().importingHistory || !get().sessions.some((session) => session.id === sessionId)) {
@@ -1061,6 +1100,7 @@ export const undoRound = async (sessionId: string, messageId: string): Promise<b
     updatedAt: Date.now(),
   }))
   persist(sessionId)
+  refreshSessionOutline(sessionId)
   return true
 }
 

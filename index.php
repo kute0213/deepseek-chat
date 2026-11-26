@@ -42,7 +42,13 @@ if ($method === 'GET' && ($path === '/terms' || $path === '/terms.html')) {
     exit;
 }
 if ($method === 'GET' && $path === '/404') {
-    HomePage::renderView('404.html', 404);
+    HomePage::renderView('app/Views/404.html', 404);
+    exit;
+}
+
+// 管理后台统一走 app/Admin 模块，避免根目录出现额外入口文件
+if ($path === '/admin' || str_starts_with($path, '/admin/')) {
+    require __DIR__ . '/app/Admin/index.php';
     exit;
 }
 
@@ -76,6 +82,7 @@ $router->post('/api/ids', [IdController::class, 'create']);
 
 $router->get('/api/sessions', [SessionController::class, 'index']);
 $router->get('/api/sessions/search', [SessionController::class, 'search']);
+$router->get('/api/sessions/{id}/outline', [SessionController::class, 'outline']);
 $router->get('/api/sessions/{id}', [SessionController::class, 'show']);
 
 $router->get('/api/shares', [ShareController::class, 'index']);

@@ -59,6 +59,17 @@ export const loadSessionSummaries = async (
   return { sessions: page.sessions ?? [], nextCursor: page.nextCursor ?? null }
 }
 
+/** 右侧导航大纲：一次性返回会话中全部用户提问的截断文本 */
+export type SessionOutlineItem = { id: string; text: string; files: number }
+
+export const loadSessionOutline = async (sessionId: string): Promise<SessionOutlineItem[]> => {
+  const data = await requestJson<{ items?: SessionOutlineItem[] }>(
+    `/api/sessions/${encodeURIComponent(sessionId)}/outline`,
+    'GET'
+  )
+  return data.items ?? []
+}
+
 /** 会话搜索命中项：messageId 为空表示仅标题命中 */
 export type SearchResult = {
   sessionId: string

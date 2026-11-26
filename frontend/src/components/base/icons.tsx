@@ -537,42 +537,62 @@ export const IconUserOutline16 = () => (
   </svg>
 )
 
-/** 批量管理：三行滑块（与原版一致，不使用齿轮） */
+/** 批量管理：空心滑块图标（与原版一致，不使用齿轮） */
 export const IconSliderOutline16 = () => (
-  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" />
-    <circle cx={5} cy={4} r={1.7} fill="currentColor" />
-    <circle cx={11} cy={8} r={1.7} fill="currentColor" />
-    <circle cx={6} cy={12} r={1.7} fill="currentColor" />
+  <svg
+    width={16}
+    height={16}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.6}
+    strokeLinecap="round"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <line x1="21" x2="14" y1="4" y2="4" />
+    <line x1="10" x2="3" y1="4" y2="4" />
+    <line x1="21" x2="12" y1="12" y2="12" />
+    <line x1="8" x2="3" y1="12" y2="12" />
+    <line x1="21" x2="16" y1="20" y2="20" />
+    <line x1="12" x2="3" y1="20" y2="20" />
+    <line x1="14" x2="14" y1="2" y2="6" />
+    <line x1="8" x2="8" y1="10" y2="14" />
+    <line x1="16" x2="16" y1="18" y2="22" />
   </svg>
 )
 
-/** 置顶：图钉 */
+/** 置顶：空心图钉 */
 export const IconPinOutline16 = () => (
   <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       d="M9.2 1.3a1 1 0 0 1 1.4 0l4.1 4.1a1 1 0 0 1 0 1.4l-1.2 1.2-1.6.4-2.6 2.6.4 2.1-1.1 1.1-2.5-2.5-3.1 3.1-1-1 3.1-3.1-2.5-2.5 1.1-1.1 2.1.4L9 4.6l.4-1.6L9.2 1.3Z"
-      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth={1.1}
+      strokeLinejoin="round"
     />
   </svg>
 )
 
-/** 分享：弯箭头 */
+/** 分享：空心弯箭头 */
 export const IconShareOutline16 = () => (
   <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       d="M9.5 2.5 14 7l-4.5 4.5V8.6C5.8 8.6 3.6 10.1 2 13c.3-4 2.5-6.7 7.5-7.1V2.5Z"
-      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth={1.1}
+      strokeLinejoin="round"
     />
   </svg>
 )
 
-/** 撤销：向左弯箭头 */
+/** 撤销：空心向左弯箭头 */
 export const IconUndoOutline16 = () => (
   <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       d="M5.3 2.2 1 6.5l4.3 4.3V7.9c2.7 0 4.7.9 6.2 2.7.5.6.9 1.3 1.2 2.1.4-4.4-2.2-7.3-7.4-7.4V2.2Z"
-      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth={1.1}
+      strokeLinejoin="round"
     />
   </svg>
 )

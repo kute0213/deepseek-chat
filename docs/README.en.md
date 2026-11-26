@@ -12,12 +12,12 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 - Official-like chat experience: streaming replies, deep thinking, web search, branch switching, editing, retries, file uploads, image previews, speech input, and read-aloud.
 - Server-side history: chat lists are cursor-paginated, with rename, delete, and clear.
 - Message paging: the latest 20 messages load first; scrolling up loads earlier pages while keeping your position.
-- Right-side navigator: short bars mark each prompt, hover to preview on desktop, click to jump. Seven items per page with previous/next buttons, smooth auto-centering, and mobile support.
-- Sharing: click Share to enter selection mode; every message gets a circular checkbox, user/assistant turns are selected as a pair, and the composer is hidden. Share links use `/?share={token}` (also compatible with `/share/{token}`). Revoke links under Settings → Data → My share links.
+- Right-side navigator: about seven shorter, thicker, rounder bars are visible when collapsed, with wider spacing. Hover to preview on desktop with mouse-wheel scrolling; tap to expand on mobile. Prompts are fetched once from `/api/sessions/{id}/outline`, so there is no pagination; the current item is auto-centered.
+- Sharing: click Share to enter selection mode; every message gets a circular checkbox, user/assistant turns are selected as a pair, and the composer is hidden. Select all / clear all sits left of the selected count. Share links use `/?share={token}` (also compatible with `/share/{token}`). Revoke links under Settings → Data → My share links.
 - Search: search titles and message bodies; results jump to the matching message window with a short highlight.
 - Batch management: the slider icon next to "Recent" enters multi-select with batch pinning and deletion.
 - Pin sessions: pinned chats stay at the top.
-- Undo a round: available below user messages and in the assistant's more menu.
+- Undo a round: the hollow undo icon sits below user messages and next to the assistant action buttons (no more menu).
 - Docs: `/docs` renders Markdown files with a collapsible list; Chinese and English versions use the `.md` / `.en.md` naming convention.
 - Settings: terms and privacy entries, account panels, token usage (entry only; totals include deleted sessions), and share management.
 - Full admin console: users, user details, roles, status, sessions, shares, site settings, and CSV export. The sidebar collapses and remembers its state; navigation and detail views switch without a full reload.
@@ -28,18 +28,26 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 
 ```text
 .
-├── index.php              # Entry: SPA shell + API routes + install/docs/404 dispatch
+├── index.php              # Single entry: SPA shell + API routes + install/docs/admin/404 dispatch
 ├── index.html             # Front-end build output
-├── static/                # Front-end build output
-├── 404.html               # Public error page
-├── install/               # Installer entry (/install/)
+├── static/                # Front-end build output (css / js / media)
+├── .htaccess              # Apache rewrite and security rules
 ├── assets/                # Shared server-rendered styles (ui.css)
-├── app/                   # Controllers, services, support, languages, installer, dev router
-├── admin/                 # Server-rendered admin console (/admin/)
-├── docs/                  # Markdown docs (index.php serves the /docs route)
+├── app/                   # All backend modules
+│   ├── Admin/             # Server-rendered admin console (/admin/)
+│   ├── Controllers/       # JSON API controllers
+│   ├── Services/          # Sessions, files, import, captcha, rendering, admin data
+│   ├── Support/           # Config, database, auth, snowflake, request/response, i18n
+│   ├── Views/             # Server-rendered public pages (404.html)
+│   ├── Install/           # Installer logic and schema
+│   ├── lang/              # Site strings
+│   └── Dev/               # PHP built-in server router
+├── docs/                  # Markdown docs (rendered by /docs)
 ├── frontend/              # Official front-end source
 └── uploads/               # Runtime data (config, logs, attachments, staging)
 ```
+
+> Architecture: one React app, one PHP entry (`index.php`), and one communication style — JSON over `/api/*`. The admin console lives in `app/Admin` and switches pages via partial HTML (`X-Admin-Partial: 1`) without full reloads.
 
 ## Requirements
 

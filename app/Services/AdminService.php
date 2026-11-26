@@ -8,7 +8,7 @@ use App\Support\Database;
 use App\Support\HttpError;
 use App\Support\Snowflake;
 
-/** 后台管理的数据查询与写操作；所有写操作由 admin/index.php 记录审计日志 */
+/** 后台管理的数据查询与写操作；所有写操作由 app/Admin/index.php 记录审计日志 */
 final class AdminService
 {
     public static function stats(): array

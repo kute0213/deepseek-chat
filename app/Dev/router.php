@@ -4,7 +4,7 @@ declare(strict_types=1);
 /**
  * PHP 内置服务器路由（开发用）：
  * php -S 127.0.0.1:8080 app/Dev/router.php
- * 静态文件直接返回，管理后台交给 admin/index.php，其余统一由根入口处理。
+ * 静态文件直接返回，管理后台交给 app/Admin/index.php，其余统一由根入口处理。
  */
 $root = dirname(__DIR__, 2);
 $path = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
@@ -38,7 +38,7 @@ if (preg_match('/\.[A-Za-z0-9]{1,8}$/', $path)) {
 }
 
 if ($path === '/admin' || str_starts_with($path, '/admin/')) {
-    require $root . '/admin/index.php';
+    require $root . '/app/Admin/index.php';
     return true;
 }
 

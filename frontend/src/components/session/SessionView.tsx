@@ -11,7 +11,7 @@ import {
   useShareSelection,
 } from '../../services/chat/shareSelection.js'
 import type { Session } from '../../services/chat/types.js'
-import { IconShareOutline16 } from '../base/icons.js'
+import { IconCheckOutline16, IconShareOutline16 } from '../base/icons.js'
 import { IconButton } from '../base/IconButton.js'
 import { Button } from '../base/Button.js'
 import { showToast } from '../base/toastState.js'
@@ -99,6 +99,17 @@ export const SessionView = ({
     })
   }
 
+  // 全选：当前已加载的可见消息（用户提问与对应回答）
+  const shareableIds = useMemo(
+    () => getVisibleMessages(session).map((message) => message.id),
+    [session]
+  )
+  const allSelected =
+    shareableIds.length > 0 && shareableIds.every((id) => selected.has(id))
+  const toggleAllShare = () => {
+    setSelected(allSelected ? new Set() : new Set(shareableIds))
+  }
+
   const submitShare = async () => {
     if (creating || selected.size === 0) {
       return
@@ -145,9 +156,24 @@ export const SessionView = ({
         footer={
           shareMode ? (
             <div className={styles.shareBar}>
-              <span className={styles.shareCount}>
-                {t('shareSelectedCount', { count: selected.size })}
-              </span>
+              <div className={styles.shareSummary}>
+                <button
+                  type="button"
+                  className={styles.shareSelectAll}
+                  aria-pressed={allSelected}
+                  onClick={toggleAllShare}
+                >
+                  <span
+                    className={clsx(styles.shareAllCheck, allSelected && styles.shareAllCheckOn)}
+                  >
+                    {allSelected ? <IconCheckOutline16 /> : null}
+                  </span>
+                  {allSelected ? t('batchUnselectAll') : t('batchSelectAll')}
+                </button>
+                <span className={styles.shareCount}>
+                  {t('shareSelectedCount', { count: selected.size })}
+                </span>
+              </div>
               <div className={styles.shareActions}>
                 <Button variant="outlined" size="s" onClick={cancelShare}>
                   {t('cancel')}
