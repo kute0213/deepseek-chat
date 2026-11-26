@@ -9,7 +9,6 @@ export const zh = {
   sessionListLoadFailed: '对话列表加载失败，请重试',
   sessionListLoadingMore: '正在加载更多...',
   messagesLoadingMore: '正在加载更早的对话...',
-  messageNavigator: '对话导航',
   sessionLoadFailed: '对话加载失败，请重试',
   sessionSaveFailed: '对话或附件尚未保存到服务器，关闭页面可能丢失，请重试',
   sessionDeleteFailed: '删除对话失败，请重试',
@@ -283,7 +282,6 @@ export const zh = {
   shareSelectHint: '勾选需要分享的消息，只会分享勾选的内容。',
   shareSelectEmpty: '当前会话还没有可分享的消息',
   shareAttachmentCount: '[{count} 个附件]',
-  emptyMessagePreview: '（空消息）',
   shareSelectRequired: '请至少选择一条消息',
   shareCreate: '创建分享链接',
   shareSelectedCount: '已选择 {count} 条消息',
@@ -318,6 +316,4 @@ export const zh = {
   docsTitle: '文档',
   docsEmpty: '暂无文档',
   docsLoadFailed: '文档加载失败，请稍后重试',
-  messageNavigatorPrev: '上一页',
-  messageNavigatorNext: '下一页',
 } as const

@@ -39,17 +39,6 @@ final class SessionController
         Response::json(SessionStore::search((string) $user['id'], $query));
     }
 
-    /** 右侧导航大纲：返回当前可见分支中全部用户提问的截断文本 */
-    public function outline(array $params, Request $request): void
-    {
-        $user = Auth::requireUser();
-        $outline = SessionStore::outline((string) $user['id'], (string) $params['id']);
-        if ($outline === null) {
-            throw new HttpError('会话不存在', 404);
-        }
-        Response::json($outline);
-    }
-
     public function show(array $params, Request $request): void
     {
         $user = Auth::requireUser();

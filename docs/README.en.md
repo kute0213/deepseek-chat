@@ -12,14 +12,14 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 - Official-like chat experience: streaming replies, deep thinking, web search, branch switching, editing, retries, file uploads, image previews, speech input, and read-aloud.
 - Server-side history: chat lists are cursor-paginated, with rename, delete, and clear.
 - Message paging: the latest 20 messages load first; scrolling up loads earlier pages while keeping your position.
-- Right-side navigator: about seven shorter, thicker, rounder bars are visible when collapsed, with wider spacing. Hover to preview on desktop with mouse-wheel scrolling; tap to expand on mobile. Prompts are fetched once from `/api/sessions/{id}/outline`, so there is no pagination; the current item is auto-centered.
 - Sharing: click Share to enter selection mode; every message gets a circular checkbox, user/assistant turns are selected as a pair, and the composer is hidden. Select all / clear all sits left of the selected count. Share links use `/?share={token}` (also compatible with `/share/{token}`). Revoke links under Settings → Data → My share links.
 - Search: search titles and message bodies; results jump to the matching message window with a short highlight.
 - Batch management: the slider icon next to "Recent" enters multi-select with batch pinning and deletion.
 - Pin sessions: pinned chats stay at the top.
 - Undo a round: the hollow undo icon sits below user messages and next to the assistant action buttons (no more menu).
 - Docs: `/docs` renders Markdown files with a collapsible list; Chinese and English versions use the `.md` / `.en.md` naming convention.
-- Settings: terms and privacy entries, account panels, token usage (entry only; totals include deleted sessions), and share management.
+- Settings: terms and privacy entries, account panels, token usage (entry only), and share management.
+- Token accounting: monotonic. Token totals only grow; undoing messages, switching branches, deleting chats or deleting users never reduces them (usage is archived before removal).
 - Full admin console: users, user details, roles, status, sessions, shares, site settings, and CSV export. The sidebar collapses and remembers its state; navigation and detail views switch without a full reload.
 - The admin console, installer, 404 page, and docs share the same `assets/ui.css` design tokens and follow the site language and light/dark preference.
 - Site name is centralized in `app/lang/zh-CN.php` and `app/lang/en-US.php`.
@@ -42,12 +42,14 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 │   ├── Install/           # Installer logic and schema
 │   ├── lang/              # Site strings
 │   └── Dev/               # PHP built-in server router
-├── docs/                  # Markdown docs (rendered by /docs)
+├── admin/index.php        # Compatibility entry for hosts without URL rewriting
+├── install/index.php      # Compatibility entry for hosts without URL rewriting
+├── docs/                  # Markdown docs + compatibility index.php
 ├── frontend/              # Official front-end source
 └── uploads/               # Runtime data (config, logs, attachments, staging)
 ```
 
-> Architecture: one React app, one PHP entry (`index.php`), and one communication style — JSON over `/api/*`. The admin console lives in `app/Admin` and switches pages via partial HTML (`X-Admin-Partial: 1`) without full reloads.
+> Architecture: one React app, one PHP entry (`index.php`), and one communication style — JSON over `/api/*`. The admin console lives in `app/Admin` and switches pages via partial HTML (`X-Admin-Partial: 1`) without full reloads. The root `admin/`, `install/` and `docs/index.php` files are thin compatibility entries for hosts without URL rewriting, preventing directory-index 403s.
 
 ## Requirements
 

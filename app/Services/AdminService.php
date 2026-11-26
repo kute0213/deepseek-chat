@@ -191,6 +191,8 @@ final class AdminService
     {
         $pdo = Database::pdo();
         Database::tx(function () use ($pdo, $userId): void {
+            // 先归档用量再删除会话，保证 Token 统计只增不减
+            SessionStore::archiveAll($userId);
             foreach (['auth_tokens', 'sessions', 'files', 'session_files', 'staging_sessions', 'staging_files'] as $table) {
                 $stmt = $pdo->prepare('DELETE FROM ' . $table . ' WHERE user_id = ?');
                 $stmt->execute([$userId]);

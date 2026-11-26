@@ -17,7 +17,6 @@ import { Button } from '../base/Button.js'
 import { showToast } from '../base/toastState.js'
 import { ChatInput } from '../chatInput/ChatInput.js'
 import { MessageList } from '../messages/MessageList.js'
-import { MessageNavigator } from '../messages/MessageNavigator.js'
 import { ShareDialog } from '../share/ShareDialog.js'
 import { MobileHeader } from './MobileHeader.js'
 import styles from './SessionView.module.css'
@@ -202,7 +201,6 @@ export const SessionView = ({
           )
         }
       />
-      <MessageNavigator session={session} />
       {created ? (
         <ShareDialog
           sessionId={session.id}

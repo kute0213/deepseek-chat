@@ -11,7 +11,6 @@ export const en = {
   sessionListLoadFailed: 'Unable to load the chat list. Please try again.',
   sessionListLoadingMore: 'Loading more...',
   messagesLoadingMore: 'Loading earlier messages...',
-  messageNavigator: 'Chat navigation',
   sessionLoadFailed: 'Unable to load this chat. Please try again.',
   sessionSaveFailed:
     'Chats or attachments have not been saved to the server. Retry before closing this page.',
@@ -297,7 +296,6 @@ export const en = {
   shareSelectHint: 'Select the messages to share. Only the selected content is shared.',
   shareSelectEmpty: 'This chat has no messages to share yet',
   shareAttachmentCount: '[{count} attachments]',
-  emptyMessagePreview: '(empty message)',
   shareSelectRequired: 'Select at least one message',
   shareCreate: 'Create share link',
   shareSelectedCount: '{count} messages selected',
@@ -333,6 +331,4 @@ export const en = {
   docsTitle: 'Docs',
   docsEmpty: 'No documents',
   docsLoadFailed: 'Failed to load documents. Please retry.',
-  messageNavigatorPrev: 'Previous page',
-  messageNavigatorNext: 'Next page',
 } satisfies Record<keyof typeof zh, string>

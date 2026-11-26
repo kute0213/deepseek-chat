@@ -82,7 +82,6 @@ $router->post('/api/ids', [IdController::class, 'create']);
 
 $router->get('/api/sessions', [SessionController::class, 'index']);
 $router->get('/api/sessions/search', [SessionController::class, 'search']);
-$router->get('/api/sessions/{id}/outline', [SessionController::class, 'outline']);
 $router->get('/api/sessions/{id}', [SessionController::class, 'show']);
 
 $router->get('/api/shares', [ShareController::class, 'index']);
