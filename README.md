@@ -46,7 +46,7 @@
 │   ├── Install/           # 安装向导逻辑与建表脚本
 │   ├── lang/              # 站点文案（zh-CN.php / en-US.php）
 │   └── Dev/               # PHP 内置服务器开发路由
-├── docs/                  # 中英文 Markdown 文档 + /docs 目录入口 index.php
+├── docs/                  # 中英文 Markdown 文档（由 /docs 渲染）
 ├── frontend/              # 官方前端源码（独立构建）
 └── uploads/               # 运行期数据（不入库）
     ├── config/            # config.php、installed.lock（安装生成）
