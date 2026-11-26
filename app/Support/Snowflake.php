@@ -35,7 +35,8 @@ final class Snowflake
     /** @return string[] */
     public function nextBatch(int $count): array
     {
-        $count = max(1, min($count, 4000));
+        // 不能截断数量：导入大聊天记录时调用方会按总数取 ID，截断会导致数组越界
+        $count = max(1, $count);
         $transactionStarted = !$this->pdo->inTransaction();
         if ($transactionStarted) {
             $this->pdo->beginTransaction();

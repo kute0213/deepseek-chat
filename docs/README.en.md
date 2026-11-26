@@ -64,6 +64,7 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 3. Visit `/install` and provide the database settings, then create the administrator account.
 4. Visit `/` to chat; administrators sign in at `/admin/`.
 5. For large imports or attachments, raise PHP limits: `.user.ini` (128M / 900s) for FPM/CGI, `.htaccess` for `mod_php`; for Nginx add `client_max_body_size 128m;`.
+6. Upgrading an existing install only requires replacing the code: the first database connection adds any missing tables or columns (`app/Support/Schema.php`, tracked in `uploads/config/schema.version`). If the database account lacks `CREATE` / `ALTER`, run `app/Install/schema.sql` manually once.
 
 ## Build the front end
 

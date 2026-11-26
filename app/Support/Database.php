@@ -29,6 +29,8 @@ final class Database
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
         ]);
+        // 首次连接时自愈旧库结构；此时尚未开启事务，DDL 不会破坏业务事务
+        Schema::ensure(self::$pdo);
 
         return self::$pdo;
     }

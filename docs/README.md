@@ -76,7 +76,8 @@
    - 若数据库已存在同名库，请确认使用空库或备份后继续。
 4. 安装完成后访问 `/` 即可直接进入聊天；未登录时发送消息会引导在设置中登录 / 注册。管理员访问 `/admin/` 登录后台。
 5. 导入历史或上传大附件需要更高的 PHP 限制：PHP-FPM/CGI 读取根目录 `.user.ini`（128M / 900s），Apache `mod_php` 读取 `.htaccess` 中的 `php_value`；Nginx + PHP-FPM 需同步 `client_max_body_size 128m;`。
-6. 首页由 `index.php` 读取构建产物 `index.html` 后注入站点名称与 `window.__SITE__` 再输出，因此默认首页需优先 `index.php`。
+6. 已安装站点直接覆盖代码即可升级：首次数据库连接会自动补齐新增表与新增列（`app/Support/Schema.php`，版本标记写入 `uploads/config/schema.version`）。若数据库账号没有 `CREATE` / `ALTER` 权限，请先手动执行一次 `app/Install/schema.sql`，避免旧库缺列导致接口 500。
+7. 首页由 `index.php` 读取构建产物 `index.html` 后注入站点名称与 `window.__SITE__` 再输出，因此默认首页需优先 `index.php`。
 
 ## 前端构建
 

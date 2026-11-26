@@ -35,7 +35,9 @@ final class Bootstrap
                 Response::error($e->getMessage(), $e->status, $e->extra);
                 return;
             }
-            Log::write('error', $e->getMessage() . "\n" . $e->getTraceAsString());
+            Log::write('error', $e->getMessage() . "\n"
+                . ($_SERVER['REQUEST_METHOD'] ?? '') . ' ' . ($_SERVER['REQUEST_URI'] ?? '') . "\n"
+                . $e->getTraceAsString());
             if (str_starts_with((string) ($_SERVER['REQUEST_URI'] ?? ''), '/api/')) {
                 Response::error('服务器内部错误', 500);
                 return;
