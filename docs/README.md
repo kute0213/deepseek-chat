@@ -20,13 +20,13 @@
 - 会话置顶：会话菜单支持置顶（空心图钉图标）/ 取消置顶、分享与多选，置顶会话固定排在列表最前。
 - 撤销某轮对话：用户消息下方与 AI 回答的操作区都提供空心撤销图标（与复制、重新生成等按钮并排），确认后删除该轮提问、回答及其后的所有消息（含其他分支），并立即同步服务端。
 - 文档路由：`/docs` 读取 `docs/` 下的 Markdown 并自动渲染为 HTML，左侧为可折叠文档列表；入口统一由 `index.php` 分发，不再依赖目录索引；中英文文档采用 `名称.md` / `名称.en.md` 命名，按当前界面语言自动选择对应版本。
-- 站点图标：图标文件放在 `assets/favicon.svg` / `assets/favicon.ico`，`index.html` 显式声明并做 30 天服务端缓存，`/favicon.ico` 缺失时回落到 `assets/`，浏览器控制台不再报 404。
+- 站点图标：融合图标位于 `static/site/favicon.png` / `favicon.ico`（DSH-GO 像素玫瑰块 + DeepSeek 鲸鱼 + 对话气泡的原创融合），`index.html` 显式声明；Nginx / Apache / PHP 入口三层都做一年 `immutable` 服务端缓存，`/favicon.ico` 缺失时自动回落到静态图标，AI 或浏览器再次访问不会产生 404。
 - 设置中心：新增「用户协议」标签页（用户协议 / 隐私政策入口）；账号页将修改用户名、修改密码改为两个按钮并进入二级面板，退出登录下方新增注销账号；数据管理新增 Token 用量入口（仅保留「查看」入口，不再内嵌预览进度条）、「查看」进入用量二级面板，以及「我的分享链接 → 去管理」。
 - Token 计量：只增不减。会话 Token 采用历史最大值累加，撤销消息、切换分支、删除会话、删除用户都不会让总量回退；已删除会话与已删除用户的用量会先归档再移除。
 - 交互动画与官方保持一致：侧边栏展开 / 收起宽度过渡、弹窗淡入上浮、菜单缩放、会话项悬浮过渡、批量操作栏滑入、搜索结果与分享页逐条淡入、搜索跳转短暂高亮，并完整适配 `prefers-reduced-motion`。
 - 支持官方格式聊天记录 ZIP 导入（导入即彻底覆盖服务器上的全部会话与附件），导入过程带进度条，并兼容不带索引的旧版归档；导出时由浏览器先向服务端拉取全部会话与消息，再在本地生成 ZIP，全程显示进度，不上传任何数据到第三方。
 - 完整管理后台：用户管理、用户详情（全部字段含明文 API Key、密码哈希、会话与附件统计）、角色 / 状态权限调整、会话查看、分享管理、站点设置、CSV 导出；左侧固定标签页导航，切换页面与会话详情通过局部渲染完成，选中后不刷新整页；后台与文档页会跟随站点设置的语言与明暗主题。
-- 管理后台、安装向导、404 页与文档页统一使用同一套官方原版组件样式 `assets/ui.css`（胶囊按钮、40px 控件、24px 弹窗圆角、0.2s 缓动，自动适配浅色 / 深色模式），样式只有一份来源，不再各页各写一套。
+- 管理后台、安装向导、404 页与文档页统一使用同一套官方原版组件样式 `static/site/ui.css`（胶囊按钮、40px 控件、24px 弹窗圆角、0.2s 缓动，自动适配浅色 / 深色模式），样式只有一份来源，不再各页各写一套。
 - 站点名称集中维护：服务端页面通过语言文件 `app/lang/zh-CN.php` + `app/Support/Lang.php` 读取 **DSW / DeepSeekWebAPIChat**，前端默认名称与数据库默认值同步。
 
 ## 目录结构
@@ -37,8 +37,7 @@
 ├── index.html             # 前端构建产物（由 frontend 构建生成）
 ├── .user.ini              # PHP-FPM/CGI 上传与执行时间限制
 ├── .htaccess              # Apache 重写与安全规则
-├── assets/                # 服务端页面共享样式（ui.css，官方组件规范唯一来源）
-├── static/                # 前端构建产物（css / js / media）
+├── static/                # 前端构建产物（css / js / media）+ site/（站点图标与后台共享样式）
 ├── app/                   # 全部后端业务代码（按模块分类）
 │   ├── Admin/             # 服务端渲染管理后台（/admin/，含 pages 模板）
 │   ├── Controllers/       # API 控制器（统一 JSON 通信）
@@ -189,18 +188,28 @@ server {
         add_header Cache-Control "public, max-age=2592000, immutable";
         try_files $uri =404;
     }
-    # 网站图标长期缓存，避免浏览器控制台反复出现 /favicon.ico 404
+    # 网站图标一年缓存，避免 AI / 浏览器反复请求出现 /favicon.ico 404
     location = /favicon.ico {
-        expires 30d;
-        add_header Cache-Control "public, max-age=2592000, immutable";
-        try_files /assets/favicon.ico =404;
+        expires 365d;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files /static/site/favicon.ico =404;
     }
-    location ^~ /assets/ {
-        expires 30d;
-        add_header Cache-Control "public, max-age=2592000, immutable";
+    location = /static/site/favicon.ico {
+        expires 365d;
+        add_header Cache-Control "public, max-age=31536000, immutable";
         try_files $uri =404;
     }
-    location = /assets/ui.css {
+    location = /static/site/favicon.png {
+        expires 365d;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+    location ^~ /static/site/ {
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
+        try_files $uri =404;
+    }
+    location = /static/site/ui.css {
         expires 7d;
         add_header Cache-Control "public, max-age=604800";
         try_files $uri =404;
@@ -263,7 +272,7 @@ server {
 
 ## 错误页
 
-公开错误页位于 `app/Views/404.html`，由 `index.php` 统一输出，与安装向导、管理后台、文档页共用 `assets/ui.css`，配色、控件、圆角与动画完全一致。Apache 通过 `.htaccess` 的 `ErrorDocument 404 /index.php?_r=/404` 生效；Nginx 使用上文配置中的 `error_page 404 /index.php?_r=/404;`；开发用的 `app/Dev/router.php` 会把缺失路径交给 `index.php` 处理。
+公开错误页位于 `app/Views/404.html`，由 `index.php` 统一输出，与安装向导、管理后台、文档页共用 `static/site/ui.css`，配色、控件、圆角与动画完全一致。Apache 通过 `.htaccess` 的 `ErrorDocument 404 /index.php?_r=/404` 生效；Nginx 使用上文配置中的 `error_page 404 /index.php?_r=/404;`；开发用的 `app/Dev/router.php` 会把缺失路径交给 `index.php` 处理。
 
 ## 文档
 

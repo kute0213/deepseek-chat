@@ -8,7 +8,9 @@
 - Fixed search / outline jumps when the target message was not loaded: the containing message window is fetched on demand; sessions missing from the loaded sidebar page are added automatically.
 - Fixed the desktop share action bar scrolling with content; it now sticks to the bottom of the message area.
 - Sidebar header now shows search then collapse, matching the official spacing.
-- Added `assets/favicon.svg` / `assets/favicon.ico`, declared in `index.html`, cached for 30 days on the server with an `/favicon.ico` fallback.
+- Added an original blended favicon: DSH-GO rose pixel blocks as the tail, a DeepSeek whale as the body, and a chat bubble for the creative twist. Output at `static/site/favicon.png` / `favicon.ico`, declared in `index.html`, with one-year immutable caching on Nginx / Apache / the PHP entry and a `/favicon.ico` fallback.
+- Merged `assets/` into `static/site/`; the shared admin stylesheet `ui.css` and the site icons now live under the build-managed static directory with long cache headers.
+- `GET /api/files/{id}` now sends `Cache-Control: private, max-age=31536000, immutable`; file IDs are one-off UUIDs, so browsers and AI clients no longer re-fetch them repeatedly.
 - Root cleanup: removed the `admin/` and `install/` compatibility entries (handled by `index.php`), moved deployment samples to `scripts/` (never referenced by PHP, blocked from direct access), and removed `deploy/`.
 
 ## 2026-11-26 (navigation polish, sharing, undo, admin console)

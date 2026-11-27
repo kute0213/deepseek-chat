@@ -19,11 +19,11 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 - Pin sessions: pinned chats stay at the top.
 - Undo a round: the hollow undo icon sits below user messages and next to the assistant action buttons (no more menu).
 - Docs: `/docs` renders Markdown files with a collapsible list; Chinese and English versions use the `.md` / `.en.md` naming convention.
-- Favicon: `assets/favicon.svg` / `assets/favicon.ico` are linked from `index.html` and cached for 30 days on the server; `/favicon.ico` falls back to `assets/`, so browsers no longer log 404s.
+- Favicon: the original blended icon lives at `static/site/favicon.png` / `favicon.ico` (DSH-GO rose pixel blocks + DeepSeek whale + chat bubble). `index.html` declares it, and Nginx / Apache / the PHP entry all send a one-year immutable cache; missing `/favicon.ico` falls back to the static icon.
 - Settings: terms and privacy entries, account panels, token usage (entry only), and share management.
 - Token accounting: monotonic. Token totals only grow; undoing messages, switching branches, deleting chats or deleting users never reduces them (usage is archived before removal).
 - Full admin console: users, user details, roles, status, sessions, shares, site settings, and CSV export. A fixed sidebar holds the tabs; navigation and detail views switch without a full reload.
-- The admin console, installer, 404 page, and docs share the same `assets/ui.css` design tokens and follow the site language and light/dark preference.
+- The admin console, installer, 404 page, and docs share the same `static/site/ui.css` design tokens and follow the site language and light/dark preference.
 - Site name is centralized in `app/lang/zh-CN.php` and `app/lang/en-US.php`.
 
 ## Directory layout
@@ -32,9 +32,8 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 .
 ├── index.php              # Single entry: SPA shell + API routes + install/docs/admin/404 dispatch
 ├── index.html             # Front-end build output
-├── static/                # Front-end build output (css / js / media)
+├── static/                # Front-end build output (css / js / media) + site/ (icons and shared admin styles)
 ├── .htaccess              # Apache rewrite and security rules
-├── assets/                # Shared server-rendered styles (ui.css)
 ├── app/                   # All backend modules
 │   ├── Admin/             # Server-rendered admin console (/admin/)
 │   ├── Controllers/       # JSON API controllers

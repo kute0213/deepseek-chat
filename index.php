@@ -25,6 +25,19 @@ Bootstrap::boot();
 $path = App\Support\Request::path();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+// 网站图标：静态文件缺失时由入口兜底输出，并做一年服务端缓存，避免控制台 404
+if ($path === '/favicon.ico' || $path === '/favicon.png') {
+    $isPng = $path === '/favicon.png';
+    $icon = __DIR__ . ($isPng ? '/static/site/favicon.png' : '/static/site/favicon.ico');
+    if (is_file($icon)) {
+        header('Content-Type: ' . ($isPng ? 'image/png' : 'image/x-icon'));
+        header('Cache-Control: public, max-age=31536000, immutable');
+        header('Content-Length: ' . (string) filesize($icon));
+        readfile($icon);
+        exit;
+    }
+}
+
 // 安装向导：文件位于 app/Install，这里统一分发，未安装时其它路径都会被引导过来
 if ($path === '/install' || $path === '/install.php') {
     require __DIR__ . '/app/Install/install.php';

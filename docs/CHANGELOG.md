@@ -8,8 +8,10 @@
 - 修复搜索 / 右侧导航跳转到未加载消息时不跳转的问题：目标消息不在当前窗口时直接加载它所在的消息集；会话尚未出现在侧边栏分页中时自动补入列表。
 - 修复电脑端分享选择模式底部操作栏随消息滚动的问题：操作条固定在消息区底部。
 - 侧边栏顶部按钮顺序调整为「搜索」在左、「收起」在右，间距与官方一致。
-- 新增网站图标 `assets/favicon.svg` / `assets/favicon.ico`，在 `index.html` 显式声明；Nginx / Apache 对图标做 30 天缓存，`/favicon.ico` 缺失时回落到 `assets/`，消除浏览器控制台 404。
+- 新增融合网站图标：以 DSH-GO 的玫瑰色像素块为尾、DeepSeek 鲸鱼为主体、对话气泡为创意，输出 `static/site/favicon.png` / `favicon.ico`；在 `index.html` 显式声明，Nginx / Apache / PHP 入口三层均做一年 `immutable` 服务端缓存，`/favicon.ico` 缺失时自动回落，消除 AI / 浏览器访问时的 404。
+- `GET /api/files/{id}` 增加 `Cache-Control: private, max-age=31536000, immutable`：文件 ID 为一次性 UUID，AI / 浏览器重复访问不再反复回源。
 - 根目录精简：管理后台与安装向导只保留 `app/Admin`、`app/Install` 模块，删除根目录 `admin/`、`install/` 兼容入口；示例配置移入 `scripts/`（禁止被 PHP 引用，Web 层禁止访问），删除 `deploy/`。
+- 删除根目录 `assets/`：后台共享样式 `ui.css` 与站点图标统一并入 `static/site/`，由构建目录托管并配置长缓存。
 
 ## 2026-11-27（结构自愈，修复多操作 500）
 

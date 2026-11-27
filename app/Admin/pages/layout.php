@@ -44,7 +44,7 @@ $active = static fn (string $key): bool => $page === $key
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="/assets/ui.css?v=<?= (int) @filemtime(dirname(__DIR__, 3) . '/assets/ui.css') ?>">
+    <link rel="stylesheet" href="/static/site/ui.css?v=<?= (int) @filemtime(dirname(__DIR__, 3) . '/static/site/ui.css') ?>">
 </head>
 <body>
 <div class="shell">

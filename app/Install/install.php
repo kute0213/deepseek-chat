@@ -171,7 +171,7 @@ function e(string $value): string
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>安装 <?= e(Lang::siteName()) ?></title>
-<link rel="stylesheet" href="/assets/ui.css">
+<link rel="stylesheet" href="/static/site/ui.css">
 <style>
     body { background: var(--bg-soft); }
     .top {
