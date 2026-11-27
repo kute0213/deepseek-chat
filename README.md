@@ -49,6 +49,7 @@
 ├── admin/index.php        # 兼容入口：无重写环境直接转发到 app/Admin
 ├── install/index.php      # 兼容入口：无重写环境直接加载 app/Install
 ├── docs/                  # 中英文 Markdown 文档 + index.php 兼容入口
+├── deploy/                # 部署配置（nginx-vhost.conf：虚拟主机 / 面板伪静态版）
 ├── frontend/              # 官方前端源码（独立构建）
 └── uploads/               # 运行期数据（不入库）
     ├── config/            # config.php、installed.lock（安装生成）
@@ -170,17 +171,17 @@ server {
     }
 
     # ---------- 统一入口：安装 / 文档 / 管理后台 / 分享 / 旧协议 / 404 ----------
-    location = /install        { try_files /index.php =404; }
-    location = /install.php    { try_files /index.php =404; }
-    location = /terms          { try_files /index.php =404; }
-    location = /terms.html     { try_files /index.php =404; }
+    location = /install        { rewrite ^ /index.php last; }
+    location = /install.php    { rewrite ^ /index.php last; }
+    location = /terms          { rewrite ^ /index.php last; }
+    location = /terms.html     { rewrite ^ /index.php last; }
     location = /404.html       { rewrite ^ /index.php?_r=/404 last; }
-    location = /docs           { try_files /index.php =404; }
-    location ^~ /docs/         { try_files /index.php =404; }
-    location = /admin          { try_files /index.php =404; }
-    location ^~ /admin/        { try_files /index.php =404; }
-    location = /share          { try_files /index.php =404; }
-    location ^~ /share/        { try_files /index.php =404; }
+    location = /docs           { rewrite ^ /index.php last; }
+    location ^~ /docs/         { rewrite ^ /index.php last; }
+    location = /admin          { rewrite ^ /index.php last; }
+    location ^~ /admin/        { rewrite ^ /index.php last; }
+    location = /share          { rewrite ^ /index.php last; }
+    location ^~ /share/        { rewrite ^ /index.php last; }
 
     # ---------- 静态资源长缓存（构建产物带 hash，可放心 immutable） ----------
     location ^~ /static/ {
@@ -222,6 +223,15 @@ server {
 ```
 
 > Nginx 环境无需 `.htaccess`；`.user.ini` 仅 PHP-FPM/CGI 读取，本配置已通过 `client_max_body_size` 与 `fastcgi_read_timeout` 覆盖上传和超时限制。若使用子目录部署，需要同步修改前端 `publicPath` 与接口前缀。
+
+### Nginx 虚拟主机版（宝塔 / aaPanel / cPanel 等面板）
+
+无法编辑完整 vhost、只能在面板里填写「伪静态」时，直接使用 [deploy/nginx-vhost.conf](deploy/nginx-vhost.conf)：
+
+- **一、伪静态规则**：整段粘贴到面板「伪静态 / 重写」输入框，已包含路由回退、内部目录防护、静态缓存与上传超时；
+- **二、完整 server 块**：适用于可自行编辑站点配置的环境，SSL 由面板接管时用 HTTP 版即可；
+- 站点根目录必须是包含 `index.php` 的项目根，PHP 版本 8.1+，首次访问 `/install` 初始化；
+- 保存后重启 / 重载 Nginx 生效；若面板提示某行不支持，删掉「上传体积与超时」那几行，改在面板的 PHP 配置中设置 128M 与 900s。
 
 ## 访问全站 404 排查
 
