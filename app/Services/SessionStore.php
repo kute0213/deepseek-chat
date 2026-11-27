@@ -389,6 +389,59 @@ final class SessionStore
     }
 
     /**
+     * 会话精简大纲：只返回用户提问的 ID、全局序号与前 50 个字预览，
+     * 供右侧导航栏按窗口加载（每次 20 条），避免为定位而读取整段聊天记录。
+     *
+     * @return array{total:int, offset:int, items:array<int, array{id:string,index:int,preview:string}>}
+     */
+    public static function outline(array $session, int $offset, int $limit, ?string $around = null): array
+    {
+        $limit = max(1, min(20, $limit));
+        $messages = array_values(array_filter(
+            is_array($session['messages'] ?? null) ? $session['messages'] : [],
+            static fn ($message): bool => is_array($message)
+        ));
+        $ordered = array_key_exists('rootMessageId', $session)
+            ? self::visiblePath($session, $messages)
+            : $messages;
+        if ($ordered === []) {
+            $ordered = $messages;
+        }
+        $questions = [];
+        foreach ($ordered as $message) {
+            if (($message['role'] ?? '') === 'user') {
+                $questions[] = $message;
+            }
+        }
+        $total = count($questions);
+        if ($total === 0) {
+            return ['total' => 0, 'offset' => 0, 'items' => []];
+        }
+        $start = max(0, min($offset, $total - $limit));
+        if ($around !== null && $around !== '') {
+            foreach ($questions as $position => $message) {
+                if ((string) ($message['id'] ?? '') === $around) {
+                    $start = max(0, min($position - intdiv($limit, 2), $total - $limit));
+                    break;
+                }
+            }
+        } else {
+            $start = max(0, min($start, $total - $limit));
+        }
+        $slice = array_slice($questions, $start, $limit);
+        $items = [];
+        foreach ($slice as $position => $message) {
+            $text = preg_replace('/\s+/u', ' ', trim((string) ($message['content'] ?? '')));
+            $items[] = [
+                'id' => (string) ($message['id'] ?? ''),
+                'index' => $start + $position,
+                'preview' => mb_substr((string) $text, 0, 50, 'UTF-8'),
+            ];
+        }
+        return ['total' => $total, 'offset' => $start, 'items' => $items];
+    }
+
+    /**
      * 定位到某条消息所在的窗口：以该消息为窗口末尾，最多返回 $limit 条可见消息。
      * 搜索结果跳转只需这一页，不再把它之后的全部内容一并返回。
      *

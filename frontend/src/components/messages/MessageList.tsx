@@ -6,7 +6,12 @@ import {
   getVisibleMessages,
   type MessageVersions,
 } from '../../services/chat/branches.js'
-import { loadOlderMessages, selectMessageVersion, useChatStore } from '../../services/chat/store.js'
+import {
+  loadMessageWindow,
+  loadOlderMessages,
+  selectMessageVersion,
+  useChatStore,
+} from '../../services/chat/store.js'
 import { clearMessageFocus, useMessageFocus } from '../../services/chat/focus.js'
 import type { Session } from '../../services/chat/types.js'
 import { useTranslate } from '../../i18n/index.js'
@@ -67,6 +72,8 @@ export const MessageList = ({
   const prevLayoutRef = useRef<{ height: number; firstId: string | undefined } | null>(null)
   /** 记录已尝试自动补齐的窗口，失败时不重复触发 */
   const fillKeyRef = useRef('')
+  /** 搜索 / 右侧导航跳转时，记录已拉取过“目标消息所在窗口”，避免重复请求 */
+  const jumpWindowKeyRef = useRef('')
   const messages = getVisibleMessages(session)
   const hasMore = useChatStore((state) => state.messagePages[session.id]?.hasMore ?? false)
   const loadingOlder = useChatStore((state) => state.messagePages[session.id]?.loading ?? false)
@@ -179,7 +186,7 @@ export const MessageList = ({
 
   useEffect(closeSearchPanel, [session.id, lastMessageId])
 
-  // 搜索命中后跳转到对应消息：窗口里没有就先继续加载更早的消息，定位后短暂高亮。
+  // 搜索命中或右侧导航跳转到对应消息：当前窗口没有就先加载它所在的窗口，定位后短暂高亮。
   useEffect(() => {
     const el = scrollRef.current
     if (!focusTarget || focusTarget.sessionId !== session.id || !el) {
@@ -189,9 +196,11 @@ export const MessageList = ({
       `[data-message-id="${CSS.escape(focusTarget.messageId)}"]`
     )
     if (!node) {
-      if (hasMore && !loadingOlder) {
-        pendingPrependRef.current = { height: el.scrollHeight, top: el.scrollTop }
-        void loadOlderMessages(session.id)
+      // 目标消息不在当前分页窗口内：直接拉取包含它的那一页，而不是逐页向前翻。
+      const key = `${session.id}:${focusTarget.messageId}`
+      if (jumpWindowKeyRef.current !== key) {
+        jumpWindowKeyRef.current = key
+        void loadMessageWindow(session.id, focusTarget.messageId).catch(() => {})
       }
       return
     }
@@ -200,7 +209,7 @@ export const MessageList = ({
     node.classList.add(styles.flash)
     window.setTimeout(() => node.classList.remove(styles.flash), 1800)
     clearMessageFocus()
-  }, [focusTarget, session.id, hasMore, loadingOlder, messages.length])
+  }, [focusTarget, session.id, messages.length])
 
   const selectVersion = useCallback(
     (messageId: string, anchorTop: number) => {

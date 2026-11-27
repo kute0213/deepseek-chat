@@ -247,6 +247,8 @@ export const zh = {
   shareOpenApp: '打开 DSW',
   searchChats: '搜索对话',
   searchChatsPlaceholder: '搜索标题或消息内容',
+  messageNavTitle: '会话导航',
+  messageNavAttachment: '[附件]',
   searchEmpty: '没有找到相关对话',
   searchFailed: '搜索失败，请重试',
   searchHint: '输入关键词搜索你的全部对话',

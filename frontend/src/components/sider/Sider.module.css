@@ -22,11 +22,11 @@
   flex-shrink: 0;
 }
 
-/* 收起与搜索按钮紧挨在一起，间距与原版一致 */
+/* 搜索与收起按钮紧挨在一起，间距与原版一致 */
 .topActions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 0;
   flex-shrink: 0;
 }
 

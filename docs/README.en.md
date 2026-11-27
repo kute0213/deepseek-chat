@@ -11,13 +11,15 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 - API key: entered in Settings and stored **in plain text on the server** (or encrypted if configured); all DeepSeek requests are proxied server-side.
 - Official-like chat experience: streaming replies, deep thinking, web search, branch switching, editing, retries, file uploads, image previews, speech input, and read-aloud.
 - Server-side history: chat lists are cursor-paginated, with rename, delete, and clear.
-- Message paging: the latest 20 messages load first; scrolling up loads earlier pages while keeping your position.
-- Sharing: click Share to enter selection mode; every message gets a circular checkbox, user/assistant turns are selected as a pair, and the composer is hidden. Select all / clear all sits left of the selected count. Share links use `/?share={token}` (also compatible with `/share/{token}`). Revoke links under Settings → Data → My share links.
-- Search: search titles and message bodies; results jump to the matching message window with a short highlight.
+- Message paging: the latest 10 messages load first; scrolling up loads earlier pages while keeping your position.
+- Right-side outline: desktop shows a column of short bars at the right edge of the message area; hover expands 50-character previews. The bar count adapts to screen height, each request loads 20 items from a lightweight outline API, the wheel moves the selection smoothly, and clicking jumps to the message.
+- Sharing: click Share to enter selection mode; every message gets a circular checkbox, user/assistant turns are selected as a pair, and the composer is hidden. Select all / clear all sits left of the selected count, and the action bar stays pinned to the bottom. Share links use `/?share={token}` (also compatible with `/share/{token}`). Revoke links under Settings → Data → My share links.
+- Search: search titles and message bodies; results jump to the matching message window with a short highlight. Sessions missing from the loaded sidebar page are added automatically, and the message window is fetched on demand.
 - Batch management: the slider icon next to "Recent" enters multi-select with batch pinning and deletion.
 - Pin sessions: pinned chats stay at the top.
 - Undo a round: the hollow undo icon sits below user messages and next to the assistant action buttons (no more menu).
 - Docs: `/docs` renders Markdown files with a collapsible list; Chinese and English versions use the `.md` / `.en.md` naming convention.
+- Favicon: `assets/favicon.svg` / `assets/favicon.ico` are linked from `index.html` and cached for 30 days on the server; `/favicon.ico` falls back to `assets/`, so browsers no longer log 404s.
 - Settings: terms and privacy entries, account panels, token usage (entry only), and share management.
 - Token accounting: monotonic. Token totals only grow; undoing messages, switching branches, deleting chats or deleting users never reduces them (usage is archived before removal).
 - Full admin console: users, user details, roles, status, sessions, shares, site settings, and CSV export. A fixed sidebar holds the tabs; navigation and detail views switch without a full reload.
@@ -42,14 +44,13 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 │   ├── Install/           # Installer logic and schema
 │   ├── lang/              # Site strings
 │   └── Dev/               # PHP built-in server router
-├── admin/index.php        # Compatibility entry for hosts without URL rewriting
-├── install/index.php      # Compatibility entry for hosts without URL rewriting
 ├── docs/                  # Markdown docs + compatibility index.php
+├── scripts/               # Deployment samples and misc assets (never referenced by PHP)
 ├── frontend/              # Official front-end source
 └── uploads/               # Runtime data (config, logs, attachments, staging)
 ```
 
-> Architecture: one React app, one PHP entry (`index.php`), and one communication style — JSON over `/api/*`. The admin console lives in `app/Admin` and switches pages via partial HTML (`X-Admin-Partial: 1`) without full reloads. The root `admin/`, `install/` and `docs/index.php` files are thin compatibility entries for hosts without URL rewriting, preventing directory-index 403s.
+> Architecture: one React app, one PHP entry (`index.php`), and one communication style — JSON over `/api/*`. The admin console lives in `app/Admin` and switches pages via partial HTML (`X-Admin-Partial: 1`) without full reloads. `scripts/` only holds deployment samples and is blocked from direct web access; no PHP code may include it.
 
 ## Requirements
 

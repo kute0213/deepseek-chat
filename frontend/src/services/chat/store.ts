@@ -47,7 +47,7 @@ const SYSTEM_PROMPT = '该助手为DeepSeek，由深度求索公司创造。'
 /** 保留最近打开的详情；当前会话、生成中及尚未成功保存的会话不淘汰。 */
 const SESSION_CACHE_LIMIT = 5
 /** 打开会话时先加载的最近消息数，向上滚动再按同样数量加载更早消息。 */
-const MESSAGE_PAGE_SIZE = 20
+const MESSAGE_PAGE_SIZE = 10
 /** 安全审核固定开启，所有请求都走扩展模式 */
 const SAFETY_CHECK = { level: 'high' } as const
 /** 服务端判定 file_id 失效后，重新补传并重发的最多次数（不含首次请求） */
@@ -496,7 +496,7 @@ const ensureSessionLoaded = (id: string): Promise<void> => {
 }
 
 /**
- * 向上滚动到顶部时加载更早的一页消息（20 条）；同一会话的并发请求合并为一次。
+ * 向上滚动到顶部时加载更早的一页消息（10 条）；同一会话的并发请求合并为一次。
  * 新消息拼在已有消息之前，根节点改用更早一页的根，保证分支链完整。
  */
 export const loadOlderMessages = (sessionId: string): Promise<void> => {
@@ -735,20 +735,81 @@ export const newChat = () => {
   }
 }
 
-export const selectSession = (id: string) => {
-  if (!get().importingHistory && get().sessions.some((session) => session.id === id)) {
-    touchSession(id)
-    set({ activeId: id })
-    void ensureSessionLoaded(id)
-    trimSessionCache()
+/** 搜索结果可能来自尚未加载的会话分页：先把摘要补进侧边栏列表 */
+const ensureSummary = (
+  sessionId: string,
+  summary?: { title: string; updatedAt: number }
+): boolean => {
+  if (get().sessions.some((session) => session.id === sessionId)) {
+    return true
   }
+  if (!summary) {
+    return false
+  }
+  set((state) => ({
+    sessions: sortSessions([
+      ...state.sessions,
+      {
+        id: sessionId,
+        title: summary.title,
+        pinned: false,
+        createdAt: summary.updatedAt,
+        updatedAt: summary.updatedAt,
+      },
+    ]),
+  }))
+  return true
 }
 
-/** 搜索结果跳转：加载包含该消息的 20 条窗口，再定位到对应消息，不拉取其后全部内容。 */
-export const openSessionAtMessage = async (sessionId: string, messageId: string): Promise<void> => {
-  if (get().importingHistory || !get().sessions.some((session) => session.id === sessionId)) {
+export const selectSession = (
+  id: string,
+  summary?: { title: string; updatedAt: number }
+) => {
+  if (get().importingHistory || !ensureSummary(id, summary)) {
     return
   }
+  touchSession(id)
+  set({ activeId: id })
+  void ensureSessionLoaded(id)
+  trimSessionCache()
+}
+
+/**
+ * 只加载包含指定消息的一页窗口，并替换当前会话缓存。
+ * 搜索结果、右侧导航跳转到未加载位置时使用，避免为了定位拉取整段聊天记录。
+ */
+export const loadMessageWindow = async (sessionId: string, messageId: string): Promise<void> => {
+  const epoch = historyEpoch
+  const stored = await db.loadSession(sessionId, { limit: MESSAGE_PAGE_SIZE, around: messageId })
+  if (epoch !== historyEpoch || !stored) {
+    return
+  }
+  const { hasMore, nextCursor, ...payload } = stored
+  const session = normalizeSession(payload)
+  set((state) => ({
+    sessionCache: { ...state.sessionCache, [sessionId]: session },
+    messagePages: {
+      ...state.messagePages,
+      [sessionId]: { hasMore: hasMore === true, cursor: nextCursor ?? null, loading: false },
+    },
+    sessionLoadErrors: { ...state.sessionLoadErrors, [sessionId]: false },
+  }))
+  trimSessionCache()
+}
+
+/**
+ * 搜索 / 导航跳转：加载包含该消息的窗口并定位。
+ * 会话摘要尚未出现在侧边栏列表时，用搜索结果里的标题与时间补一条摘要再打开。
+ */
+export const openSessionAtMessage = async (
+  sessionId: string,
+  messageId: string,
+  summary?: { title: string; updatedAt: number }
+): Promise<void> => {
+  if (get().importingHistory) {
+    return
+  }
+  ensureSummary(sessionId, summary)
   const cached = getSession(sessionId)
   if (cached?.messages.some((message) => message.id === messageId)) {
     touchSession(sessionId)
@@ -756,27 +817,16 @@ export const openSessionAtMessage = async (sessionId: string, messageId: string)
     focusMessage(sessionId, messageId)
     return
   }
-  const epoch = historyEpoch
   touchSession(sessionId)
   set({ activeId: sessionId })
   try {
-    const stored = await db.loadSession(sessionId, { limit: MESSAGE_PAGE_SIZE, around: messageId })
-    if (epoch !== historyEpoch || !stored) {
-      return
-    }
-    const { hasMore, nextCursor, ...payload } = stored
-    const session = normalizeSession(payload)
-    set((state) => ({
-      sessionCache: { ...state.sessionCache, [sessionId]: session },
-      messagePages: {
-        ...state.messagePages,
-        [sessionId]: { hasMore: hasMore === true, cursor: nextCursor ?? null, loading: false },
-      },
-    }))
+    await loadMessageWindow(sessionId, messageId)
     focusMessage(sessionId, messageId)
-    trimSessionCache()
   } catch (error) {
     db.reportStorageError('read session window')(error)
+    set((state) => ({
+      sessionLoadErrors: { ...state.sessionLoadErrors, [sessionId]: true },
+    }))
   }
 }
 

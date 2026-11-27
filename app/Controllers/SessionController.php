@@ -39,6 +39,20 @@ final class SessionController
         Response::json(SessionStore::search((string) $user['id'], $query));
     }
 
+    /** 会话精简大纲：右侧导航栏按窗口加载用户提问预览，每次最多 20 条 */
+    public function outline(array $params, Request $request): void
+    {
+        $user = Auth::requireUser();
+        $session = SessionStore::load((string) $user['id'], (string) $params['id']);
+        if ($session === null) {
+            throw new HttpError('会话不存在', 404);
+        }
+        $limit = (int) ($request->query('limit') ?? 20);
+        $offset = (int) ($request->query('offset') ?? 0);
+        $around = (string) ($request->query('around') ?? '');
+        Response::json(SessionStore::outline($session, $offset, $limit, $around !== '' ? $around : null));
+    }
+
     public function show(array $params, Request $request): void
     {
         $user = Auth::requireUser();

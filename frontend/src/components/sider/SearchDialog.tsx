@@ -12,7 +12,7 @@ const formatDate = (ms: number, locale: string) =>
 
 /**
  * 搜索全部对话：搜索框先展开在上方，输入并检索后才展开下方结果框；
- * 命中正文时只加载该消息所在的 20 条窗口并直接定位。
+ * 命中正文时只加载该消息所在的 10 条窗口并直接定位。
  */
 export const SearchDialog = ({ onClose }: { onClose: () => void }) => {
   const t = useTranslate()
@@ -59,9 +59,15 @@ export const SearchDialog = ({ onClose }: { onClose: () => void }) => {
     closeMobileSider()
     onClose()
     if (result.messageId) {
-      void openSessionAtMessage(result.sessionId, result.messageId)
+      void openSessionAtMessage(result.sessionId, result.messageId, {
+        title: result.title,
+        updatedAt: result.updatedAt,
+      })
     } else {
-      selectSession(result.sessionId)
+      selectSession(result.sessionId, {
+        title: result.title,
+        updatedAt: result.updatedAt,
+      })
     }
   }
 

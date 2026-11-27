@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-27 (right-side outline, lightweight API, root cleanup)
+
+- Added a desktop right-side outline: short bars along the message area edge, hover shows 50-character previews, bar count adapts to screen height, the wheel moves the selection smoothly, and clicking jumps to the message.
+- Added `GET /api/sessions/{id}/outline?limit=20&offset=&around=` returning only user-message IDs, global indexes, and 50-character previews, at most 20 per request.
+- Message pages now load 10 messages at a time (previously 20).
+- Fixed search / outline jumps when the target message was not loaded: the containing message window is fetched on demand; sessions missing from the loaded sidebar page are added automatically.
+- Fixed the desktop share action bar scrolling with content; it now sticks to the bottom of the message area.
+- Sidebar header now shows search then collapse, matching the official spacing.
+- Added `assets/favicon.svg` / `assets/favicon.ico`, declared in `index.html`, cached for 30 days on the server with an `/favicon.ico` fallback.
+- Root cleanup: removed the `admin/` and `install/` compatibility entries (handled by `index.php`), moved deployment samples to `scripts/` (never referenced by PHP, blocked from direct access), and removed `deploy/`.
+
 ## 2026-11-26 (navigation polish, sharing, undo, admin console)
 
 ### Right-side navigator

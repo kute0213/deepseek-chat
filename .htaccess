@@ -12,6 +12,14 @@ ErrorDocument 404 /index.php?_r=/404
 
 RewriteEngine On
 
+# 网站图标：长期缓存，缺失的 /favicon.ico 回落到 assets 下的图标
+RewriteRule ^favicon\.ico$ assets/favicon.ico [L]
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/x-icon "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+</IfModule>
+
 # API 统一入口
 RewriteRule ^api/ index.php [L,QSA]
 

@@ -259,6 +259,8 @@ export const en = {
   shareOpenApp: 'Open DSW',
   searchChats: 'Search chats',
   searchChatsPlaceholder: 'Search titles or messages',
+  messageNavTitle: 'Chat outline',
+  messageNavAttachment: '[Attachment]',
   searchEmpty: 'No matching chats',
   searchFailed: 'Search failed. Please retry.',
   searchHint: 'Type keywords to search all your chats',

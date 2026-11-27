@@ -147,17 +147,17 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
         <div className={styles.topActions}>
           <IconButton
             size="m"
-            icon={<IconPanelLeftOutline16 />}
-            tooltip={t('collapseSiderbarButton')}
-            tooltipPlacement="bottom"
-            onClick={() => (mobile ? closeMobileSider() : setSiderCollapsed(true))}
-          />
-          <IconButton
-            size="m"
             icon={<IconSearchOutline16 />}
             tooltip={t('searchChats')}
             tooltipPlacement="bottom"
             onClick={() => setSearchOpen(true)}
+          />
+          <IconButton
+            size="m"
+            icon={<IconPanelLeftOutline16 />}
+            tooltip={t('collapseSiderbarButton')}
+            tooltipPlacement="bottom"
+            onClick={() => (mobile ? closeMobileSider() : setSiderCollapsed(true))}
           />
         </div>
       </div>

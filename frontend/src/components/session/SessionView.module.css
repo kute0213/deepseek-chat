@@ -98,8 +98,11 @@
   }
 }
 
-/* 分享选择模式：底部操作条替代输入框 */
+/* 分享选择模式：底部操作条替代输入框；固定在滚动容器底部，不随消息滚动 */
 .shareBar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -107,6 +110,7 @@
   box-sizing: border-box;
   width: 100%;
   padding: 10px 4px;
+  background-color: var(--dsw-alias-bg-base);
   animation: shareBarIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
