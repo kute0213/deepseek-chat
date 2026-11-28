@@ -18,7 +18,7 @@ import { useTranslate } from '../../i18n/index.js'
 import { closeSearchPanel } from '../search/searchPanelState.js'
 import { IconCheckOutline16 } from '../base/icons.js'
 import { AssistantMessage } from './AssistantMessage.js'
-import { ScrollToBottomContext } from './scrollContext.js'
+import { AtBottomContext, JumpToBottomContext, ScrollToBottomContext } from './scrollContext.js'
 import { UserMessage } from './UserMessage.js'
 import type { Message } from '../../services/chat/types.js'
 
@@ -81,6 +81,8 @@ export const MessageList = ({
   const [previousVersions, setPreviousVersions] = useState(() =>
     buildMessageVersions(session, new Map())
   )
+  /** 是否停在底部；由滚动与跟随状态更新，驱动回底按钮 */
+  const [atBottom, setAtBottom] = useState(true)
   const versions = useMemo(
     () => buildMessageVersions(session, previousVersions),
     [session, previousVersions]
@@ -99,11 +101,22 @@ export const MessageList = ({
       scrollTopRef.current = el.scrollTop
     }
   }, [])
+  /** 用户主动点击回底：无论当前是否跟随都跳到底部，并恢复跟随 */
+  const jumpToBottom = useCallback(() => {
+    stickyRef.current = true
+    setAtBottom(true)
+    const el = scrollRef.current
+    if (el) {
+      el.scrollTop = el.scrollHeight
+      scrollTopRef.current = el.scrollTop
+    }
+  }, [])
 
   // 切换会话时丢弃上一个会话遗留的“保持位置”记录
   useLayoutEffect(() => {
     pendingPrependRef.current = null
     prevLayoutRef.current = null
+    setAtBottom(true)
   }, [session.id])
 
   // 内容、键盘和输入框高度变化时，继续遵循当前跟随状态。
@@ -205,6 +218,7 @@ export const MessageList = ({
       return
     }
     stickyRef.current = false
+    setAtBottom(false)
     node.scrollIntoView({ block: 'center' })
     clearMessageFocus()
   }, [firstMessageId, focusTarget, messages.length, session.id])
@@ -235,6 +249,7 @@ export const MessageList = ({
     }
     const onScroll = () => {
       const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < STICKY_THRESHOLD
+      setAtBottom(nearBottom)
       // 仅在用户向上滚动时停止跟随底部，布局或内容增高时保持跟随状态。
       if (nearBottom) {
         stickyRef.current = true
@@ -256,81 +271,85 @@ export const MessageList = ({
   const uploadRetryId = getUploadRetryId(messages, streaming)
   return (
     <ScrollToBottomContext.Provider value={scrollToBottom}>
-      <div
-        ref={isMobile ? undefined : scrollRef}
-        className={styles.container}
-        data-message-scroll={isMobile ? undefined : ''}
-      >
-        <div
-          ref={isMobile ? scrollRef : undefined}
-          className={styles.scroll}
-          data-message-scroll={isMobile ? '' : undefined}
-        >
-          <div ref={contentRef} className={styles.column}>
-            {hasMore ? (
-              <div className={styles.loadingTop} role="status" aria-live="polite">
-                {loadingOlder ? t('messagesLoadingMore') : ''}
+      <AtBottomContext.Provider value={atBottom}>
+        <JumpToBottomContext.Provider value={jumpToBottom}>
+          <div
+            ref={isMobile ? undefined : scrollRef}
+            className={styles.container}
+            data-message-scroll={isMobile ? undefined : ''}
+          >
+            <div
+              ref={isMobile ? scrollRef : undefined}
+              className={styles.scroll}
+              data-message-scroll={isMobile ? '' : undefined}
+            >
+              <div ref={contentRef} className={styles.column}>
+                {hasMore ? (
+                  <div className={styles.loadingTop} role="status" aria-live="polite">
+                    {loadingOlder ? t('messagesLoadingMore') : ''}
+                  </div>
+                ) : null}
+                {messages.map((message, index) => {
+                  const content =
+                    message.role === 'user' ? (
+                      <UserMessage
+                        key={message.id}
+                        sessionId={session.id}
+                        message={message}
+                        retryUploadId={uploadRetryId}
+                        isFirst={index === 0}
+                        isLast={index === lastIndex || index === lastIndex - 1}
+                        busy={streaming}
+                        versions={versions.get(message.id) ?? EMPTY_VERSIONS}
+                        onSelectVersion={selectVersion}
+                      />
+                    ) : (
+                      <AssistantMessage
+                        key={message.id}
+                        sessionId={session.id}
+                        message={message}
+                        isLast={index === lastIndex}
+                        streaming={streaming && index === lastIndex}
+                        busy={streaming}
+                        versions={versions.get(message.id) ?? EMPTY_VERSIONS}
+                        onSelectVersion={selectVersion}
+                      />
+                    )
+                  if (!shareMode) {
+                    return content
+                  }
+                  const checked = shareSelected?.has(message.id) ?? false
+                  return (
+                    <div
+                      key={message.id}
+                      className={clsx(styles.shareRow, checked && styles.shareRowOn)}
+                      onClick={(event) => {
+                        const element = event.target instanceof Element ? event.target : null
+                        if (element?.closest('a, button, input, textarea, select, [role="menu"]')) {
+                          return
+                        }
+                        onToggleShare?.(message.id)
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className={clsx(styles.shareCheck, checked && styles.shareCheckOn)}
+                        aria-pressed={checked}
+                        aria-label={t('shareSelectMessage')}
+                        onClick={() => onToggleShare?.(message.id)}
+                      >
+                        {checked ? <IconCheckOutline16 /> : null}
+                      </button>
+                      <div className={styles.shareContent}>{content}</div>
+                    </div>
+                  )
+                })}
               </div>
-            ) : null}
-            {messages.map((message, index) => {
-              const content =
-                message.role === 'user' ? (
-                  <UserMessage
-                    key={message.id}
-                    sessionId={session.id}
-                    message={message}
-                    retryUploadId={uploadRetryId}
-                    isFirst={index === 0}
-                    isLast={index === lastIndex || index === lastIndex - 1}
-                    busy={streaming}
-                    versions={versions.get(message.id) ?? EMPTY_VERSIONS}
-                    onSelectVersion={selectVersion}
-                  />
-                ) : (
-                  <AssistantMessage
-                    key={message.id}
-                    sessionId={session.id}
-                    message={message}
-                    isLast={index === lastIndex}
-                    streaming={streaming && index === lastIndex}
-                    busy={streaming}
-                    versions={versions.get(message.id) ?? EMPTY_VERSIONS}
-                    onSelectVersion={selectVersion}
-                  />
-                )
-              if (!shareMode) {
-                return content
-              }
-              const checked = shareSelected?.has(message.id) ?? false
-              return (
-                <div
-                  key={message.id}
-                  className={clsx(styles.shareRow, checked && styles.shareRowOn)}
-                  onClick={(event) => {
-                    const element = event.target instanceof Element ? event.target : null
-                    if (element?.closest('a, button, input, textarea, select, [role="menu"]')) {
-                      return
-                    }
-                    onToggleShare?.(message.id)
-                  }}
-                >
-                  <button
-                    type="button"
-                    className={clsx(styles.shareCheck, checked && styles.shareCheckOn)}
-                    aria-pressed={checked}
-                    aria-label={t('shareSelectMessage')}
-                    onClick={() => onToggleShare?.(message.id)}
-                  >
-                    {checked ? <IconCheckOutline16 /> : null}
-                  </button>
-                  <div className={styles.shareContent}>{content}</div>
-                </div>
-              )
-            })}
+            </div>
+            {footer}
           </div>
-        </div>
-        {footer}
-      </div>
+        </JumpToBottomContext.Provider>
+      </AtBottomContext.Provider>
     </ScrollToBottomContext.Provider>
   )
 }

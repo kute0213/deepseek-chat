@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-28 (outline fade, scroll-to-bottom button, sidebar logo)
+
+- The right-side outline now fades instead of resizing: the panel keeps a fixed width, collapsing fades out the card background and text while leaving the bars (still clickable), and hovering fades the card and previews in.
+- Added a "scroll to bottom" button: a 34px circular button appears above the composer on the right whenever the view leaves the bottom, jumps to the bottom on click and resumes auto-follow, then fades out. Respects `prefers-reduced-motion`.
+- The sidebar header now shows the project icon `static/site/favicon.png` to the left of the site name; both truncate together and work in light and dark themes.
+- Rebuilt static assets; `index.html` hashes updated.
+
 ## 2026-11-28 (outline no longer resets after collapsing)
 
 - Fixed the right-side outline resetting to its initial state (losing the active highlight and position) after the pointer leaves the panel: collapsed and expanded states are now the same panel. Collapsing only hides the text and shrinks the width to the 18px bars, sharing one scroll position and one active item; the active row stays vertically centered, and expanding grows it back to a 228px card to the left.

@@ -57,6 +57,21 @@
   );
 }
 
+.composer {
+  position: relative;
+  width: 100%;
+}
+
+/* 回底按钮浮在输入框右上方，与输入框右边缘留出少量内缩 */
+.scrollBottom {
+  position: absolute;
+  right: 8px;
+  bottom: calc(100% + 12px);
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .caveatRow {
   display: flex;
   align-items: center;

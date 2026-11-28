@@ -261,6 +261,7 @@ export const en = {
   searchChatsPlaceholder: 'Search titles or messages',
   messageNavTitle: 'Chat outline',
   messageNavAttachment: '[Attachment]',
+  scrollToBottom: 'Scroll to bottom',
   searchEmpty: 'No matching chats',
   searchFailed: 'Search failed. Please retry.',
   searchHint: 'Type keywords to search all your chats',

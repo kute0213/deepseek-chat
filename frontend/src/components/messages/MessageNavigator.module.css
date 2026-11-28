@@ -8,8 +8,8 @@
 }
 
 /*
- * 收起与展开共用同一个面板：
- * 收起时宽度收窄到短横宽度、隐藏文字，展开时向左伸展显示预览。
+ * 收起与展开共用同一个面板，宽度固定：
+ * 收起时卡片背景与文字淡出，只留下右侧短横；展开时背景与文字渐入。
  * 因为始终是同一份 DOM 与同一个滚动位置，高亮不会在收起后丢失。
  */
 .panel {
@@ -20,13 +20,11 @@
   box-sizing: border-box;
   width: 228px;
   padding: 4px 0;
-  overflow: hidden;
   border-radius: 12px;
   background-color: transparent;
   transform: translateY(-50%);
   scrollbar-width: none;
   transition:
-    width 0.18s cubic-bezier(0.4, 0, 0.2, 1),
     background-color 0.18s ease,
     box-shadow 0.18s ease;
 }
@@ -35,15 +33,26 @@
   display: none;
 }
 
-/* 收起：只露出右侧 7 条短横，不显示背景、阴影与文字 */
+/* 收起：卡片与文字渐隐，仅保留最右侧短横可点击 */
 .panelCollapsed {
-  width: 18px;
   overflow: hidden;
+  pointer-events: none;
 }
 
-/* 展开：向左伸展为卡片，可滚动预览列表 */
+.panelCollapsed .item {
+  pointer-events: none;
+}
+
+.panelCollapsed .itemBar {
+  pointer-events: auto;
+}
+
+.panelCollapsed .itemText {
+  opacity: 0;
+}
+
+/* 展开：卡片与预览渐入，可滚动列表 */
 .panelOpen {
-  width: 228px;
   overflow-x: hidden;
   overflow-y: auto;
   background-color: var(--dsw-alias-bg-layer-2);
@@ -77,14 +86,10 @@
     opacity 0.16s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 收起时行内只保留短横：去掉文字与内边距，短横贴右对齐 */
+/* 收起时行内只保留短横：去掉内边距，短横贴右对齐 */
 .panelCollapsed .item {
   gap: 0;
   padding: 0;
-}
-
-.panelCollapsed .itemText {
-  display: none;
 }
 
 .panelCollapsed .item:hover {
@@ -112,6 +117,8 @@
   padding-right: 8px;
   overflow: hidden;
   text-overflow: ellipsis;
+  opacity: 1;
+  transition: opacity 0.18s ease;
 }
 
 /* 行内短横：收起时就是右侧轨道，展开时随行一起滚动 */

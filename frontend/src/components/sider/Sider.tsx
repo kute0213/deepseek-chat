@@ -143,7 +143,10 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   return (
     <div className={clsx(styles.sider, mobile && styles.mobile)}>
       <div className={styles.top}>
-        <div className={styles.appName}>{siteName ?? t('appName')}</div>
+        <div className={styles.appName}>
+          <img className={styles.logo} src="/static/site/favicon.png" alt="" width={22} height={22} />
+          <span className={styles.appNameText}>{siteName ?? t('appName')}</span>
+        </div>
         <div className={styles.topActions}>
           <IconButton
             size="m"

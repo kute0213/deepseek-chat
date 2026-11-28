@@ -27,6 +27,7 @@ import { UsagePopover } from '../usage/UsagePopover.js'
 import { ChatInput } from '../chatInput/ChatInput.js'
 import { MessageList } from '../messages/MessageList.js'
 import { MessageNavigator } from '../messages/MessageNavigator.js'
+import { ScrollToBottomButton } from '../messages/ScrollToBottomButton.js'
 import { ShareDialog } from '../share/ShareDialog.js'
 import { MobileHeader } from './MobileHeader.js'
 import styles from './SessionView.module.css'
@@ -202,7 +203,12 @@ export const SessionView = ({
             </div>
           ) : (
             <div className={styles.inputContainer}>
-              <ChatInput sessionId={session.id} />
+              <div className={styles.composer}>
+                <div className={styles.scrollBottom}>
+                  <ScrollToBottomButton />
+                </div>
+                <ChatInput sessionId={session.id} />
+              </div>
               <div className={styles.caveatRow}>
                 <div className={styles.caveat}>{t('contentCaveat')}</div>
                 {sessionUsage.total > 0 ? (
