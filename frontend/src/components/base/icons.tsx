@@ -579,20 +579,48 @@ export const IconShareOutline16 = () => (
     <path
       d="M9.5 2.5 14 7l-4.5 4.5V8.6C5.8 8.6 3.6 10.1 2 13c.3-4 2.5-6.7 7.5-7.1V2.5Z"
       stroke="currentColor"
-      strokeWidth={1.1}
+      strokeWidth={1.3}
+      strokeLinejoin="round"
+      strokeLinecap="round"
+    />
+  </svg>
+)
+
+/** 撤销：大回旋 U 型箭头 */
+export const IconUndoOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M11.5 14V8Q11.5 4.5 8 4.5Q4.5 4.5 4.5 8V10.6"
+      stroke="currentColor"
+      strokeWidth={1.3}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M2.4 8.5 4.5 10.6 6.6 8.5"
+      stroke="currentColor"
+      strokeWidth={1.3}
+      strokeLinecap="round"
       strokeLinejoin="round"
     />
   </svg>
 )
 
-/** 撤销：空心向左弯箭头 */
-export const IconUndoOutline16 = () => (
+/** 数据库：上下文用量入口 */
+export const IconDatabaseOutline16 = () => (
   <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx={8} cy={3.9} rx={5} ry={2} stroke="currentColor" strokeWidth={1.3} />
     <path
-      d="M5.3 2.2 1 6.5l4.3 4.3V7.9c2.7 0 4.7.9 6.2 2.7.5.6.9 1.3 1.2 2.1.4-4.4-2.2-7.3-7.4-7.4V2.2Z"
+      d="M3 3.9v4.1c0 1.1 2.24 2 5 2s5-.9 5-2V3.9"
       stroke="currentColor"
-      strokeWidth={1.1}
-      strokeLinejoin="round"
+      strokeWidth={1.3}
+      strokeLinecap="round"
+    />
+    <path
+      d="M3 8v4.1c0 1.1 2.24 2 5 2s5-.9 5-2V8"
+      stroke="currentColor"
+      strokeWidth={1.3}
+      strokeLinecap="round"
     />
   </svg>
 )

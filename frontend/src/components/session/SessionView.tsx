@@ -10,11 +10,19 @@ import {
   stopShareSelection,
   useShareSelection,
 } from '../../services/chat/shareSelection.js'
+import {
+  addUsage,
+  breakdownUsage,
+  emptyUsage,
+  formatContextPercent,
+  type UsageBreakdown,
+} from '../../services/chat/usage.js'
 import type { Session } from '../../services/chat/types.js'
 import { IconCheckOutline16, IconShareOutline16 } from '../base/icons.js'
 import { IconButton } from '../base/IconButton.js'
 import { Button } from '../base/Button.js'
 import { showToast } from '../base/toastState.js'
+import { UsagePopover } from '../usage/UsagePopover.js'
 import { ChatInput } from '../chatInput/ChatInput.js'
 import { MessageList } from '../messages/MessageList.js'
 import { MessageNavigator } from '../messages/MessageNavigator.js'
@@ -41,22 +49,24 @@ export const SessionView = ({
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [creating, setCreating] = useState(false)
   const [created, setCreated] = useState<ShareSummary | null>(null)
-  // 当前可见分支的 Token 用量：与服务端统计口径一致
-  const usage = useMemo(() => {
-    let input = 0
-    let output = 0
+  // 会话累计 Token 用量与最后一轮用量：后者用于「当前上下文」占比
+  const { sessionUsage, lastUsage } = useMemo(() => {
+    let total = emptyUsage()
+    let last: UsageBreakdown | null = null
     for (const message of getVisibleMessages(session)) {
-      if (message.role !== 'assistant' || !message.usage) {
+      if (message.role !== 'assistant') {
         continue
       }
-      input +=
-        (message.usage.input_tokens ?? 0) +
-        (message.usage.cache_creation_input_tokens ?? 0) +
-        (message.usage.cache_read_input_tokens ?? 0)
-      output += message.usage.output_tokens ?? 0
+      const item = breakdownUsage(message.usage)
+      if (!item) {
+        continue
+      }
+      total = addUsage(total, item)
+      last = item
     }
-    return { input, output }
+    return { sessionUsage: total, lastUsage: last }
   }, [session])
+  const contextPercent = formatContextPercent(lastUsage?.contextRatio ?? 0)
 
   useEffect(() => {
     setSelected(new Set())
@@ -193,10 +203,15 @@ export const SessionView = ({
               <ChatInput sessionId={session.id} />
               <div className={styles.caveatRow}>
                 <div className={styles.caveat}>{t('contentCaveat')}</div>
-                <div className={styles.tokenUsage}>
-                  <span>{t('tokenUsageInput', { count: usage.input })}</span>
-                  <span>{t('tokenUsageOutput', { count: usage.output })}</span>
-                </div>
+                {sessionUsage.total > 0 ? (
+                  <UsagePopover variant="session" usage={sessionUsage} context={lastUsage}>
+                    {({ toggle }) => (
+                      <button type="button" className={styles.contextEntry} onClick={toggle}>
+                        {t('usageContextEntry', { percent: contextPercent })}
+                      </button>
+                    )}
+                  </UsagePopover>
+                ) : null}
               </div>
             </div>
           )

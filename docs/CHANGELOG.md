@@ -1,5 +1,15 @@
 # 更新日志
 
+## 2026-11-28（蓝鲸图标、Token 用量浮层与上下文查看）
+
+- 网站图标更换为可爱的浅紫蓝鲸（奶油色肚皮、黑眼白高光、粉色腮红），重新生成 `static/site/favicon.png` 与多尺寸 `favicon.ico`，引用版本更新为 `?v=20261128`。
+- 新增单轮 Token 用量浮层：AI 回答操作区新增空心数据库图标，展示缓存命中 / 缓存未命中 / 输出三档的单价、用量与金额，底部显示「截止到本轮，上下文已占用 X%」。
+- 新增「上下文查看」：输入框下方「内容由 AI 生成」小字旁提供可点击入口，浮层展示会话累计 Token 明细（缓存命中 / 未命中 / 输出与合计费用）与当前上下文占用比例。
+- 用量计算集中在 `frontend/src/services/chat/usage.ts`，单价按空闲时段 0.02 / 1 / 4 元每百万 tokens 估算，上下文窗口按 128K 计算。
+- 图标风格统一：撤销改为大回旋 U 型箭头，分享等按钮统一为细线空心风格；新增数据库图标用于用量入口。
+- 复核后台入口：`index.php`、`app/Admin/index.php` 均为 `require_once` 且 `Bootstrap::boot()` 带一次性守卫，`Cannot declare class App\Bootstrap` 不再出现。
+- 根目录持续保持精简：Nginx 配置、`user.ini` 等杂物位于 `scripts/`；外部网页图标缓存位于 `uploads/cache/site-icons`。
+
 ## 2026-11-28（修复后台入口崩溃、联网站点图标服务端缓存、根目录彻底整理）
 
 - 修复 `Cannot declare class App\Bootstrap`：`index.php`、`app/Admin/index.php` 统一改为 `require_once`，并为 `Bootstrap::boot()` 增加只执行一次的守卫，`/admin`、`/install` 与主入口重复引导不再报错。

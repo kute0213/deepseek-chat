@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-28 (whale favicon, token usage popovers, context viewer)
+
+- Replaced the favicon with a cute lavender whale (cream belly, black eye with highlight, pink blush); regenerated `static/site/favicon.png` and a multi-size `favicon.ico`, referencing `?v=20261128`.
+- Added a per-round token usage popover: a hollow database icon in the assistant action row lists cache hit / cache miss / output with price, tokens and cost, plus "As of this round, context is X% full".
+- Added a context viewer: a clickable entry next to the composer caveat opens the chat's cumulative token breakdown (cache hit / miss / output and total cost) and current context usage.
+- Usage math lives in `frontend/src/services/chat/usage.ts`, estimated at off-peak pricing of 0.02 / 1 / 4 CNY per 1M tokens with a 128K context window.
+- Unified icon style: undo is now a large U-turn arrow, and share and other buttons use thin hollow strokes; added a database icon for the usage entry.
+- Re-verified the admin entry: `index.php` and `app/Admin/index.php` use `require_once` with a one-shot `Bootstrap::boot()` guard, so `Cannot declare class App\Bootstrap` no longer appears.
+- Kept the root slim: Nginx config, `user.ini`, and other samples live in `scripts/`; web-search site icons are cached under `uploads/cache/site-icons`.
+
 ## 2026-11-28 (admin entry crash fix, cached web-search site icons, root cleanup)
 
 - Fixed `Cannot declare class App\Bootstrap`: `index.php` and `app/Admin/index.php` now use `require_once`, and `Bootstrap::boot()` is guarded so repeated bootstrapping from `/admin`, `/install`, and the main entry no longer fatals.

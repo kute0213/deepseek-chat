@@ -17,10 +17,12 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 - Search: search titles and message bodies; results jump to the matching message window with a short highlight. Sessions missing from the loaded sidebar page are added automatically, and the message window is fetched on demand.
 - Batch management: the slider icon next to "Recent" enters multi-select with batch pinning and deletion.
 - Pin sessions: pinned chats stay at the top.
-- Undo a round: the hollow undo icon sits below user messages and next to the assistant action buttons (no more menu).
+- Undo a round: a large U-turn undo icon sits below user messages and next to the assistant action buttons.
+- Token usage popover: a hollow database icon in the assistant action row opens "This round", listing cache hit (0.02 CNY / 1M tokens), cache miss (1 CNY) and output (4 CNY) with price, tokens and cost, plus "As of this round, context is X% full". Hidden when no usage is recorded.
+- Context viewer: a clickable "Context X%" entry next to the composer caveat opens a popover with the whole chat's cumulative token breakdown (cache hit / miss / output and total cost) and current context usage.
 - Docs: `/docs` renders Markdown files with a collapsible list; Chinese and English versions use the `.md` / `.en.md` naming convention.
 - Web-search site icons: icons in AI search results go through `GET /api/site-icon?url=&page=`, which resolves relative paths against the source site first, then the API base, downloads them server-side into `uploads/cache/site-icons`, and caches them for 30 days. Missing icons return a placeholder instead of a `/api/files/{uuid}` 404.
-- Favicon: the original blended icon lives at `static/site/favicon.png` / `favicon.ico` (DSH-GO rose pixel blocks + DeepSeek whale + chat bubble). `index.html` declares it, and Nginx / Apache / the PHP entry all send a one-year immutable cache; missing `/favicon.ico` falls back to the static icon.
+- Favicon: a cute lavender whale (cream belly, black eye with highlight, pink blush) lives at `static/site/favicon.png` / `favicon.ico`. `index.html` declares it, and Nginx / Apache / the PHP entry all send a one-year immutable cache; missing `/favicon.ico` falls back to the static icon.
 - Settings: terms and privacy entries, account panels, token usage (entry only), and share management.
 - Token accounting: monotonic. Token totals only grow; undoing messages, switching branches, deleting chats or deleting users never reduces them (usage is archived before removal).
 - Full admin console: users, user details, roles, status, sessions, shares, site settings, and CSV export. A fixed sidebar holds the tabs; navigation and detail views switch without a full reload.

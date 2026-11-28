@@ -2,6 +2,7 @@ import { useTranslate } from '../../i18n/index.js'
 import clsx from 'clsx'
 import { memo, useState } from 'react'
 import {
+  IconDatabaseOutline16,
   IconRefreshOutline16,
   IconUndoOutline16,
   IconWarningOutline16,
@@ -11,6 +12,7 @@ import { canContinueReply } from '../../services/chat/reply.js'
 import { continueReply, regenerateReply } from '../../services/chat/store.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
 import type { AssistantMessage as AssistantMessageType } from '../../services/chat/types.js'
+import { breakdownUsage } from '../../services/chat/usage.js'
 import { openSettings } from '../settings/settingsDialogState.js'
 import { IconButton } from '../base/IconButton.js'
 import { Button } from '../base/Button.js'
@@ -22,6 +24,7 @@ import { ReadAloudButton } from './ReadAloudButton.js'
 import { CopyButton } from './CopyButton.js'
 import { ReplyArea } from './ReplyArea.js'
 import { useReplyView } from './useReplyView.js'
+import { UsagePopover } from '../usage/UsagePopover.js'
 import {
   BranchSwitcher,
   type MessageVersions,
@@ -62,6 +65,8 @@ export const AssistantMessage = memo(function AssistantMessage({
   const copyText = responseText || notice?.text
   const waiting = streaming && view.steps.length === 0 && !view.answer && !message.thinking
   const summaryEntry = `${message.id}-summary`
+  // 本轮 Token 用量：仅当服务端返回 usage 时展示入口
+  const usage = breakdownUsage(message.usage)
   return (
     <div className={styles.message} data-message-id={message.id}>
       {refused ? null : (
@@ -169,6 +174,18 @@ export const AssistantMessage = memo(function AssistantMessage({
               disabled={busy}
               onClick={() => setUndoOpen(true)}
             />
+            {usage ? (
+              <UsagePopover variant="round" usage={usage} align="end">
+                {({ toggle }) => (
+                  <IconButton
+                    icon={<IconDatabaseOutline16 />}
+                    tooltip={t('usageRoundTitle')}
+                    tooltipPlacement="bottom"
+                    onClick={toggle}
+                  />
+                )}
+              </UsagePopover>
+            ) : null}
           </div>
           {isLast && canContinueReply(message) ? (
             <Button
