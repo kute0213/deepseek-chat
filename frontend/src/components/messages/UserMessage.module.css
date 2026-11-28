@@ -37,7 +37,7 @@
   color: var(--dsw-alias-label-primary);
   background-color: var(--dsw-specific-bubble);
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 @media not all and (min-width: 440px) {

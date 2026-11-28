@@ -12,7 +12,7 @@ const PAGE_SIZE = 20
 /** 右侧轨道固定显示的短横数量 */
 const MAX_BARS = 7
 /** 相邻短横的基准间距（含点击区高度），屏幕过矮时自动缩小 */
-const BAR_PITCH = 28
+const BAR_PITCH = 32
 
 /**
  * 右侧会话导航：用一列短横线表示用户提问，悬浮后渐显前 50 个字预览；
@@ -38,10 +38,10 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   itemsRef.current = items
   totalRef.current = total
 
-  // 间距按屏高自动缩放：常规屏幕 28px，过矮时最小 20px
+  // 间距按屏高自动缩放：常规屏幕 32px，过矮时最小 22px
   useEffect(() => {
     const update = () => {
-      setPitch(Math.max(20, Math.min(BAR_PITCH, Math.round(window.innerHeight / 22))))
+      setPitch(Math.max(22, Math.min(BAR_PITCH, Math.round(window.innerHeight / 24))))
     }
     update()
     window.addEventListener('resize', update)

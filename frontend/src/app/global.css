@@ -13,7 +13,8 @@
 body {
   overflow: hidden;
   margin: 0;
-  word-break: break-word;
+  /* 用 overflow-wrap 而不是 word-break：避免把 ZWJ / 肤色修饰等组合表情从中间拆开 */
+  overflow-wrap: break-word;
   font-family: var(--dsw-font-family);
   font-size: var(--ds-font-size-m);
   color: var(--dsw-alias-label-primary);
@@ -21,6 +22,7 @@ body {
   -webkit-text-size-adjust: none;
   -webkit-tap-highlight-color: transparent;
   font-feature-settings: 'kern';
+  font-variant-emoji: emoji;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 

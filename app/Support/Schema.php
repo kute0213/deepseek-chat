@@ -14,7 +14,7 @@ use PDO;
 final class Schema
 {
     /** 结构版本：新增表或列时递增，触发已安装站点自愈。 */
-    private const VERSION = '2026-11-27.1';
+    private const VERSION = '2026-11-28.1';
 
     private static bool $done = false;
 
@@ -32,6 +32,7 @@ final class Schema
 
         $ok = self::createTables($pdo);
         $ok = self::addColumns($pdo) && $ok;
+        $ok = self::ensureCharset($pdo) && $ok;
 
         if ($ok) {
             $dir = dirname($marker);
@@ -86,6 +87,44 @@ final class Schema
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    /**
+     * 老版本建表时可能使用 utf8mb3，MySQL 会把 4 字节 emoji 静默存成「?」。
+     * 这里把非 utf8mb4 的表统一转为 utf8mb4；转换后不再命中，可安全重复执行。
+     */
+    private static function ensureCharset(PDO $pdo): bool
+    {
+        $tables = [
+            'users',
+            'auth_tokens',
+            'sessions',
+            'usage_archives',
+            'files',
+            'session_files',
+            'share_links',
+            'staging_sessions',
+            'staging_files',
+        ];
+        $ok = true;
+        foreach ($tables as $table) {
+            try {
+                $stmt = $pdo->prepare(
+                    'SELECT table_collation FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ? LIMIT 1'
+                );
+                $stmt->execute([$table]);
+                $collation = (string) ($stmt->fetchColumn() ?: '');
+                if ($collation === '' || str_starts_with($collation, 'utf8mb4')) {
+                    continue;
+                }
+                $pdo->exec(
+                    'ALTER TABLE `' . $table . '` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+                );
+            } catch (\Throwable) {
+                $ok = false;
+            }
+        }
+        return $ok;
     }
 
     /** 补齐历史上新增的列，避免老库因缺列导致接口 500。 */

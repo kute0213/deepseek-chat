@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-28 (outline shift, jump includes reply, emoji question-mark fix)
+
+- Moved the right-side outline 6px to the left (`right: 6px → 12px`) and raised the base bar pitch from 28px to 32px; the minimum pitch on short viewports is now 22px (was 20px).
+- Fixed jumps landing on a question without its AI reply: `SessionStore::pageAround()` now centers the window on the target message and always includes the following message (shifting one page back when the target would sit at the end). The `MessageList` focus effect also depends on `firstMessageId`, so it re-runs after the window is replaced.
+- Fixed emoji rendering as question marks: `Schema::ensureCharset()` converts any non-`utf8mb4` tables with `CONVERT TO CHARACTER SET utf8mb4`, so MySQL can no longer silently store 4-byte emoji as "?". Message wrapping now uses `overflow-wrap` instead of `word-break` so combined emoji are not split, and `body` sets `font-variant-emoji: emoji`. Emoji already corrupted to "?" by an old schema cannot be recovered, but new messages are stored correctly.
+- Rebuilt static assets; `index.html` hashes updated.
+
 ## 2026-11-28 (outline row alignment, combined-emoji fix)
 
 - Reworked the right-side outline: collapsed and expanded states share the same row height (pitch), so every bar aligns one-to-one with its preview row. When expanded, bars are rendered inside each row and scroll together with the panel; the rail fades out while the card fades in.
