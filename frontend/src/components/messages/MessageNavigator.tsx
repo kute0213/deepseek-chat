@@ -164,8 +164,11 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     }
   }, [isMobile, loadWindowAt, session.id, session.messages.length])
 
-  // 选中项滚出预览面板时把它带入可视区
+  // 展开时把当前项带入可视区
   useEffect(() => {
+    if (!open) {
+      return
+    }
     panelRef.current
       ?.querySelector<HTMLElement>('[data-active="true"]')
       ?.scrollIntoView({ block: 'nearest' })
@@ -223,6 +226,7 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
       <div
         ref={panelRef}
         className={clsx(styles.panel, open && styles.panelOpen)}
+        style={{ maxHeight: pitch * MAX_BARS + 8 }}
         role="listbox"
         aria-label={t('messageNavTitle')}
         aria-hidden={!open}
@@ -235,19 +239,22 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
             aria-selected={item.index === active}
             data-active={item.index === active}
             className={clsx(styles.item, item.index === active && styles.itemActive)}
+            style={{ height: pitch }}
             title={item.preview}
             onClick={() => jump(item)}
           >
             <span className={styles.itemText}>{item.preview || t('messageNavAttachment')}</span>
+            <span className={styles.itemBar} />
           </button>
         ))}
       </div>
-      <div className={styles.rail} style={{ gap: Math.max(6, pitch - 10) }}>
+      <div className={clsx(styles.rail, open && styles.railHidden)}>
         {railItems.map((item) => (
           <button
             key={item.id}
             type="button"
             className={styles.barButton}
+            style={{ height: pitch }}
             aria-label={item.preview || t('messageNavTitle')}
             title={item.preview || undefined}
             onClick={() => jump(item)}

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-28 (outline row alignment, combined-emoji fix)
+
+- Reworked the right-side outline: collapsed and expanded states share the same row height (pitch), so every bar aligns one-to-one with its preview row. When expanded, bars are rendered inside each row and scroll together with the panel; the rail fades out while the card fades in.
+- Fixed combined emoji (ZWJ families, skin-tone modifiers, flags): added `Segoe UI Symbol` and `Noto Emoji` to the UI font stack and emoji fonts to the code stack; removed `font-variant-ligatures: no-contextual` from the root and the composer so emoji ligatures are no longer broken.
+- Rebuilt static assets; `index.html` hashes updated.
+
 ## 2026-11-28 (outline redesign, emoji fix, dead-code cleanup)
 
 - Removed the local `/.pnpm-store` build cache (about 260 MB, never committed).

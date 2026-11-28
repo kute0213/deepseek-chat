@@ -6,6 +6,7 @@
   transform: translateY(-50%);
 }
 
+/* 收起时的 7 条短横：每格高度 = pitch，展开后与面板行一一对齐 */
 .rail {
   position: relative;
   z-index: 3;
@@ -13,16 +14,20 @@
   flex-direction: column;
   align-items: flex-end;
   padding: 4px 0;
+  transition: opacity 0.18s ease;
 }
 
-/* 单条短横：10px 点击区 + 2px 线，条间距由行内 gap 控制（随屏高自动缩放） */
+.railHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .barButton {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   box-sizing: border-box;
   width: 18px;
-  height: 10px;
   padding: 0;
   border: none;
   background: none;
@@ -53,7 +58,7 @@
   opacity: 1;
 }
 
-/* 悬浮展开的预览面板：卡片从右缘铺开，右侧留出 30px 让短横压在卡片上 */
+/* 展开面板：高度与收起轨道一致，每行与同位置的短横对齐；行内短横随列表一起滚动 */
 .panel {
   position: absolute;
   top: 50%;
@@ -61,8 +66,7 @@
   z-index: 2;
   box-sizing: border-box;
   width: 228px;
-  max-height: min(340px, 56vh);
-  padding: 6px 30px 6px 8px;
+  padding: 4px 0;
   overflow-y: auto;
   border-radius: 12px;
   background-color: var(--dsw-alias-bg-layer-2);
@@ -92,11 +96,14 @@
   display: none;
 }
 
+/* 每行高度由行内 height = pitch 控制，与收起的短横同节奏 */
 .item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   box-sizing: border-box;
   width: 100%;
-  padding: 6px 8px;
+  padding: 0 0 0 10px;
   overflow: hidden;
   border: none;
   border-radius: 8px;
@@ -107,7 +114,6 @@
   line-height: 20px;
   text-align: left;
   white-space: nowrap;
-  text-overflow: ellipsis;
   cursor: pointer;
   opacity: 0.9;
   transition:
@@ -127,15 +133,39 @@
 }
 
 .itemText {
-  display: block;
+  flex: 1;
+  min-width: 0;
+  padding-right: 8px;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 行内短横：与收起状态同宽、同右对齐，随行一起滚动 */
+.itemBar {
+  flex-shrink: 0;
+  width: 11px;
+  height: 2px;
+  border-radius: 1px;
+  background-color: var(--dsw-alias-label-caption);
+  opacity: 0.45;
+  transition:
+    width 0.16s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.16s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.itemActive .itemBar {
+  width: 18px;
+  background-color: var(--dsw-alias-brand-primary);
+  opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bar,
   .item,
-  .panel {
+  .itemBar,
+  .panel,
+  .rail {
     transition: none;
   }
 }
