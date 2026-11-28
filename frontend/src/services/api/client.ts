@@ -55,11 +55,6 @@ export const uploadFile = async (
   return (await response.json()) as FileObject
 }
 
-/** DELETE /anthropic/v1/files/{file_id} */
-export const deleteFile = async (fileId: string): Promise<void> => {
-  await request(`${BASE_URL}/files/${encodeURIComponent(fileId)}`, { method: 'DELETE' })
-}
-
 /**
  * POST /anthropic/v1/messages（stream: true），逐个产出流式事件，收到 message_stop 时结束。
  * ping、保活注释与无法解析的内容不产出；中止请求时抛出 signal 的 AbortError。

@@ -1,5 +1,13 @@
 # 更新日志
 
+## 2026-11-28（右侧导航重做、表情显示修复与死代码清理）
+
+- 删除本地 `/.pnpm-store` 构建缓存（约 260MB，未入库）。
+- 右侧导航重做：一次显示 7 轮对话；短横间距随屏高自动缩放（常规 28px，过矮时最小 20px）；悬浮预览改为卡片，卡片右侧留出 30px 内边距把短横包在卡片上，短横压在卡片之上。
+- 修复表情无法显示：UI 字体栈加入 `Apple Color Emoji` / `Segoe UI Emoji` / `Noto Color Emoji`，覆盖 Windows / macOS / Android / Linux。
+- 删除 3 个未使用的导出：`services/auth.ts` 的 `deleteApiKey`、`services/chat/reply.ts` 的 `getThinkingSeconds`、`services/api/client.ts` 的 `deleteFile`。
+- 重新构建静态资源，`index.html` 哈希同步更新。
+
 ## 2026-11-28（入口缓存修复、右侧导航 7 条铺满与项目结构精简）
 
 - 修复发布后整站（含左侧边栏）样式丢失：入口 HTML 统一按 `no-store` 输出，避免旧 HTML 引用已删除的哈希资源。`HomePage::render()` 增加 `Cache-Control: no-store, must-revalidate`；`.htaccess` 对 html/php 设置不缓存；Nginx 伪静态在 `location /` 增加 `add_header Cache-Control "no-store" always`。

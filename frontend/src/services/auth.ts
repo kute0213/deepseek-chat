@@ -105,13 +105,6 @@ export const saveApiKey = async (apiKey: string): Promise<string> => {
   return result.apiKeyMask
 }
 
-export const deleteApiKey = async (): Promise<void> => {
-  await requestJson<{ ok: boolean }>('/api/account/api-key', 'DELETE')
-  useAuth.setState((state) =>
-    state.user ? { user: { ...state.user, apiKeyMask: null, hasApiKey: false } } : state
-  )
-}
-
 export const changePassword = async (
   currentPassword: string,
   newPassword: string

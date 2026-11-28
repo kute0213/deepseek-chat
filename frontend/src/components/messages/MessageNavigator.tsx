@@ -11,12 +11,12 @@ import styles from './MessageNavigator.module.css'
 const PAGE_SIZE = 20
 /** 右侧轨道固定显示的短横数量 */
 const MAX_BARS = 7
-/** 轨道纵向占屏高的比例 */
-const RAIL_RATIO = 0.7
+/** 相邻短横的基准间距（含点击区高度），屏幕过矮时自动缩小 */
+const BAR_PITCH = 28
 
 /**
  * 右侧会话导航：用一列短横线表示用户提问，悬浮后渐显前 50 个字预览；
- * 固定 7 条短横，纵向铺满屏幕高度的 70%，滚轮滚动预览列表，点击跳转到对应消息。
+ * 固定 7 条短横，按屏高自动缩放间距，点击跳转到对应消息。
  * 目标消息尚未加载时由消息列表自动拉取它所在的窗口。
  */
 export const MessageNavigator = ({ session }: { session: Session }) => {
@@ -28,8 +28,8 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   const [items, setItems] = useState<OutlineItem[]>([])
   const [active, setActive] = useState(-1)
   const [open, setOpen] = useState(false)
-  // 单条短横占用的槽位高度：7 条铺满屏高的 70%
-  const [pitch, setPitch] = useState(56)
+  // 相邻短横的中心间距：基准 28px，屏幕过矮时自动缩小
+  const [pitch, setPitch] = useState(BAR_PITCH)
   const requestRef = useRef(0)
   const activeRef = useRef(-1)
   const itemsRef = useRef<OutlineItem[]>([])
@@ -38,10 +38,10 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   itemsRef.current = items
   totalRef.current = total
 
-  // 轨道高度跟随屏高：固定 7 条，铺满屏幕的 70%
+  // 间距按屏高自动缩放：常规屏幕 28px，过矮时最小 20px
   useEffect(() => {
     const update = () => {
-      setPitch(Math.max(24, Math.floor((window.innerHeight * RAIL_RATIO) / MAX_BARS)))
+      setPitch(Math.max(20, Math.min(BAR_PITCH, Math.round(window.innerHeight / 22))))
     }
     update()
     window.addEventListener('resize', update)
@@ -223,7 +223,6 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
       <div
         ref={panelRef}
         className={clsx(styles.panel, open && styles.panelOpen)}
-        style={{ maxHeight: pitch * MAX_BARS }}
         role="listbox"
         aria-label={t('messageNavTitle')}
         aria-hidden={!open}
@@ -243,7 +242,7 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
           </button>
         ))}
       </div>
-      <div className={styles.rail} style={{ height: pitch * MAX_BARS }}>
+      <div className={styles.rail} style={{ gap: Math.max(6, pitch - 10) }}>
         {railItems.map((item) => (
           <button
             key={item.id}

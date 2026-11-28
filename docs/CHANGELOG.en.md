@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-28 (outline redesign, emoji fix, dead-code cleanup)
+
+- Removed the local `/.pnpm-store` build cache (about 260 MB, never committed).
+- Redesigned the right-side outline: 7 rounds at a time; bar spacing auto-scales with viewport height (28px normally, 20px minimum); the hover preview is now a card whose 30px right padding wraps the bars inside it, with the bars drawn above the card.
+- Fixed emoji rendering: added `Apple Color Emoji` / `Segoe UI Emoji` / `Noto Color Emoji` to the UI font stack for Windows, macOS, Android and Linux.
+- Removed 3 unused exports: `deleteApiKey` in `services/auth.ts`, `getThinkingSeconds` in `services/chat/reply.ts`, and `deleteFile` in `services/api/client.ts`.
+- Rebuilt static assets; `index.html` hashes updated.
+
 ## 2026-11-28 (entry cache fix, 7-bar outline, project cleanup)
 
 - Fixed whole-site styling loss (including the left sidebar) after deploys: entry HTML is always served with `no-store` so stale HTML can no longer reference deleted hashed assets. `HomePage::render()` now sends `Cache-Control: no-store, must-revalidate`; `.htaccess` disables caching for html/php; the Nginx rewrite block adds `add_header Cache-Control "no-store" always` to `location /`.

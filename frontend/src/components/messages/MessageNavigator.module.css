@@ -1,23 +1,21 @@
 .root {
   position: absolute;
   top: 50%;
-  right: 4px;
+  right: 6px;
   z-index: 30;
   transform: translateY(-50%);
 }
 
 .rail {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  justify-content: space-between;
-  gap: 0;
-  padding: 4px 3px;
+  padding: 4px 0;
 }
 
-/* 单条短横：10px 点击区 + 2px 线；7 条由行内 height 纵向均匀分布 */
+/* 单条短横：10px 点击区 + 2px 线，条间距由行内 gap 控制（随屏高自动缩放） */
 .barButton {
   display: flex;
   align-items: center;
@@ -33,11 +31,11 @@
 
 .bar {
   display: block;
-  width: 12px;
+  width: 11px;
   height: 2px;
   border-radius: 1px;
   background-color: var(--dsw-alias-label-caption);
-  opacity: 0.5;
+  opacity: 0.45;
   transition:
     width 0.16s cubic-bezier(0.4, 0, 0.2, 1),
     background-color 0.16s cubic-bezier(0.4, 0, 0.2, 1),
@@ -50,21 +48,21 @@
 
 .barActive,
 .barButton:hover .barActive {
-  width: 16px;
+  width: 18px;
   background-color: var(--dsw-alias-brand-primary);
   opacity: 1;
 }
 
-/* 悬浮展开的预览面板：右对齐覆盖短横轨道，淡入淡出 */
+/* 悬浮展开的预览面板：卡片从右缘铺开，右侧留出 30px 让短横压在卡片上 */
 .panel {
   position: absolute;
   top: 50%;
   right: 0;
   z-index: 2;
   box-sizing: border-box;
-  width: 220px;
-  max-height: 146px;
-  padding: 6px;
+  width: 228px;
+  max-height: min(340px, 56vh);
+  padding: 6px 30px 6px 8px;
   overflow-y: auto;
   border-radius: 12px;
   background-color: var(--dsw-alias-bg-layer-2);
@@ -98,20 +96,20 @@
   display: block;
   box-sizing: border-box;
   width: 100%;
-  padding: 5px 8px;
+  padding: 6px 8px;
   overflow: hidden;
   border: none;
   border-radius: 8px;
   background: none;
   color: var(--dsw-alias-label-secondary);
   font: inherit;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 13px;
+  line-height: 20px;
   text-align: left;
   white-space: nowrap;
   text-overflow: ellipsis;
   cursor: pointer;
-  opacity: 0.86;
+  opacity: 0.9;
   transition:
     background-color 0.16s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.16s cubic-bezier(0.4, 0, 0.2, 1);
