@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-28 (outline no longer resets after collapsing)
+
+- Fixed the right-side outline resetting to its initial state (losing the active highlight and position) after the pointer leaves the panel: collapsed and expanded states are now the same panel. Collapsing only hides the text and shrinks the width to the 18px bars, sharing one scroll position and one active item; the active row stays vertically centered, and expanding grows it back to a 228px card to the left.
+- Fixed the outline window being overwritten with the first page: when the `around` target is not in the returned page, the current window is kept instead of being replaced by items 1-20 (which pushed the active row out of the window and made the bars look reset).
+- Rebuilt static assets; `index.html` hashes updated.
+
 ## 2026-11-28 (outline shift, jump includes reply, emoji question-mark fix)
 
 - Moved the right-side outline 6px to the left (`right: 6px → 12px`) and raised the base bar pitch from 28px to 32px; the minimum pitch on short viewports is now 22px (was 20px).

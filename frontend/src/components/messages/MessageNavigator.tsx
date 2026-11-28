@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useIsMobile } from '../../app/viewport.js'
 import { useTranslate } from '../../i18n/index.js'
 import { focusMessage } from '../../services/chat/focus.js'
@@ -16,7 +16,9 @@ const BAR_PITCH = 32
 
 /**
  * 右侧会话导航：用一列短横线表示用户提问，悬浮后渐显前 50 个字预览；
- * 固定 7 条短横，按屏高自动缩放间距，点击跳转到对应消息。
+ * 固定露出 7 条短横，按屏高自动缩放间距，点击跳转到对应消息。
+ * 收起与展开始终是同一份列表、同一个滚动位置：
+ * 收起时只隐藏文字、宽度收窄到短横，因此高亮与位置不会在收起后丢失。
  * 目标消息尚未加载时由消息列表自动拉取它所在的窗口。
  */
 export const MessageNavigator = ({ session }: { session: Session }) => {
@@ -28,7 +30,7 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   const [items, setItems] = useState<OutlineItem[]>([])
   const [active, setActive] = useState(-1)
   const [open, setOpen] = useState(false)
-  // 相邻短横的中心间距：基准 28px，屏幕过矮时自动缩小
+  // 相邻短横的中心间距：基准 32px，屏幕过矮时自动缩小
   const [pitch, setPitch] = useState(BAR_PITCH)
   const requestRef = useRef(0)
   const activeRef = useRef(-1)
@@ -37,6 +39,10 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   activeRef.current = active
   itemsRef.current = items
   totalRef.current = total
+
+  // 面板一次性最多露出 7 行，行数不足时按实际条数收缩
+  const rows = Math.max(1, Math.min(items.length, MAX_BARS))
+  const panelHeight = rows * pitch + 8
 
   // 间距按屏高自动缩放：常规屏幕 32px，过矮时最小 22px
   useEffect(() => {
@@ -54,7 +60,6 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     setItems([])
     setTotal(0)
     setActive(-1)
-    setOpen(false)
     void loadOutline(session.id, { offset: Number.MAX_SAFE_INTEGER, limit: PAGE_SIZE })
       .then((page) => {
         if (seq !== requestRef.current) {
@@ -87,14 +92,19 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
         if (seq !== requestRef.current) {
           return
         }
-        setTotal(page.total)
-        setItems(page.items)
         if (aroundId) {
           const hit = page.items.find((item) => item.id === aroundId)
-          if (hit) {
-            setActive(hit.index)
+          // 目标不在大纲里时保持当前窗口，避免被“从头开始”的一页覆盖
+          if (!hit) {
+            return
           }
+          setTotal(page.total)
+          setItems(page.items)
+          setActive(hit.index)
+          return
         }
+        setTotal(page.total)
+        setItems(page.items)
       } catch {
         // 保持当前窗口，不打断阅读
       }
@@ -164,30 +174,19 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     }
   }, [isMobile, loadWindowAt, session.id, session.messages.length])
 
-  // 展开时把当前项带入可视区
-  useEffect(() => {
-    if (!open) {
+  // 高亮行始终停在可视区中间：收起时露出的 7 条短横、展开后的预览行，
+  // 使用同一个滚动位置，因此收起 / 展开不会“跳回初始化”。
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+    if (!panel) {
       return
     }
-    panelRef.current
-      ?.querySelector<HTMLElement>('[data-active="true"]')
-      ?.scrollIntoView({ block: 'nearest' })
-  }, [active, open])
-
-  const railItems = useMemo(() => {
-    if (items.length <= MAX_BARS) {
-      return items
+    const row = panel.querySelector<HTMLElement>('[data-active="true"]')
+    if (!row) {
+      return
     }
-    const position = Math.max(
-      0,
-      items.findIndex((item) => item.index === active)
-    )
-    const start = Math.max(
-      0,
-      Math.min(position - Math.floor(MAX_BARS / 2), items.length - MAX_BARS)
-    )
-    return items.slice(start, start + MAX_BARS)
-  }, [active, items])
+    panel.scrollTop = row.offsetTop - panel.clientHeight / 2 + row.offsetHeight / 2
+  }, [active, open, panelHeight, pitch, items])
 
   // 展开后滚轮直接滚动预览列表，而不是切换选中的会话
   useEffect(() => {
@@ -220,16 +219,16 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     <div
       ref={rootRef}
       className={styles.root}
+      style={{ height: panelHeight }}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
       <div
         ref={panelRef}
-        className={clsx(styles.panel, open && styles.panelOpen)}
-        style={{ maxHeight: pitch * MAX_BARS + 8 }}
+        className={clsx(styles.panel, open ? styles.panelOpen : styles.panelCollapsed)}
+        style={{ height: panelHeight }}
         role="listbox"
         aria-label={t('messageNavTitle')}
-        aria-hidden={!open}
       >
         {items.map((item) => (
           <button
@@ -245,21 +244,6 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
           >
             <span className={styles.itemText}>{item.preview || t('messageNavAttachment')}</span>
             <span className={styles.itemBar} />
-          </button>
-        ))}
-      </div>
-      <div className={clsx(styles.rail, open && styles.railHidden)}>
-        {railItems.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={styles.barButton}
-            style={{ height: pitch }}
-            aria-label={item.preview || t('messageNavTitle')}
-            title={item.preview || undefined}
-            onClick={() => jump(item)}
-          >
-            <span className={clsx(styles.bar, item.index === active && styles.barActive)} />
           </button>
         ))}
       </div>
