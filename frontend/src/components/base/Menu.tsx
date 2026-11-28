@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useAnchoredPosition, useDismiss } from './anchored.js'
 import styles from './Menu.module.css'
@@ -16,12 +16,9 @@ export type MenuOption = {
 export const Menu = ({
   options,
   children,
-  onOpenChange,
 }: {
   options: MenuOption[]
   children: (props: { open: boolean; toggle: () => void }) => ReactNode
-  /** 展开状态变化：调用方可在展开期间保持触发元素可见，避免锚点消失导致浮动 */
-  onOpenChange?: (open: boolean) => void
 }) => {
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
@@ -31,10 +28,6 @@ export const Menu = ({
     { align: 'start', alignOffset: -5, offset: 4 }
   )
   useDismiss(open, [anchorRef, floatingRef], close)
-
-  useEffect(() => {
-    onOpenChange?.(open)
-  }, [onOpenChange, open])
 
   return (
     <>
@@ -46,11 +39,7 @@ export const Menu = ({
             <div
               ref={floatingRef}
               className={styles.menu}
-              style={{
-                ...position,
-                // 首次渲染尚未测量时先隐藏，避免菜单在左上角闪一下再跳到锚点
-                visibility: position ? 'visible' : 'hidden',
-              }}
+              style={position ?? undefined}
               role="menu"
             >
               {options.map((option) => (

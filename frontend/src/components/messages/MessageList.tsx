@@ -207,7 +207,7 @@ export const MessageList = ({
     stickyRef.current = false
     node.scrollIntoView({ block: 'center' })
     clearMessageFocus()
-  }, [firstMessageId, focusTarget, messages.length, session.id])
+  }, [focusTarget, session.id, messages.length])
 
   const selectVersion = useCallback(
     (messageId: string, anchorTop: number) => {

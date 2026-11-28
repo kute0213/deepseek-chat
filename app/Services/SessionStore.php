@@ -442,8 +442,8 @@ final class SessionStore
     }
 
     /**
-     * 定位到某条消息所在的窗口：以该消息为中心取一页，并保证它后面的同轮回答
-     * （通常是 AI 消息）也进入窗口，避免跳转后只看到提问、看不到回答。
+     * 定位到某条消息所在的窗口：以该消息为窗口末尾，最多返回 $limit 条可见消息。
+     * 搜索结果跳转只需这一页，不再把它之后的全部内容一并返回。
      *
      * @return array{session: array, hasMore: bool}
      */
@@ -470,15 +470,8 @@ final class SessionStore
         if ($index === null) {
             return ['session' => $session, 'hasMore' => false];
         }
-        $count = count($ordered);
-        $start = max(0, $index - intdiv($limit, 2));
-        $end = min($count, $start + $limit);
-        // 目标之后的同轮回答必须进入窗口
-        $minEnd = min($count, $index + 2);
-        if ($end < $minEnd) {
-            $end = $minEnd;
-            $start = max(0, $end - $limit);
-        }
+        $end = $index + 1;
+        $start = max(0, $end - $limit);
         $slice = array_slice($ordered, $start, $end - $start);
         $session['messages'] = $slice;
         if ($slice !== []) {
