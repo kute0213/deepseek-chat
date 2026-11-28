@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-28 (menu positioning, right-side outline, jump fix)
+
+- Fixed the session "more" menu drifting when no session is selected: the trigger stays visible while the menu is open, repositioning stops when the anchor is hidden, and the floating menu stays hidden until measured to avoid a flash.
+- Further widened the right-side outline spacing; hovering now slides the preview panel in from the right, covering the bar rail.
+- Fixed jumping to a round showing only the question: the server window is now centered on the target and always includes the following AI reply, and the list re-locates after the window changes.
+- Added an "Open Source License" docs page (Chinese and English) noting the frontend is based on deepseek-ai/deepseek-demo and retaining the MIT license notice.
+- Removed the tracked `.trae-html-share-packages` directory.
+
 ## 2026-11-28 (pricing settings and right-side outline)
 
 - Removed the "Free" tag from the usage popover.

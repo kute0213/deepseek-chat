@@ -37,6 +37,8 @@ export const SessionItem = memo(function SessionItem({
 }) {
   const t = useTranslate()
   const [editing, setEditing] = useState(false)
+  // 菜单展开期间保持「更多」按钮可见：否则鼠标移到浮层后触发元素被隐藏，菜单会漂移
+  const [menuOpen, setMenuOpen] = useState(false)
   const displayTitle = session.title || t('untitledChat')
 
   if (editing && !batch) {
@@ -66,7 +68,12 @@ export const SessionItem = memo(function SessionItem({
 
   return (
     <div
-      className={clsx(styles.item, active && !batch && styles.active, selected && styles.selected)}
+      className={clsx(
+        styles.item,
+        active && !batch && styles.active,
+        selected && styles.selected,
+        menuOpen && styles.menuOpen
+      )}
       onClick={() => {
         if (batch) {
           onToggle?.()
@@ -89,6 +96,7 @@ export const SessionItem = memo(function SessionItem({
       {batch ? null : (
         <div className={styles.action} onClick={(event) => event.stopPropagation()}>
           <Menu
+            onOpenChange={setMenuOpen}
             options={[
               {
                 key: 'rename',

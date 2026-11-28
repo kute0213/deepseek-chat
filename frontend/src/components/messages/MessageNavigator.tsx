@@ -12,7 +12,7 @@ const PAGE_SIZE = 20
 /** 右侧轨道最多显示的短横数量 */
 const MAX_BARS = 5
 /** 相邻短横线的垂直间距（含线高） */
-const BAR_PITCH = 16
+const BAR_PITCH = 20
 
 /**
  * 右侧会话导航：用一列短横线表示用户提问，悬浮后展开前 50 个字预览；
@@ -183,10 +183,10 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     return items.slice(start, start + bars)
   }, [active, bars, items])
 
-  // 滚轮直接滚动预览列表，而不是切换选中的会话
+  // 展开时滚轮直接滚动预览列表，而不是切换选中的会话
   useEffect(() => {
     const root = rootRef.current
-    if (!root) {
+    if (!root || !open) {
       return
     }
     const onWheel = (event: WheelEvent) => {
@@ -199,7 +199,7 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     }
     root.addEventListener('wheel', onWheel, { passive: false })
     return () => root.removeEventListener('wheel', onWheel)
-  }, [])
+  }, [open])
 
   if (isMobile || total <= 0) {
     return null
@@ -217,24 +217,28 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      {open ? (
-        <div ref={panelRef} className={styles.panel} role="listbox" aria-label={t('messageNavTitle')}>
-          {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="option"
-              aria-selected={item.index === active}
-              data-active={item.index === active}
-              className={clsx(styles.item, item.index === active && styles.itemActive)}
-              title={item.preview}
-              onClick={() => jump(item)}
-            >
-              <span className={styles.itemText}>{item.preview || t('messageNavAttachment')}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <div
+        ref={panelRef}
+        className={clsx(styles.panel, open && styles.panelOpen)}
+        role="listbox"
+        aria-label={t('messageNavTitle')}
+        aria-hidden={!open}
+      >
+        {items.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="option"
+            aria-selected={item.index === active}
+            data-active={item.index === active}
+            className={clsx(styles.item, item.index === active && styles.itemActive)}
+            title={item.preview}
+            onClick={() => jump(item)}
+          >
+            <span className={styles.itemText}>{item.preview || t('messageNavAttachment')}</span>
+          </button>
+        ))}
+      </div>
       <div className={styles.rail}>
         {railItems.map((item) => (
           <button

@@ -23,6 +23,11 @@
     background-color: var(--dsw-specific-sidebar-nav-item-active-accent);
   }
 
+  // 菜单展开期间固定显示「更多」按钮，避免锚点被隐藏导致浮层漂移
+  &.menuOpen .action {
+    display: flex;
+  }
+
   @media (hover: hover) {
     &:not(.active):not(.selected):hover {
       background-color: var(--dsw-specific-sidebar-nav-item-hover);
