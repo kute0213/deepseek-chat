@@ -3,21 +3,24 @@ import clsx from 'clsx'
 import { FallbackImage } from './FallbackImage.js'
 import { IconLinkOutline14 } from '../base/icons.js'
 import type { Source } from '../../services/chat/view.js'
+import { siteIconSrc } from '../../services/siteIcon.js'
 import styles from './SiteLogo.module.css'
 
 /** 站点图标：加载中显示骨架，没有图标或加载失败时显示链接图标 */
 export const SiteLogo = ({
   url,
+  pageUrl,
   className,
   style,
 }: {
   url: string | null
+  pageUrl?: string | null
   className?: string
   style?: CSSProperties
 }) => (
   <FallbackImage
     key={url ?? ''}
-    src={url ?? ''}
+    src={siteIconSrc(url, pageUrl) ?? ''}
     fallback={<IconLinkOutline14 />}
     className={clsx(styles.logo, className)}
     imgClassName={styles.img}
@@ -31,7 +34,7 @@ export const SiteLogo = ({
 export const SiteThumbnails = ({ sources }: { sources: Source[] }) => (
   <span className={styles.group}>
     {sources.slice(0, 4).map((source) => (
-      <SiteLogo key={source.url} url={source.siteIcon} className={styles.thumbnail} />
+      <SiteLogo key={source.url} url={source.siteIcon} pageUrl={source.url} className={styles.thumbnail} />
     ))}
   </span>
 )

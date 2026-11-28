@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-require __DIR__ . '/app/Bootstrap.php';
+require_once __DIR__ . '/app/Bootstrap.php';
 
 use App\Bootstrap;
 use App\Controllers\AccountController;
@@ -15,6 +15,7 @@ use App\Controllers\IdController;
 use App\Controllers\SessionController;
 use App\Controllers\ShareController;
 use App\Controllers\SiteController;
+use App\Controllers\SiteIconController;
 use App\Controllers\SpeechController;
 use App\Services\HomePage;
 use App\Router;
@@ -74,6 +75,7 @@ if ($method === 'GET' && !str_starts_with($path, '/api/')) {
 $router = new Router();
 
 $router->get('/api/site', [SiteController::class, 'show']);
+$router->get('/api/site-icon', [SiteIconController::class, 'show']);
 
 $router->get('/api/auth/captcha', [CaptchaController::class, 'show']);
 $router->post('/api/auth/register', [AuthController::class, 'register']);

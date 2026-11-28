@@ -20,6 +20,7 @@
 - 会话置顶：会话菜单支持置顶（空心图钉图标）/ 取消置顶、分享与多选，置顶会话固定排在列表最前。
 - 撤销某轮对话：用户消息下方与 AI 回答的操作区都提供空心撤销图标（与复制、重新生成等按钮并排），确认后删除该轮提问、回答及其后的所有消息（含其他分支），并立即同步服务端。
 - 文档路由：`/docs` 读取 `docs/` 下的 Markdown 并自动渲染为 HTML，左侧为可折叠文档列表；入口统一由 `index.php` 分发，不再依赖目录索引；中英文文档采用 `名称.md` / `名称.en.md` 命名，按当前界面语言自动选择对应版本。
+- 联网搜索来源图标：搜索结果里的站点图标统一经 `GET /api/site-icon?url=&page=` 由服务端解析、下载并缓存到 `uploads/cache/site-icons`（相对路径先按来源站点、再按 API 基址解析），30 天服务端缓存 + 浏览器长缓存；缺失时返回占位图，不再出现 `/api/files/{uuid}` 的 404。
 - 站点图标：融合图标位于 `static/site/favicon.png` / `favicon.ico`（DSH-GO 像素玫瑰块 + DeepSeek 鲸鱼 + 对话气泡的原创融合），`index.html` 显式声明；Nginx / Apache / PHP 入口三层都做一年 `immutable` 服务端缓存，`/favicon.ico` 缺失时自动回落到静态图标，AI 或浏览器再次访问不会产生 404。
 - 设置中心：新增「用户协议」标签页（用户协议 / 隐私政策入口）；账号页将修改用户名、修改密码改为两个按钮并进入二级面板，退出登录下方新增注销账号；数据管理新增 Token 用量入口（仅保留「查看」入口，不再内嵌预览进度条）、「查看」进入用量二级面板，以及「我的分享链接 → 去管理」。
 - Token 计量：只增不减。会话 Token 采用历史最大值累加，撤销消息、切换分支、删除会话、删除用户都不会让总量回退；已删除会话与已删除用户的用量会先归档再移除。
@@ -35,8 +36,7 @@
 .
 ├── index.php              # 唯一 PHP 入口：首页输出 + API 路由 + 安装/文档/后台/404 分发
 ├── index.html             # 前端构建产物（由 frontend 构建生成）
-├── .user.ini              # PHP-FPM/CGI 上传与执行时间限制
-├── .htaccess              # Apache 重写与安全规则
+├── .htaccess              # Apache 重写与安全规则（唯一保留在根目录的运行期文件）
 ├── static/                # 前端构建产物（css / js / media）+ site/（站点图标与后台共享样式）
 ├── app/                   # 全部后端业务代码（按模块分类）
 │   ├── Admin/             # 服务端渲染管理后台（/admin/，含 pages 模板）
@@ -48,7 +48,7 @@
 │   ├── lang/              # 站点文案（zh-CN.php / en-US.php）
 │   └── Dev/               # PHP 内置服务器开发路由
 ├── docs/                  # 中英文 Markdown 文档 + index.php 兼容入口
-├── scripts/               # 示例配置杂物（nginx-vhost.conf），禁止被 PHP 引用
+├── scripts/               # 配置与部署杂物（nginx-vhost.conf、user.ini、cleanup-legacy.sh），禁止被 PHP 引用
 ├── frontend/              # 官方前端源码（独立构建）
 └── uploads/               # 运行期数据（不入库）
     ├── config/            # config.php、installed.lock（安装生成）
@@ -75,7 +75,8 @@
    - 安装程序会自动建库、建表、生成 `uploads/config/config.php` 与 `uploads/config/installed.lock`。
    - 若数据库已存在同名库，请确认使用空库或备份后继续。
 4. 安装完成后访问 `/` 即可直接进入聊天；未登录时发送消息会引导在设置中登录 / 注册。管理员访问 `/admin/` 登录后台。
-5. 导入历史或上传大附件需要更高的 PHP 限制：PHP-FPM/CGI 读取根目录 `.user.ini`（128M / 900s），Apache `mod_php` 读取 `.htaccess` 中的 `php_value`；Nginx + PHP-FPM 需同步 `client_max_body_size 128m;`。
+5. 导入历史或上传大附件需要更高的 PHP 限制：根目录已不放置 `.user.ini`，示例在 `scripts/user.ini`（复制为站点根目录的 `.user.ini` 即生效）；使用 `scripts/nginx-vhost.conf` 时已通过 `fastcgi_param PHP_VALUE` 设置 128M / 900s，面板站点请在「PHP 配置」中同步，Nginx 还需 `client_max_body_size 128m;`。
+6. 从旧版本升级：先执行 `sh scripts/cleanup-legacy.sh`，删除根目录遗留的 `database/`、`admin/`、`install/`、`config/` 与 `.user.ini`；最新版本的对应功能都已收进 `app/`。
 6. 已安装站点直接覆盖代码即可升级：首次数据库连接会自动补齐新增表与新增列（`app/Support/Schema.php`，版本标记写入 `uploads/config/schema.version`）。若数据库账号没有 `CREATE` / `ALTER` 权限，请先手动执行一次 `app/Install/schema.sql`，避免旧库缺列导致接口 500。
 7. 首页由 `index.php` 读取构建产物 `index.html` 后注入站点名称与 `window.__SITE__` 再输出，因此默认首页需优先 `index.php`。
 
@@ -224,6 +225,8 @@ server {
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         fastcgi_param SCRIPT_NAME     $fastcgi_script_name;
+        # 根目录不再放 .user.ini，由 Nginx 直接设置 PHP 上传与超时限制
+        fastcgi_param PHP_VALUE "upload_max_filesize=128M\npost_max_size=128M\nmax_execution_time=900\nmax_input_time=900\nmemory_limit=256M";
         fastcgi_pass unix:/run/php/php8.2-fpm.sock;
         fastcgi_buffering off;          # 流式回复必须关闭缓冲
         fastcgi_request_buffering off;  # 大文件上传边收边转发
@@ -242,7 +245,7 @@ server {
 }
 ```
 
-> Nginx 环境无需 `.htaccess`；`.user.ini` 仅 PHP-FPM/CGI 读取，本配置已通过 `client_max_body_size` 与 `fastcgi_read_timeout` 覆盖上传和超时限制。若使用子目录部署，需要同步修改前端 `publicPath` 与接口前缀。
+> Nginx 环境无需 `.htaccess`；根目录不再放 `.user.ini`，上传与超时限制由上方 `fastcgi_param PHP_VALUE` 与 `client_max_body_size` 覆盖（其它环境可复制 `scripts/user.ini` 到根目录）。若使用子目录部署，需要同步修改前端 `publicPath` 与接口前缀。
 
 ### Nginx 虚拟主机版（宝塔 / aaPanel / cPanel 等面板）
 

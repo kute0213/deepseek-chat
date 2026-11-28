@@ -1,5 +1,12 @@
 # 更新日志
 
+## 2026-11-28（修复后台入口崩溃、联网站点图标服务端缓存、根目录彻底整理）
+
+- 修复 `Cannot declare class App\Bootstrap`：`index.php`、`app/Admin/index.php` 统一改为 `require_once`，并为 `Bootstrap::boot()` 增加只执行一次的守卫，`/admin`、`/install` 与主入口重复引导不再报错。
+- 新增 `GET /api/site-icon?url=`：AI 联网搜索结果里的站点图标统一由服务端解析与下载，相对路径按 API 基址解析，缓存到 `uploads/cache/site-icons`（30 天）；缺失时返回占位图，不再出现 `/api/files/{uuid}` 404。
+- 根目录不再保留 `.user.ini`，示例移动到 `scripts/user.ini`；Nginx 配置改用 `fastcgi_param PHP_VALUE` 设置 128M / 900s，面板站点在 PHP 配置中同步即可。
+- 根目录再次核对并保持精简：`database/`、`admin/`、`install/`、`config/` 均不存在（后台合并到 `app/Admin`，安装合并到 `app/Install`，配置只保留运行期 `uploads/config`）；示例配置集中在 `scripts/`，禁止被 PHP 引用。
+
 ## 2026-11-27（右侧会话导航、精简大纲接口、根目录精简）
 
 - 新增右侧会话导航：桌面端在消息区右缘显示一列短横线，悬浮展开前 50 个字预览；短横数量按屏幕高度自适应，滚轮平滑切换选中项，点击跳转到对应消息。

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-28 (admin entry crash fix, cached web-search site icons, root cleanup)
+
+- Fixed `Cannot declare class App\Bootstrap`: `index.php` and `app/Admin/index.php` now use `require_once`, and `Bootstrap::boot()` is guarded so repeated bootstrapping from `/admin`, `/install`, and the main entry no longer fatals.
+- Added `GET /api/site-icon?url=`: site icons from AI web-search results are resolved and downloaded server-side (relative paths resolve against the API base) and cached under `uploads/cache/site-icons` for 30 days. Missing icons return a placeholder instead of a `/api/files/{uuid}` 404.
+- Removed `.user.ini` from the root; the sample now lives at `scripts/user.ini`. The Nginx config sets 128M / 900s via `fastcgi_param PHP_VALUE`; panel-hosted sites can mirror the values in their PHP settings.
+- Verified the root stays slim: `database/`, `admin/`, `install/`, and `config/` are absent (admin is in `app/Admin`, install in `app/Install`, runtime config in `uploads/config`); deployment samples live in `scripts/` and are never referenced by PHP.
+
 ## 2026-11-27 (right-side outline, lightweight API, root cleanup)
 
 - Added a desktop right-side outline: short bars along the message area edge, hover shows 50-character previews, bar count adapts to screen height, the wheel moves the selection smoothly, and clicking jumps to the message.

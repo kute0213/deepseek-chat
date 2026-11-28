@@ -19,6 +19,7 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 - Pin sessions: pinned chats stay at the top.
 - Undo a round: the hollow undo icon sits below user messages and next to the assistant action buttons (no more menu).
 - Docs: `/docs` renders Markdown files with a collapsible list; Chinese and English versions use the `.md` / `.en.md` naming convention.
+- Web-search site icons: icons in AI search results go through `GET /api/site-icon?url=&page=`, which resolves relative paths against the source site first, then the API base, downloads them server-side into `uploads/cache/site-icons`, and caches them for 30 days. Missing icons return a placeholder instead of a `/api/files/{uuid}` 404.
 - Favicon: the original blended icon lives at `static/site/favicon.png` / `favicon.ico` (DSH-GO rose pixel blocks + DeepSeek whale + chat bubble). `index.html` declares it, and Nginx / Apache / the PHP entry all send a one-year immutable cache; missing `/favicon.ico` falls back to the static icon.
 - Settings: terms and privacy entries, account panels, token usage (entry only), and share management.
 - Token accounting: monotonic. Token totals only grow; undoing messages, switching branches, deleting chats or deleting users never reduces them (usage is archived before removal).
@@ -44,7 +45,7 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 │   ├── lang/              # Site strings
 │   └── Dev/               # PHP built-in server router
 ├── docs/                  # Markdown docs + compatibility index.php
-├── scripts/               # Deployment samples and misc assets (never referenced by PHP)
+├── scripts/               # Config/deploy samples (nginx-vhost.conf, user.ini, cleanup-legacy.sh), never referenced by PHP
 ├── frontend/              # Official front-end source
 └── uploads/               # Runtime data (config, logs, attachments, staging)
 ```
@@ -63,8 +64,9 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 2. Make `uploads/` writable.
 3. Visit `/install` and provide the database settings, then create the administrator account.
 4. Visit `/` to chat; administrators sign in at `/admin/`.
-5. For large imports or attachments, raise PHP limits: `.user.ini` (128M / 900s) for FPM/CGI, `.htaccess` for `mod_php`; for Nginx add `client_max_body_size 128m;`.
+5. For large imports or attachments, raise PHP limits: a sample lives at `scripts/user.ini` (copy it to the site root as `.user.ini`), or set the same values in your PHP configuration. Nginx also needs `client_max_body_size 128m;`; `scripts/nginx-vhost.conf` already injects the PHP values.
 6. Upgrading an existing install only requires replacing the code: the first database connection adds any missing tables or columns (`app/Support/Schema.php`, tracked in `uploads/config/schema.version`). If the database account lacks `CREATE` / `ALTER`, run `app/Install/schema.sql` manually once.
+7. To remove leftovers from older layouts, run `sh scripts/cleanup-legacy.sh`; it deletes root `database/`, `admin/`, `install/`, `config/`, and `.user.ini` (all moved into `app/` or `scripts/` in the latest version).
 
 ## Build the front end
 

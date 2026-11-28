@@ -10,7 +10,7 @@ use App\Services\UserService;
 use App\Support\Auth;
 use App\Support\Request;
 
-require dirname(__DIR__, 2) . '/app/Bootstrap.php';
+require_once dirname(__DIR__, 2) . '/app/Bootstrap.php';
 Bootstrap::boot();
 \App\Support\Lang::setLocale(($_COOKIE['dsw_locale'] ?? '') === 'en-US' ? 'en-US' : 'zh-CN');
 

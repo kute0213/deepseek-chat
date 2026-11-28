@@ -17,7 +17,7 @@ export const SourceCard = ({ source, className }: { source: Source; className?: 
     <a className={styles.anchor} href={source.url} target="_blank" rel="noreferrer">
       <div className={clsx(styles.card, className)}>
         <div className={styles.meta}>
-          <SiteLogo url={source.siteIcon} className={styles.siteIcon} />
+          <SiteLogo url={source.siteIcon} pageUrl={source.url} className={styles.siteIcon} />
           {source.siteName ? <span className={styles.siteName}>{source.siteName}</span> : null}
           {source.siteName && date ? <span className={styles.divider} /> : null}
           {date ? <span className={styles.date}>{date}</span> : null}
