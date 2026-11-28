@@ -95,6 +95,8 @@ export const MessageList = ({
   const fillKeyRef = useRef('')
   /** 搜索 / 右侧导航跳转时，记录已拉取过“目标消息所在窗口”，避免重复请求 */
   const jumpWindowKeyRef = useRef('')
+  /** 用户是否亲手滚动过；跳转定位的程序化滚动不算，避免跳转即触发向下续载 */
+  const userScrollRef = useRef(false)
   const messages = getVisibleMessages(session)
   // 预加载判断需要知道每条消息的角色；用 ref 保证滚动回调里读到最新值
   const roles = useMemo(
@@ -145,6 +147,7 @@ export const MessageList = ({
   useLayoutEffect(() => {
     pendingPrependRef.current = null
     prevLayoutRef.current = null
+    userScrollRef.current = false
     setAtBottom(true)
   }, [session.id])
 
@@ -226,17 +229,35 @@ export const MessageList = ({
     void loadOlderMessages(session.id)
   }, [firstMessageId, hasMore, loadingOlder, session.id])
 
-  // 跳转后的中间窗口：已经贴底（含内容不足一屏、无法滚动）时继续加载更晚的消息
-  useLayoutEffect(() => {
-    if (!hasNewer || loadingOlder) {
-      return
-    }
+  // 跳转后的中间窗口：只有用户主动向下滚动（含窗口不足一屏、无法滚动时）才继续加载更晚的消息。
+  // 不在布局阶段自动触发，避免跳转后把后面的所有对话一次性加载完。
+  useEffect(() => {
     const el = scrollRef.current
-    if (!el || el.scrollHeight - el.scrollTop - el.clientHeight > STICKY_THRESHOLD) {
+    if (!el) {
       return
     }
-    void loadNewerMessages(session.id)
-  }, [hasNewer, loadingOlder, messages.length, session.id])
+    const onWheel = (event: WheelEvent) => {
+      userScrollRef.current = true
+      if (event.deltaY <= 0 || !hasNewer || loadingOlder) {
+        return
+      }
+      if (el.scrollHeight - el.scrollTop - el.clientHeight > STICKY_THRESHOLD) {
+        return
+      }
+      stickyRef.current = false
+      void loadNewerMessages(session.id)
+    }
+    // 触摸设备没有滚轮：触摸滚动同样视为用户操作
+    const onTouchStart = () => {
+      userScrollRef.current = true
+    }
+    el.addEventListener('wheel', onWheel, { passive: true })
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('touchstart', onTouchStart)
+    }
+  }, [hasNewer, isMobile, loadingOlder, session.id])
 
   useEffect(closeSearchPanel, [session.id, lastMessageId])
 
@@ -302,8 +323,10 @@ export const MessageList = ({
         pendingPrependRef.current = { height: el.scrollHeight, top: el.scrollTop }
         void loadOlderMessages(session.id)
       }
-      // 跳转后的中间窗口：滚到底部时继续加载更晚的消息
-      if (hasNewer && !loadingOlder && nearBottom) {
+      // 跳转后的中间窗口：用户亲手滚到底部时才继续加载更晚的消息。
+      // 跳转定位的程序化滚动不算，加载后也不自动跟随，避免把后面所有对话全部拉下来。
+      if (hasNewer && !loadingOlder && nearBottom && userScrollRef.current) {
+        stickyRef.current = false
         void loadNewerMessages(session.id)
       }
       scrollTopRef.current = el.scrollTop

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-28 (fix loading every later message after a jump)
+
+- Fixed jumps to an unloaded position loading every later message in a loop: removed the layout-phase auto load. A newer page now loads only when the user scrolls to the bottom with the wheel or touch; the programmatic scroll from a jump is ignored, and new content is not auto-followed, so it cannot re-trigger itself down to the end.
+- Rebuilt static assets; `index.html` hashes updated.
+
 ## 2026-11-28 (load newer, scroll button, outline flicker, admin sidebar)
 
 - Loading newer messages: added `after` paging and `hasNewer` (`SessionStore::pageAfter`). After jumping to a middle window (search or outline), reaching the bottom — even when the window is shorter than one screen — loads the next 10 newer messages and keeps following.
