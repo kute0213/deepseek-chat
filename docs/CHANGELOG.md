@@ -1,5 +1,12 @@
 # 更新日志
 
+## 2026-11-28（入口缓存修复、右侧导航 7 条铺满与项目结构精简）
+
+- 修复发布后整站（含左侧边栏）样式丢失：入口 HTML 统一按 `no-store` 输出，避免旧 HTML 引用已删除的哈希资源。`HomePage::render()` 增加 `Cache-Control: no-store, must-revalidate`；`.htaccess` 对 html/php 设置不缓存；Nginx 伪静态在 `location /` 增加 `add_header Cache-Control "no-store" always`。
+- 右侧导航重做：固定 7 条短横，纵向铺满屏幕高度的 70%（随窗口高度重算节奏）；悬浮预览面板改为淡入淡出，并向右覆盖短横轨道。
+- 项目结构精简：删除 `.trae-html-share-packages/` 临时归档；删除与 `env.d.ts` 重复的 `*.module.css.d.ts` 类型声明；补全 `.gitignore`（依赖、构建缓存、临时归档、系统文件）。
+- 静态资源与 `index.html` 重新构建，文件名哈希同步更新。
+
 ## 2026-11-28（计费配置与右侧导航优化）
 
 - 对话用量浮层移除「免费」标签。

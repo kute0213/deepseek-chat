@@ -9,14 +9,14 @@ import styles from './MessageNavigator.module.css'
 
 /** 每次从精简大纲接口读取的条数 */
 const PAGE_SIZE = 20
-/** 右侧轨道最多显示的短横数量 */
-const MAX_BARS = 5
-/** 相邻短横线的垂直间距（含线高） */
-const BAR_PITCH = 16
+/** 右侧轨道固定显示的短横数量 */
+const MAX_BARS = 7
+/** 轨道纵向占屏高的比例 */
+const RAIL_RATIO = 0.7
 
 /**
- * 右侧会话导航：用一列短横线表示用户提问，悬浮后展开前 50 个字预览；
- * 短横数量随屏幕高度自适应，滚轮平滑切换选中项，点击跳转到对应消息。
+ * 右侧会话导航：用一列短横线表示用户提问，悬浮后渐显前 50 个字预览；
+ * 固定 7 条短横，纵向铺满屏幕高度的 70%，滚轮滚动预览列表，点击跳转到对应消息。
  * 目标消息尚未加载时由消息列表自动拉取它所在的窗口。
  */
 export const MessageNavigator = ({ session }: { session: Session }) => {
@@ -28,7 +28,8 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   const [items, setItems] = useState<OutlineItem[]>([])
   const [active, setActive] = useState(-1)
   const [open, setOpen] = useState(false)
-  const [bars, setBars] = useState(MAX_BARS)
+  // 单条短横占用的槽位高度：7 条铺满屏高的 70%
+  const [pitch, setPitch] = useState(56)
   const requestRef = useRef(0)
   const activeRef = useRef(-1)
   const itemsRef = useRef<OutlineItem[]>([])
@@ -37,11 +38,10 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   itemsRef.current = items
   totalRef.current = total
 
-  // 短横数量按屏幕高度计算，最多 5 条
+  // 轨道高度跟随屏高：固定 7 条，铺满屏幕的 70%
   useEffect(() => {
     const update = () => {
-      const available = window.innerHeight * 0.5
-      setBars(Math.max(1, Math.min(MAX_BARS, Math.floor(available / BAR_PITCH))))
+      setPitch(Math.max(24, Math.floor((window.innerHeight * RAIL_RATIO) / MAX_BARS)))
     }
     update()
     window.addEventListener('resize', update)
@@ -172,21 +172,24 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   }, [active, open])
 
   const railItems = useMemo(() => {
-    if (items.length <= bars) {
+    if (items.length <= MAX_BARS) {
       return items
     }
     const position = Math.max(
       0,
       items.findIndex((item) => item.index === active)
     )
-    const start = Math.max(0, Math.min(position - Math.floor(bars / 2), items.length - bars))
-    return items.slice(start, start + bars)
-  }, [active, bars, items])
+    const start = Math.max(
+      0,
+      Math.min(position - Math.floor(MAX_BARS / 2), items.length - MAX_BARS)
+    )
+    return items.slice(start, start + MAX_BARS)
+  }, [active, items])
 
-  // 滚轮直接滚动预览列表，而不是切换选中的会话
+  // 展开后滚轮直接滚动预览列表，而不是切换选中的会话
   useEffect(() => {
     const root = rootRef.current
-    if (!root) {
+    if (!root || !open) {
       return
     }
     const onWheel = (event: WheelEvent) => {
@@ -199,7 +202,7 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     }
     root.addEventListener('wheel', onWheel, { passive: false })
     return () => root.removeEventListener('wheel', onWheel)
-  }, [])
+  }, [open])
 
   if (isMobile || total <= 0) {
     return null
@@ -217,25 +220,30 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      {open ? (
-        <div ref={panelRef} className={styles.panel} role="listbox" aria-label={t('messageNavTitle')}>
-          {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="option"
-              aria-selected={item.index === active}
-              data-active={item.index === active}
-              className={clsx(styles.item, item.index === active && styles.itemActive)}
-              title={item.preview}
-              onClick={() => jump(item)}
-            >
-              <span className={styles.itemText}>{item.preview || t('messageNavAttachment')}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <div className={styles.rail}>
+      <div
+        ref={panelRef}
+        className={clsx(styles.panel, open && styles.panelOpen)}
+        style={{ maxHeight: pitch * MAX_BARS }}
+        role="listbox"
+        aria-label={t('messageNavTitle')}
+        aria-hidden={!open}
+      >
+        {items.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="option"
+            aria-selected={item.index === active}
+            data-active={item.index === active}
+            className={clsx(styles.item, item.index === active && styles.itemActive)}
+            title={item.preview}
+            onClick={() => jump(item)}
+          >
+            <span className={styles.itemText}>{item.preview || t('messageNavAttachment')}</span>
+          </button>
+        ))}
+      </div>
+      <div className={styles.rail} style={{ height: pitch * MAX_BARS }}>
         {railItems.map((item) => (
           <button
             key={item.id}

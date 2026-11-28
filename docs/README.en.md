@@ -12,7 +12,7 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 - Official-like chat experience: streaming replies, deep thinking, web search, branch switching, editing, retries, file uploads, image previews, speech input, and read-aloud.
 - Server-side history: chat lists are cursor-paginated, with rename, delete, and clear.
 - Message paging: the latest 10 messages load first; scrolling up loads earlier pages while keeping your position.
-- Right-side outline: desktop shows a column of short bars (at most 5, wider spacing) at the right edge of the message area; hover expands 50-character previews. Each request loads 20 items from a lightweight outline API; the wheel scrolls the preview list directly (no longer changes the selection), and clicking jumps to the message without a highlight animation.
+- Right-side outline: desktop shows a fixed column of 7 short bars spanning 70% of the screen height at the right edge of the message area; hovering fades the preview panel in over the bar rail, and it fades out on leave. Each request loads 20 items from a lightweight outline API; the wheel scrolls the preview list directly (no longer changes the selection), and clicking jumps to the message without a highlight animation.
 - Sharing: click Share to enter selection mode; every message gets a circular checkbox, user/assistant turns are selected as a pair, and the composer is hidden. Select all / clear all sits left of the selected count, and the action bar stays pinned to the bottom. Share links use `/?share={token}` (also compatible with `/share/{token}`). Revoke links under Settings → Data → My share links.
 - Search: search titles and message bodies; results jump to the matching message window with a short highlight. Sessions missing from the loaded sidebar page are added automatically, and the message window is fetched on demand.
 - Batch management: the slider icon next to "Recent" enters multi-select with batch pinning and deletion.
@@ -37,6 +37,8 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 ├── index.html             # Front-end build output
 ├── static/                # Front-end build output (css / js / media) + site/ (icons and shared admin styles)
 ├── .htaccess              # Apache rewrite and security rules
+├── .gitignore             # Runtime data, deps and temporary archives
+├── LICENSE                # MIT license
 ├── app/                   # All backend modules
 │   ├── Admin/             # Server-rendered admin console (/admin/)
 │   ├── Controllers/       # JSON API controllers
@@ -49,7 +51,7 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 ├── docs/                  # Markdown docs + compatibility index.php
 ├── scripts/               # Config/deploy samples (nginx-vhost.conf, user.ini, cleanup-legacy.sh), never referenced by PHP
 ├── frontend/              # Official front-end source
-└── uploads/               # Runtime data (config, logs, attachments, staging)
+└── uploads/               # Runtime data (config, logs, cache/site-icons, attachments, staging)
 ```
 
 > Architecture: one React app, one PHP entry (`index.php`), and one communication style — JSON over `/api/*`. The admin console lives in `app/Admin` and switches pages via partial HTML (`X-Admin-Partial: 1`) without full reloads. `scripts/` only holds deployment samples and is blocked from direct web access; no PHP code may include it.

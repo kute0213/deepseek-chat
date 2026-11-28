@@ -1,12 +1,18 @@
 # 工作区临时上传（不属于项目）
 /.uploads/
 
-# 安装与运行期数据（配置、上传附件、暂存、日志）
+# 安装与运行期数据（配置、上传附件、站点图标缓存、暂存、日志）
 /uploads/*
 !/uploads/.gitkeep
 
-# 前端依赖
+# 前端依赖与构建缓存
 /frontend/node_modules/
+/frontend/.rspack-cache/
+/.pnpm-store/
+
+# 临时归档与分享产物
+.trae-html-share-packages/
+*.zip
 
 # 系统与编辑器
 .DS_Store
@@ -15,6 +21,3 @@ Thumbs.db
 .vscode/
 *.log
 .screenshots/
-
-# 本地 pnpm 缓存
-/.pnpm-store/

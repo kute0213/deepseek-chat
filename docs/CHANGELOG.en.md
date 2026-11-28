@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-28 (entry cache fix, 7-bar outline, project cleanup)
+
+- Fixed whole-site styling loss (including the left sidebar) after deploys: entry HTML is always served with `no-store` so stale HTML can no longer reference deleted hashed assets. `HomePage::render()` now sends `Cache-Control: no-store, must-revalidate`; `.htaccess` disables caching for html/php; the Nginx rewrite block adds `add_header Cache-Control "no-store" always` to `location /`.
+- Reworked the right-side outline: a fixed 7 bars spanning 70% of the screen height (pitch recalculated on resize); the hover preview panel now fades in and out and slides over the bar rail.
+- Project cleanup: removed the `.trae-html-share-packages/` archive and the redundant `*.module.css.d.ts` declarations (covered by `env.d.ts`); expanded `.gitignore` for dependencies, build caches, temporary archives and OS files.
+- Rebuilt static assets and `index.html`; hashes updated.
+
 ## 2026-11-28 (pricing settings and right-side outline)
 
 - Removed the "Free" tag from the usage popover.

@@ -34,6 +34,8 @@ final class HomePage
         $json = json_encode($site, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP);
         $html = str_replace('</head>', '<script>window.__SITE__=' . ($json ?: 'null') . ';</script></head>', $html);
         header('Content-Type: text/html; charset=utf-8');
+        // 入口 HTML 必须不缓存：构建产物文件名带 hash，旧 HTML 会引用已删除的 CSS/JS
+        header('Cache-Control: no-store, must-revalidate');
         echo $html;
     }
 }

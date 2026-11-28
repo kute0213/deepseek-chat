@@ -7,14 +7,17 @@
 }
 
 .rail {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 0;
   padding: 4px 3px;
 }
 
-/* 单条短横：10px 高的点击区 + 2px 的线，配合 6px 间距形成 16px 节奏 */
+/* 单条短横：10px 点击区 + 2px 线；7 条由行内 height 纵向均匀分布 */
 .barButton {
   display: flex;
   align-items: center;
@@ -52,11 +55,12 @@
   opacity: 1;
 }
 
-/* 悬浮展开的预览面板：只显示精简大纲里已加载的一页 */
+/* 悬浮展开的预览面板：右对齐覆盖短横轨道，淡入淡出 */
 .panel {
   position: absolute;
   top: 50%;
-  right: 24px;
+  right: 0;
+  z-index: 2;
   box-sizing: border-box;
   width: 220px;
   max-height: 146px;
@@ -69,6 +73,21 @@
     0 8px 24px rgba(0, 0, 0, 0.12);
   transform: translateY(-50%);
   scrollbar-width: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    visibility 0s linear 0.18s;
+}
+
+.panelOpen {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity 0.18s ease,
+    visibility 0s;
 }
 
 .panel::-webkit-scrollbar {
@@ -117,7 +136,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .bar,
-  .item {
+  .item,
+  .panel {
     transition: none;
   }
 }
