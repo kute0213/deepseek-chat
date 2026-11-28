@@ -23,6 +23,7 @@ import {
   prepareDraftMessage,
 } from './drafts.js'
 import { createLatestReminder } from './latestReminder.js'
+import { syncSessionUrl } from './url.js'
 import {
   applyEvent,
   canContinueReply,
@@ -714,6 +715,8 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
       sessionSaveErrors: {},
       activeId: null,
     })
+    // 导入会覆盖全部会话，当前会话随之失效：地址栏回到首页
+    syncSessionUrl(null, true)
     return page.total
   } finally {
     set({ importingHistory: false })
@@ -732,6 +735,7 @@ export const newChat = () => {
   if (!get().importingHistory) {
     set({ activeId: null })
     trimSessionCache()
+    syncSessionUrl(null)
   }
 }
 
@@ -772,6 +776,53 @@ export const selectSession = (
   set({ activeId: id })
   void ensureSessionLoaded(id)
   trimSessionCache()
+  syncSessionUrl(id)
+}
+
+/**
+ * 直接打开会话（首次进入 /{会话ID} 或浏览器前进/后退）：
+ * 摘要不在当前分页里时先取详情补一条，刷新页面也能直接看到该会话；
+ * 会话不存在时把地址栏退回首页。
+ */
+export const openSession = async (id: string): Promise<void> => {
+  if (get().importingHistory) {
+    return
+  }
+  if (get().sessions.some((session) => session.id === id)) {
+    selectSession(id)
+    return
+  }
+  const epoch = historyEpoch
+  try {
+    const stored = await db.loadSession(id, { limit: MESSAGE_PAGE_SIZE })
+    if (epoch !== historyEpoch) {
+      return
+    }
+    if (!stored) {
+      syncSessionUrl(null, true)
+      return
+    }
+    const { hasMore, nextCursor, ...payload } = stored
+    const session = settleInterrupted(normalizeSession(payload))
+    touchSession(id)
+    set((state) => ({
+      sessions: sortSessions([...state.sessions, toSessionSummary(session)]),
+      sessionCache: { ...state.sessionCache, [id]: session },
+      messagePages: {
+        ...state.messagePages,
+        [id]: { hasMore: hasMore === true, cursor: nextCursor ?? null, loading: false },
+      },
+      sessionLoadErrors: { ...state.sessionLoadErrors, [id]: false },
+      activeId: id,
+    }))
+    trimSessionCache()
+    syncSessionUrl(id)
+  } catch (error) {
+    if (epoch === historyEpoch) {
+      set((state) => ({ sessionLoadErrors: { ...state.sessionLoadErrors, [id]: true } }))
+      db.reportStorageError('read session')(error)
+    }
+  }
 }
 
 /**
@@ -814,11 +865,13 @@ export const openSessionAtMessage = async (
   if (cached?.messages.some((message) => message.id === messageId)) {
     touchSession(sessionId)
     set({ activeId: sessionId })
+    syncSessionUrl(sessionId)
     focusMessage(sessionId, messageId)
     return
   }
   touchSession(sessionId)
   set({ activeId: sessionId })
+  syncSessionUrl(sessionId)
   try {
     await loadMessageWindow(sessionId, messageId)
     focusMessage(sessionId, messageId)
@@ -912,6 +965,10 @@ const removeSessionData = async (id: string): Promise<boolean> => {
       ),
       activeId: state.activeId === id ? null : state.activeId,
     }))
+    // 删除的是当前会话：地址栏退回首页，且不再保留已删除会话的记录
+    if (get().activeId === null) {
+      syncSessionUrl(null, true)
+    }
     return true
   } catch (error) {
     db.reportStorageError('delete session')(error)
@@ -968,6 +1025,8 @@ export const sendMessage = (targetSessionId: string | null) => {
       sessionCache: { ...state.sessionCache, [session.id]: session },
       activeId: session.id,
     }))
+    // 首条消息生成新会话：用会话地址替换欢迎页，不额外增加历史记录
+    syncSessionUrl(session.id, true)
   }
   const current = getSession(sessionId)
   if (!current) {

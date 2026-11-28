@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-28 (earlier prefetch, session URLs)
+
+- Message list prefetches earlier: when fewer than 5 question rounds remain above the window, the previous 10 messages are requested before the view hits the very top, and the reading position is preserved.
+- The right-side outline prefetches too: scrolling its preview to within 5 rounds of the top prepends 20 earlier items with a height compensation, so bars and previews do not jump and the highlight is kept; nothing is requested once the first round is reached.
+- Session URLs: selecting a session updates the address bar to `domain/{sessionId}` without a full-page reload; first visits, refreshes, pasted URLs and browser back/forward reopen the session; creating a chat, deleting the current session or importing history returns to `/`.
+- Rebuilt static assets; `index.html` hashes updated.
+
 ## 2026-11-28 (outline fade, scroll-to-bottom button, sidebar logo)
 
 - The right-side outline now fades instead of resizing: the panel keeps a fixed width, collapsing fades out the card background and text while leaving the bars (still clickable), and hovering fades the card and previews in.

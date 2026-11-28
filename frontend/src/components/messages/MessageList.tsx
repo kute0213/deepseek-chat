@@ -40,9 +40,29 @@ import styles from './MessageList.module.css'
 
 /** 距底部小于该值时视为在底部，流式内容增长时跟随 */
 const STICKY_THRESHOLD = 40
-/** 距顶部小于该值时加载更早的一页消息 */
-const TOP_THRESHOLD = 40
+/** 距离顶部不足该轮数提问时预加载更早的一页（一页 10 条消息 = 5 轮） */
+const PRELOAD_ROUNDS = 5
 const EMPTY_VERSIONS: MessageVersions = { ids: [], index: -1 }
+
+/**
+ * 判断是否已经接近当前消息窗口的顶部：窗口内第 5 条用户提问仍在视口内或下方时，
+ * 说明距离顶部不足 5 轮，提前加载更早的一页，避免贴到顶端才请求。
+ */
+const shouldPreloadOlder = (el: HTMLElement, roles: Map<string, string>): boolean => {
+  const top = el.getBoundingClientRect().top
+  let rounds = 0
+  for (const node of el.querySelectorAll<HTMLElement>('[data-message-id]')) {
+    if (roles.get(node.dataset.messageId ?? '') !== 'user') {
+      continue
+    }
+    rounds += 1
+    if (rounds === PRELOAD_ROUNDS) {
+      return node.getBoundingClientRect().bottom > top
+    }
+  }
+  // 窗口内不足 5 轮：直接补齐
+  return true
+}
 
 export const MessageList = ({
   session,
@@ -75,6 +95,13 @@ export const MessageList = ({
   /** 搜索 / 右侧导航跳转时，记录已拉取过“目标消息所在窗口”，避免重复请求 */
   const jumpWindowKeyRef = useRef('')
   const messages = getVisibleMessages(session)
+  // 预加载判断需要知道每条消息的角色；用 ref 保证滚动回调里读到最新值
+  const roles = useMemo(
+    () => new Map(messages.map((message) => [message.id, message.role])),
+    [messages]
+  )
+  const rolesRef = useRef(roles)
+  rolesRef.current = roles
   const hasMore = useChatStore((state) => state.messagePages[session.id]?.hasMore ?? false)
   const loadingOlder = useChatStore((state) => state.messagePages[session.id]?.loading ?? false)
   const focusTarget = useMessageFocus((state) => state.target)
@@ -256,8 +283,8 @@ export const MessageList = ({
       } else if (el.scrollTop < scrollTopRef.current) {
         stickyRef.current = false
       }
-      // 滑到顶部后加载更早的一页；到达顶部即触发，不必再继续上滑
-      if (hasMore && !loadingOlder && el.scrollTop <= TOP_THRESHOLD) {
+      // 距离顶部不足 5 轮提问时提前加载更早的一页，不必等贴到最顶端
+      if (hasMore && !loadingOlder && shouldPreloadOlder(el, rolesRef.current)) {
         pendingPrependRef.current = { height: el.scrollHeight, top: el.scrollTop }
         void loadOlderMessages(session.id)
       }

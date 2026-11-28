@@ -13,6 +13,8 @@ const PAGE_SIZE = 20
 const MAX_BARS = 7
 /** 相邻短横的基准间距（含点击区高度），屏幕过矮时自动缩小 */
 const BAR_PITCH = 32
+/** 预览列表滚到距顶部还剩 5 轮时就预加载更早的提问 */
+const PRELOAD_ROUNDS = 5
 
 /**
  * 右侧会话导航：用一列短横线表示用户提问，悬浮后渐显前 50 个字预览；
@@ -36,6 +38,10 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   const activeRef = useRef(-1)
   const itemsRef = useRef<OutlineItem[]>([])
   const totalRef = useRef(0)
+  /** 正在加载更早的大纲窗口，避免滚动时重复请求 */
+  const earlierRef = useRef(false)
+  /** 前插更早条目后按高度差补偿滚动位置，避免预览与短横跳动 */
+  const prependRef = useRef<{ height: number } | null>(null)
   activeRef.current = active
   itemsRef.current = items
   totalRef.current = total
@@ -80,6 +86,8 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   const loadWindowAt = useCallback(
     async (index: number, aroundId?: string) => {
       const seq = ++requestRef.current
+      // 窗口会被整页替换，放弃未完成的前插补偿
+      prependRef.current = null
       const known = Math.max(totalRef.current, index + 1)
       const offset = Math.max(
         0,
@@ -111,6 +119,45 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     },
     [session.id]
   )
+
+  /**
+   * 加载更早的提问并前插到当前窗口：保留已有条目与滚动位置，
+   * 只补充当前第一条之前的 20 条，滚动时不会跳回已选中的提问。
+   */
+  const loadEarlier = useCallback(async () => {
+    if (earlierRef.current) {
+      return
+    }
+    const first = itemsRef.current[0]
+    if (!first || first.index <= 0) {
+      return
+    }
+    earlierRef.current = true
+    const panel = panelRef.current
+    prependRef.current = panel ? { height: panel.scrollHeight } : null
+    const seq = requestRef.current
+    try {
+      const offset = Math.max(0, first.index - PAGE_SIZE)
+      const page = await loadOutline(session.id, { offset, limit: PAGE_SIZE })
+      if (seq !== requestRef.current) {
+        prependRef.current = null
+        return
+      }
+      const existing = new Set(itemsRef.current.map((item) => item.id))
+      const earlier = page.items.filter((item) => !existing.has(item.id))
+      setTotal(page.total)
+      if (earlier.length === 0) {
+        prependRef.current = null
+        return
+      }
+      setItems([...earlier, ...itemsRef.current])
+    } catch {
+      prependRef.current = null
+      // 保持当前窗口，不打断阅读
+    } finally {
+      earlierRef.current = false
+    }
+  }, [session.id])
 
   // 跟随聊天滚动：把当前视口上方的最后一条用户提问标为选中项
   useEffect(() => {
@@ -176,9 +223,16 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
 
   // 高亮行始终停在可视区中间：收起时露出的 7 条短横、展开后的预览行，
   // 使用同一个滚动位置，因此收起 / 展开不会“跳回初始化”。
+  // 前插更早条目时改为补偿高度，保持用户当前看到的位置不变。
   useLayoutEffect(() => {
     const panel = panelRef.current
     if (!panel) {
+      return
+    }
+    const prepend = prependRef.current
+    if (prepend) {
+      prependRef.current = null
+      panel.scrollTop += panel.scrollHeight - prepend.height
       return
     }
     const row = panel.querySelector<HTMLElement>('[data-active="true"]')
@@ -187,6 +241,34 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     }
     panel.scrollTop = row.offsetTop - panel.clientHeight / 2 + row.offsetHeight / 2
   }, [active, open, panelHeight, pitch, items])
+
+  // 预览列表滚到距顶部还剩 5 轮提问时，自动加载更早的一页
+  useEffect(() => {
+    const panel = panelRef.current
+    if (!panel || !open) {
+      return
+    }
+    let frame = 0
+    const onScroll = () => {
+      if (frame !== 0) {
+        return
+      }
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        if (panel.scrollTop > pitch * PRELOAD_ROUNDS) {
+          return
+        }
+        void loadEarlier()
+      })
+    }
+    panel.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      panel.removeEventListener('scroll', onScroll)
+      if (frame !== 0) {
+        cancelAnimationFrame(frame)
+      }
+    }
+  }, [open, pitch, loadEarlier])
 
   // 展开后滚轮直接滚动预览列表，而不是切换选中的会话
   useEffect(() => {

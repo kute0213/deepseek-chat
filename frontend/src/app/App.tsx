@@ -8,10 +8,13 @@ import { useIsMobile, useMobileViewport, usePreventPageScroll } from './viewport
 import {
   bindChatPersistence,
   initChat,
+  newChat,
+  openSession,
   retrySaveSessions,
   selectSession,
   useChatStore,
 } from '../services/chat/store.js'
+import { sessionIdFromPath } from '../services/chat/url.js'
 import { SearchPanel } from '../components/search/SearchPanel.js'
 import { closeSearchPanel } from '../components/search/searchPanelState.js'
 import { SessionView } from '../components/session/SessionView.js'
@@ -136,6 +139,34 @@ const ChatApp = () => {
     }
     window.history.replaceState(null, '', window.location.pathname + window.location.hash)
   }, [ready])
+
+  // 地址栏 /{会话ID}：首次进入或浏览器前进/后退时打开对应会话，回到 / 时展示欢迎页
+  const restoredFromPathRef = useRef(false)
+  useEffect(() => {
+    if (!ready || !loggedIn || restoredFromPathRef.current) {
+      return
+    }
+    restoredFromPathRef.current = true
+    const id = sessionIdFromPath()
+    if (id) {
+      void openSession(id)
+    }
+  }, [ready, loggedIn])
+
+  useEffect(() => {
+    const onPopState = () => {
+      const id = sessionIdFromPath()
+      if (!id) {
+        newChat()
+        return
+      }
+      if (loggedIn) {
+        void openSession(id)
+      }
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [loggedIn])
 
   return (
     <>
