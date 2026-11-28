@@ -64,6 +64,33 @@ final class DeepSeekClient
         return is_array($data) ? $data : [];
     }
 
+    /**
+     * 读取模型接口里的最大上下文（tokens）。
+     * 优先解析 /models 返回中带 context 的字段，缺失时回退到 DeepSeek 已知默认值。
+     */
+    public static function fetchContextWindow(string $key): int
+    {
+        [$status, $body] = self::request('GET', self::base() . '/models', self::headers($key));
+        if ($status < 200 || $status >= 300) {
+            throw new HttpError(self::errorMessage($body, '获取模型信息失败'), $status >= 400 ? $status : 502);
+        }
+        $data = json_decode($body, true);
+        $max = 0;
+        $walk = static function ($node) use (&$walk, &$max): void {
+            if (!is_array($node)) {
+                return;
+            }
+            foreach ($node as $name => $value) {
+                if (is_string($name) && preg_match('/context/i', $name) && is_numeric($value)) {
+                    $max = max($max, (int) $value);
+                }
+                $walk($value);
+            }
+        };
+        $walk($data);
+        return $max > 0 ? $max : 128000;
+    }
+
     /** @return array{0:int,1:string} */
     public static function uploadFile(string $key, array $file, ?string $purpose): array
     {

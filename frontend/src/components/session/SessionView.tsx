@@ -14,11 +14,12 @@ import {
   addUsage,
   breakdownUsage,
   emptyUsage,
-  formatContextPercent,
+  usageConfigFrom,
   type UsageBreakdown,
 } from '../../services/chat/usage.js'
+import { useSite } from '../../services/site.js'
 import type { Session } from '../../services/chat/types.js'
-import { IconCheckOutline16, IconShareOutline16 } from '../base/icons.js'
+import { IconCheckOutline16, IconDatabaseOutline16, IconShareOutline16 } from '../base/icons.js'
 import { IconButton } from '../base/IconButton.js'
 import { Button } from '../base/Button.js'
 import { showToast } from '../base/toastState.js'
@@ -50,23 +51,24 @@ export const SessionView = ({
   const [creating, setCreating] = useState(false)
   const [created, setCreated] = useState<ShareSummary | null>(null)
   // 会话累计 Token 用量与最后一轮用量：后者用于「当前上下文」占比
+  const siteInfo = useSite((state) => state.info)
+  const usageConfig = useMemo(() => usageConfigFrom(siteInfo), [siteInfo])
   const { sessionUsage, lastUsage } = useMemo(() => {
-    let total = emptyUsage()
+    let total = emptyUsage(usageConfig)
     let last: UsageBreakdown | null = null
     for (const message of getVisibleMessages(session)) {
       if (message.role !== 'assistant') {
         continue
       }
-      const item = breakdownUsage(message.usage)
+      const item = breakdownUsage(message.usage, usageConfig)
       if (!item) {
         continue
       }
-      total = addUsage(total, item)
+      total = addUsage(total, item, usageConfig)
       last = item
     }
     return { sessionUsage: total, lastUsage: last }
-  }, [session])
-  const contextPercent = formatContextPercent(lastUsage?.contextRatio ?? 0)
+  }, [session, usageConfig])
 
   useEffect(() => {
     setSelected(new Set())
@@ -206,9 +208,13 @@ export const SessionView = ({
                 {sessionUsage.total > 0 ? (
                   <UsagePopover variant="session" usage={sessionUsage} context={lastUsage}>
                     {({ toggle }) => (
-                      <button type="button" className={styles.contextEntry} onClick={toggle}>
-                        {t('usageContextEntry', { percent: contextPercent })}
-                      </button>
+                      <IconButton
+                        size="xs"
+                        icon={<IconDatabaseOutline16 />}
+                        tooltip={t('usageSessionTitle')}
+                        tooltipPlacement="top"
+                        onClick={toggle}
+                      />
                     )}
                   </UsagePopover>
                 ) : null}

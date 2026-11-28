@@ -49,6 +49,11 @@ final class SiteSettings
             'allowRegister' => self::get('allow_register', '1') === '1',
             'announcement' => self::get('announcement', ''),
             'maxUploadMb' => (int) self::get('max_upload_mb', '64'),
+            // Token 计费与上下文窗口：后台可配置，前端用量浮层据此估算
+            'priceCacheHit' => (float) self::get('price_cache_hit', '0.02'),
+            'priceCacheMiss' => (float) self::get('price_cache_miss', '1'),
+            'priceOutput' => (float) self::get('price_output', '4'),
+            'maxContext' => (int) self::get('max_context', '128000'),
         ];
     }
 }

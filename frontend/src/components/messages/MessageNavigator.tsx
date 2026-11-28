@@ -9,9 +9,10 @@ import styles from './MessageNavigator.module.css'
 
 /** 每次从精简大纲接口读取的条数 */
 const PAGE_SIZE = 20
-/** 相邻短横线的垂直间距（含线高），与原版一致 */
-const BAR_PITCH = 10
-const MIN_BARS = 8
+/** 右侧轨道最多显示的短横数量 */
+const MAX_BARS = 5
+/** 相邻短横线的垂直间距（含线高） */
+const BAR_PITCH = 16
 
 /**
  * 右侧会话导航：用一列短横线表示用户提问，悬浮后展开前 50 个字预览；
@@ -27,7 +28,7 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   const [items, setItems] = useState<OutlineItem[]>([])
   const [active, setActive] = useState(-1)
   const [open, setOpen] = useState(false)
-  const [bars, setBars] = useState(PAGE_SIZE)
+  const [bars, setBars] = useState(MAX_BARS)
   const requestRef = useRef(0)
   const activeRef = useRef(-1)
   const itemsRef = useRef<OutlineItem[]>([])
@@ -36,11 +37,11 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   itemsRef.current = items
   totalRef.current = total
 
-  // 短横数量按屏幕高度计算，最多每次加载的 20 条
+  // 短横数量按屏幕高度计算，最多 5 条
   useEffect(() => {
     const update = () => {
       const available = window.innerHeight * 0.5
-      setBars(Math.max(MIN_BARS, Math.min(PAGE_SIZE, Math.floor(available / BAR_PITCH))))
+      setBars(Math.max(1, Math.min(MAX_BARS, Math.floor(available / BAR_PITCH))))
     }
     update()
     window.addEventListener('resize', update)
@@ -182,32 +183,23 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     return items.slice(start, start + bars)
   }, [active, bars, items])
 
-  // 滚轮平滑切换选中项；使用非 passive 监听，避免预览面板同时被原生滚动
+  // 滚轮直接滚动预览列表，而不是切换选中的会话
   useEffect(() => {
     const root = rootRef.current
     if (!root) {
       return
     }
     const onWheel = (event: WheelEvent) => {
-      if (event.deltaY === 0) {
+      const panel = panelRef.current
+      if (!panel || event.deltaY === 0) {
         return
       }
       event.preventDefault()
-      const direction = event.deltaY > 0 ? 1 : -1
-      const next = Math.max(0, Math.min(total - 1, active + direction))
-      if (next === active) {
-        return
-      }
-      setActive(next)
-      const first = items[0]?.index ?? 0
-      const last = items[items.length - 1]?.index ?? 0
-      if (!items.some((item) => item.index === next) || next <= first + 1 || next >= last - 1) {
-        void loadWindowAt(next)
-      }
+      panel.scrollTop += event.deltaY
     }
     root.addEventListener('wheel', onWheel, { passive: false })
     return () => root.removeEventListener('wheel', onWheel)
-  }, [active, items, loadWindowAt, total])
+  }, [])
 
   if (isMobile || total <= 0) {
     return null

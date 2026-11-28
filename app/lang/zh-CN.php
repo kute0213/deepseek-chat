@@ -78,12 +78,14 @@ return [
     'admin.flash.share_restored' => '分享已恢复',
     'admin.flash.share_deleted' => '分享已删除',
     'admin.flash.settings_saved' => '设置已保存',
+    'admin.flash.context_fetched' => '已自动获取最大上下文：{value} tokens',
     'admin.flash.user_not_found' => '用户不存在',
     'admin.flash.session_not_found' => '会话不存在',
     'admin.error.self_role' => '不能修改自己的角色',
     'admin.error.self_delete' => '不能删除当前登录的账号',
     'admin.error.password_min' => '新密码至少 8 位',
     'admin.error.site_name' => '站点名称不能为空',
+    'admin.error.api_key_required' => '请先在用户管理中配置至少一个 API Key',
 
     // 概览
     'admin.dashboard.users' => '用户总数',
@@ -196,6 +198,12 @@ return [
     'admin.settings.max_upload' => '单个附件大小上限（MB）',
     'admin.settings.max_sessions' => '单用户会话数量上限（0 为不限制）',
     'admin.settings.api_base' => 'DeepSeek API 地址',
+    'admin.settings.price_cache_hit' => '输入 · 缓存命中单价（元 / 百万 tokens）',
+    'admin.settings.price_cache_miss' => '输入 · 缓存未命中单价（元 / 百万 tokens）',
+    'admin.settings.price_output' => '输出单价（元 / 百万 tokens）',
+    'admin.settings.max_context' => '最大上下文（tokens）',
+    'admin.settings.fetch_context' => '自动获取最大上下文',
+    'admin.settings.fetch_hint' => '从 DeepSeek 模型接口自动读取最大上下文字数，需至少一个用户已配置 API Key。',
     'admin.settings.save' => '保存设置',
 
     // 分页

@@ -205,9 +205,7 @@ export const MessageList = ({
       return
     }
     stickyRef.current = false
-    node.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    node.classList.add(styles.flash)
-    window.setTimeout(() => node.classList.remove(styles.flash), 1800)
+    node.scrollIntoView({ block: 'center' })
     clearMessageFocus()
   }, [focusTarget, session.id, messages.length])
 

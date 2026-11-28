@@ -4,10 +4,12 @@ declare(strict_types=1);
 use App\Bootstrap;
 use App\Services\AdminService;
 use App\Services\Captcha;
+use App\Services\DeepSeekClient;
 use App\Services\ShareService;
 use App\Services\SiteSettings;
 use App\Services\UserService;
 use App\Support\Auth;
+use App\Support\Database;
 use App\Support\Request;
 
 require_once dirname(__DIR__, 2) . '/app/Bootstrap.php';
@@ -183,6 +185,10 @@ if (Request::method() === 'POST') {
                     'max_upload_mb' => (string) max(1, min(512, (int) ($_POST['max_upload_mb'] ?? 64))),
                     'max_sessions_per_user' => (string) max(0, (int) ($_POST['max_sessions_per_user'] ?? 0)),
                     'api_base_url' => rtrim(trim((string) ($_POST['api_base_url'] ?? '')), '/'),
+                    'price_cache_hit' => (string) max(0, (float) ($_POST['price_cache_hit'] ?? 0.02)),
+                    'price_cache_miss' => (string) max(0, (float) ($_POST['price_cache_miss'] ?? 1)),
+                    'price_output' => (string) max(0, (float) ($_POST['price_output'] ?? 4)),
+                    'max_context' => (string) max(1, (int) ($_POST['max_context'] ?? 128000)),
                 ];
                 if ($fields['site_name'] === '') {
                     throw new \App\Support\HttpError(t('admin.error.site_name'), 422);
@@ -191,6 +197,22 @@ if (Request::method() === 'POST') {
                     SiteSettings::set($key, $value);
                 }
                 admin_redirect('settings', t('admin.flash.settings_saved'));
+            case 'settings_fetch_context':
+                // 自动获取最大上下文：优先用当前管理员已配置的 API Key，否则取任一已配置的 Key
+                $key = trim((string) ($user['api_key'] ?? ''));
+                if ($key === '') {
+                    $key = (string) Database::pdo()->query(
+                        "SELECT api_key FROM users WHERE api_key IS NOT NULL AND api_key <> '' ORDER BY updated_ms DESC LIMIT 1"
+                    )->fetchColumn();
+                }
+                if ($key === '') {
+                    throw new \App\Support\HttpError(t('admin.error.api_key_required'), 422);
+                }
+                $context = DeepSeekClient::fetchContextWindow($key);
+                SiteSettings::set('max_context', (string) $context);
+                admin_redirect('settings', t('admin.flash.context_fetched', [
+                    'value' => number_format($context),
+                ]));
             default:
                 admin_redirect('dashboard', null, t('admin.flash.unknown'));
         }

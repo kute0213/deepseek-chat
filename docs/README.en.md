@@ -12,14 +12,14 @@ A self-hosted web client based on the official [deepseek-ai/deepseek-demo](https
 - Official-like chat experience: streaming replies, deep thinking, web search, branch switching, editing, retries, file uploads, image previews, speech input, and read-aloud.
 - Server-side history: chat lists are cursor-paginated, with rename, delete, and clear.
 - Message paging: the latest 10 messages load first; scrolling up loads earlier pages while keeping your position.
-- Right-side outline: desktop shows a column of short bars at the right edge of the message area; hover expands 50-character previews. The bar count adapts to screen height, each request loads 20 items from a lightweight outline API, the wheel moves the selection smoothly, and clicking jumps to the message.
+- Right-side outline: desktop shows a column of short bars (at most 5, wider spacing) at the right edge of the message area; hover expands 50-character previews. Each request loads 20 items from a lightweight outline API; the wheel scrolls the preview list directly (no longer changes the selection), and clicking jumps to the message without a highlight animation.
 - Sharing: click Share to enter selection mode; every message gets a circular checkbox, user/assistant turns are selected as a pair, and the composer is hidden. Select all / clear all sits left of the selected count, and the action bar stays pinned to the bottom. Share links use `/?share={token}` (also compatible with `/share/{token}`). Revoke links under Settings → Data → My share links.
 - Search: search titles and message bodies; results jump to the matching message window with a short highlight. Sessions missing from the loaded sidebar page are added automatically, and the message window is fetched on demand.
 - Batch management: the slider icon next to "Recent" enters multi-select with batch pinning and deletion.
 - Pin sessions: pinned chats stay at the top.
 - Undo a round: a large U-turn undo icon sits below user messages and next to the assistant action buttons.
-- Token usage popover: a hollow database icon in the assistant action row opens "This round", listing cache hit (0.02 CNY / 1M tokens), cache miss (1 CNY) and output (4 CNY) with price, tokens and cost, plus "As of this round, context is X% full". Hidden when no usage is recorded.
-- Context viewer: a clickable "Context X%" entry next to the composer caveat opens a popover with the whole chat's cumulative token breakdown (cache hit / miss / output and total cost) and current context usage.
+- Token usage popover: a hollow database icon in the assistant action row opens "This round", listing cache hit, cache miss and output with price, tokens and cost (prices come from the admin site settings), plus "As of this round, context is X% full". Hidden when no usage is recorded.
+- Context viewer: a database icon next to the composer caveat opens a popover with the whole chat's cumulative token breakdown (cache hit / miss / output and total cost) and current context usage.
 - Docs: `/docs` renders Markdown files with a collapsible list; Chinese and English versions use the `.md` / `.en.md` naming convention.
 - Web-search site icons: icons in AI search results go through `GET /api/site-icon?url=&page=`, which resolves relative paths against the source site first, then the API base, downloads them server-side into `uploads/cache/site-icons`, and caches them for 30 days. Missing icons return a placeholder instead of a `/api/files/{uuid}` 404.
 - Favicon: a cute lavender whale (cream belly, black eye with highlight, pink blush) lives at `static/site/favicon.png` / `favicon.ico`. `index.html` declares it, and Nginx / Apache / the PHP entry all send a one-year immutable cache; missing `/favicon.ico` falls back to the static icon.
@@ -114,7 +114,7 @@ Visit `/admin/` and sign in with an administrator account.
 - Users: search, create, change roles, enable/disable, reset passwords, clear API keys, delete users, and export CSV.
 - Sessions: search, inspect messages and raw JSON, delete.
 - Shares: search, revoke/restore, delete.
-- Settings: site name, announcement, registration, upload size, session limit, and DeepSeek API base URL.
+- Settings: site name, announcement, registration, upload size, session limit, DeepSeek API base URL, token prices (cache hit / cache miss / output, CNY per 1M tokens) and max context; a one-click "auto-fetch max context" reads the models endpoint (requires at least one user with an API key).
 
 ## Common commands
 

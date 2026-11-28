@@ -7,6 +7,11 @@ export type SiteInfo = {
   allowRegister: boolean
   announcement: string
   maxUploadMb: number
+  /** Token 单价（元 / 百万 tokens）与上下文窗口，由管理后台维护 */
+  priceCacheHit?: number
+  priceCacheMiss?: number
+  priceOutput?: number
+  maxContext?: number
 }
 
 type SiteState = { info: SiteInfo | null }

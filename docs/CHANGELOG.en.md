@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-28 (pricing settings and right-side outline)
+
+- Removed the "Free" tag from the usage popover.
+- Added token price management: admin "Site settings" now configures cache hit / cache miss / output prices (CNY per 1M tokens) and max context; the usage popover estimates from these values.
+- Admin can one-click "auto-fetch max context", which reads the DeepSeek models endpoint and saves the value (requires at least one user with an API key).
+- The context entry next to the composer is now a database icon matching the assistant action row.
+- Right-side outline: wider bar spacing and at most 5 bars; the wheel scrolls the preview list directly (no longer changes the selection); removed the highlight and smooth-scroll jump animation.
+
 ## 2026-11-28 (whale favicon, token usage popovers, context viewer)
 
 - Replaced the favicon with a cute lavender whale (cream belly, black eye with highlight, pink blush); regenerated `static/site/favicon.png` and a multi-size `favicon.ico`, referencing `?v=20261128`.

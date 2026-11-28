@@ -10,18 +10,18 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
+  gap: 6px;
   padding: 4px 3px;
 }
 
-/* 单条短横：8px 高的点击区 + 2px 的线，配合 2px 间距形成 10px 节奏 */
+/* 单条短横：10px 高的点击区 + 2px 的线，配合 6px 间距形成 16px 节奏 */
 .barButton {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   box-sizing: border-box;
   width: 18px;
-  height: 8px;
+  height: 10px;
   padding: 0;
   border: none;
   background: none;
@@ -59,7 +59,7 @@
   right: 24px;
   box-sizing: border-box;
   width: 220px;
-  max-height: 54vh;
+  max-height: 146px;
   padding: 6px;
   overflow-y: auto;
   border-radius: 12px;

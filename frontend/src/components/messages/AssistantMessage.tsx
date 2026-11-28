@@ -12,7 +12,8 @@ import { canContinueReply } from '../../services/chat/reply.js'
 import { continueReply, regenerateReply } from '../../services/chat/store.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
 import type { AssistantMessage as AssistantMessageType } from '../../services/chat/types.js'
-import { breakdownUsage } from '../../services/chat/usage.js'
+import { breakdownUsage, usageConfigFrom } from '../../services/chat/usage.js'
+import { useSite } from '../../services/site.js'
 import { openSettings } from '../settings/settingsDialogState.js'
 import { IconButton } from '../base/IconButton.js'
 import { Button } from '../base/Button.js'
@@ -65,8 +66,9 @@ export const AssistantMessage = memo(function AssistantMessage({
   const copyText = responseText || notice?.text
   const waiting = streaming && view.steps.length === 0 && !view.answer && !message.thinking
   const summaryEntry = `${message.id}-summary`
-  // 本轮 Token 用量：仅当服务端返回 usage 时展示入口
-  const usage = breakdownUsage(message.usage)
+  // 本轮 Token 用量：单价与上下文窗口来自站点设置
+  const siteInfo = useSite((state) => state.info)
+  const usage = breakdownUsage(message.usage, usageConfigFrom(siteInfo))
   return (
     <div className={styles.message} data-message-id={message.id}>
       {refused ? null : (

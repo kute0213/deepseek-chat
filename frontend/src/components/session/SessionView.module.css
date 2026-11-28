@@ -74,24 +74,6 @@
   user-select: none;
 }
 
-.contextEntry {
-  flex-shrink: 0;
-  padding: 0;
-  border: none;
-  background: none;
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--dsw-alias-label-tertiary);
-  white-space: nowrap;
-  cursor: pointer;
-  user-select: none;
-  transition: color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.contextEntry:hover {
-  color: var(--dsw-alias-brand-text);
-}
-
 @media not all and (min-width: 768px) {
   .inputContainer {
     position: relative;

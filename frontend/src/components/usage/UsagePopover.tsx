@@ -6,7 +6,6 @@ import {
   formatCost,
   formatPrice,
   formatTokens,
-  USAGE_PRICE,
   type UsageBreakdown,
 } from '../../services/chat/usage.js'
 import { useAnchoredPosition, useDismiss } from '../base/anchored.js'
@@ -50,7 +49,7 @@ export const UsagePopover = ({
       key: 'cacheHit',
       title: t('usageInputGroup'),
       sub: t('usageCacheHit'),
-      price: USAGE_PRICE.cacheHit,
+      price: usage.config.cacheHit,
       tokens: usage.cacheHit,
       amount: usage.cost.cacheHit,
     },
@@ -58,7 +57,7 @@ export const UsagePopover = ({
       key: 'cacheMiss',
       title: t('usageInputGroup'),
       sub: t('usageCacheMiss'),
-      price: USAGE_PRICE.cacheMiss,
+      price: usage.config.cacheMiss,
       tokens: usage.cacheMiss,
       amount: usage.cost.cacheMiss,
     },
@@ -66,7 +65,7 @@ export const UsagePopover = ({
       key: 'output',
       title: t('usageOutputGroup'),
       sub: null,
-      price: USAGE_PRICE.output,
+      price: usage.config.output,
       tokens: usage.output,
       amount: usage.cost.output,
     },
@@ -88,7 +87,6 @@ export const UsagePopover = ({
                   <span className={styles.title}>
                     {t(variant === 'round' ? 'usageRoundTitle' : 'usageSessionTitle')}
                   </span>
-                  <span className={styles.freeTag}>{t('usageFreeTag')}</span>
                 </div>
                 <div className={styles.total}>
                   {formatCost(usage.cost.total)} <span>{t('usageYuan')}</span>
