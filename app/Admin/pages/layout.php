@@ -33,6 +33,10 @@ $active = static fn (string $key): bool => $page === $key
             var saved = localStorage.getItem('chat-demo:locale');
             var locale = saved ? (saved === 'en-US' ? 'en-US' : 'zh-CN') : ((navigator.language || 'zh').toLowerCase().indexOf('zh') === 0 ? 'zh-CN' : 'en-US');
             document.documentElement.setAttribute('data-locale', locale);
+            // 侧边栏收起状态要在首屏前生效，避免展开后再收起的闪动
+            if (localStorage.getItem('ds-admin-sider') === 'collapsed') {
+                document.documentElement.setAttribute('data-sider', 'collapsed');
+            }
             if (locale !== <?= json_encode(admin_locale()) ?>) {
                 document.cookie = 'dsw_locale=' + locale + '; path=/; max-age=31536000; samesite=lax';
                 if (!sessionStorage.getItem('ds-admin-locale-sync')) {
@@ -48,32 +52,45 @@ $active = static fn (string $key): bool => $page === $key
 </head>
 <body>
 <div class="shell">
-    <aside class="side">
-        <div class="side-title"><?= e(\App\Support\Lang::siteName()) ?></div>
-        <nav>
-            <?php foreach ($nav as $key => $label): ?>
-                <a class="nav<?= $active($key) ? ' active' : '' ?>" data-page="<?= e($key) ?>"
-                   href="<?= e(admin_url(['page' => $key])) ?>"><?= e($label) ?></a>
-            <?php endforeach; ?>
-        </nav>
-        <div class="side-foot">
-            <div class="user-chip">
-                <span class="avatar"><?= e(mb_substr((string) $user['username'], 0, 1)) ?></span>
-                <span class="who"><?= e($user['username']) ?></span>
+    <div class="side-mask" id="admin-side-mask"></div>
+    <div class="side-slot" id="admin-side-slot">
+        <aside class="side">
+            <div class="side-title"><?= e(\App\Support\Lang::siteName()) ?></div>
+            <nav>
+                <?php foreach ($nav as $key => $label): ?>
+                    <a class="nav<?= $active($key) ? ' active' : '' ?>" data-page="<?= e($key) ?>"
+                       href="<?= e(admin_url(['page' => $key])) ?>"><?= e($label) ?></a>
+                <?php endforeach; ?>
+            </nav>
+            <div class="side-foot">
+                <div class="user-chip">
+                    <span class="avatar"><?= e(mb_substr((string) $user['username'], 0, 1)) ?></span>
+                    <span class="who"><?= e($user['username']) ?></span>
+                </div>
+                <div class="side-links">
+                    <a class="link" href="/" target="_blank" rel="noopener"><?= e(t('admin.open_site')) ?></a>
+                    <form method="post">
+                        <input type="hidden" name="action" value="logout">
+                        <input type="hidden" name="csrf" value="<?= e($user['csrf_token']) ?>">
+                        <button class="link danger" type="submit"><?= e(t('admin.logout')) ?></button>
+                    </form>
+                </div>
             </div>
-            <div class="side-links">
-                <a class="link" href="/" target="_blank" rel="noopener"><?= e(t('admin.open_site')) ?></a>
-                <form method="post">
-                    <input type="hidden" name="action" value="logout">
-                    <input type="hidden" name="csrf" value="<?= e($user['csrf_token']) ?>">
-                    <button class="link danger" type="submit"><?= e(t('admin.logout')) ?></button>
-                </form>
-            </div>
-        </div>
-    </aside>
+        </aside>
+    </div>
     <main class="main">
         <header class="topbar">
-            <h1 id="admin-title"><?= e($title) ?></h1>
+            <div class="topbar-left">
+                <button class="side-toggle" id="admin-side-toggle" type="button"
+                        aria-label="<?= e(t('admin.page.dashboard')) ?>" aria-controls="admin-side-slot">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2.25"
+                              stroke="currentColor" stroke-width="1.2"/>
+                        <path d="M6.25 2.75v10.5" stroke="currentColor" stroke-width="1.2"/>
+                    </svg>
+                </button>
+                <h1 id="admin-title"><?= e($title) ?></h1>
+            </div>
         </header>
         <div class="content" id="admin-content">
             <?php if ($ok !== null): ?>
@@ -200,6 +217,10 @@ $active = static fn (string $key): bool => $page === $key
                 bindLinks();
                 history.pushState({ admin: true }, '', href);
                 window.scrollTo(0, 0);
+                // 移动端从抽屉进入子页面后自动收起，避免遮挡内容
+                if (window.closeAdminSider) {
+                    window.closeAdminSider();
+                }
             })
             .catch(function () {
                 location.href = href;
@@ -232,6 +253,47 @@ $active = static fn (string $key): bool => $page === $key
             load(location.href);
         }
     });
+})();
+
+/* 侧边栏：桌面端宽度收放（与聊天页一致），移动端改为覆盖式抽屉 */
+(function () {
+    var root = document.documentElement;
+    var slot = document.getElementById('admin-side-slot');
+    var mask = document.getElementById('admin-side-mask');
+    var toggle = document.getElementById('admin-side-toggle');
+    if (!slot || !toggle) {
+        return;
+    }
+    var mobile = window.matchMedia('(max-width: 860px)');
+
+    function openMobile() {
+        root.setAttribute('data-mobile-sider', 'open');
+    }
+    function closeMobile() {
+        root.removeAttribute('data-mobile-sider');
+    }
+    window.closeAdminSider = closeMobile;
+
+    toggle.addEventListener('click', function () {
+        if (mobile.matches) {
+            if (root.getAttribute('data-mobile-sider') === 'open') {
+                closeMobile();
+            } else {
+                openMobile();
+            }
+            return;
+        }
+        var collapsed = root.getAttribute('data-sider') === 'collapsed';
+        var next = collapsed ? 'open' : 'collapsed';
+        root.setAttribute('data-sider', next);
+        try {
+            localStorage.setItem('ds-admin-sider', next);
+        } catch (e) {}
+    });
+    if (mask) {
+        mask.addEventListener('click', closeMobile);
+    }
+    mobile.addEventListener('change', closeMobile);
 })();
 </script>
 </body>

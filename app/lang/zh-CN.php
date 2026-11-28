@@ -193,6 +193,8 @@ return [
 
     // 设置
     'admin.settings.site_name' => '站点名称',
+    'admin.settings.group.site' => '站点',
+    'admin.settings.group.api' => 'DeepSeek 接入与计费',
     'admin.settings.announcement' => '公告（显示在登录页，可留空）',
     'admin.settings.allow_register' => '开放注册',
     'admin.settings.max_upload' => '单个附件大小上限（MB）',

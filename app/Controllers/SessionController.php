@@ -71,7 +71,17 @@ final class SessionController
             $page = SessionStore::pageAround($session, $around, (int) $limit);
             Response::json($page['session'] + [
                 'hasMore' => $page['hasMore'],
+                'hasNewer' => $page['hasNewer'],
                 'nextCursor' => $page['hasMore'] ? (string) ($page['session']['messages'][0]['id'] ?? '') : null,
+            ]);
+            return;
+        }
+        // after：从窗口末尾继续向后加载（跳转窗口后向下滚动）
+        $after = (string) ($request->query('after') ?? '');
+        if ($after !== '') {
+            $page = SessionStore::pageAfter($session, $after, (int) $limit);
+            Response::json($page['session'] + [
+                'hasNewer' => $page['hasNewer'],
             ]);
             return;
         }
@@ -79,6 +89,7 @@ final class SessionController
         $page = SessionStore::page($session, $before !== '' ? $before : null, (int) $limit);
         Response::json($page['session'] + [
             'hasMore' => $page['hasMore'],
+            'hasNewer' => $page['hasNewer'],
             'nextCursor' => $page['hasMore'] ? (string) ($page['session']['messages'][0]['id'] ?? '') : null,
         ]);
     }

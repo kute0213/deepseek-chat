@@ -6,13 +6,11 @@
   width: 34px;
   height: 34px;
   padding: 0;
-  border: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
+  border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 50%;
   background-color: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-secondary);
-  box-shadow:
-    0 4px 10px rgba(0, 0, 0, 0.04),
-    0 2px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   cursor: pointer;
   opacity: 0;
   visibility: hidden;
@@ -38,7 +36,8 @@
 }
 
 .visible:hover {
-  background-color: var(--dsw-alias-interactive-bg-hover);
+  background-color: var(--dsw-specific-menu);
+  color: var(--dsw-alias-label-primary);
 }
 
 .visible:active {

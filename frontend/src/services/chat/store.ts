@@ -82,8 +82,11 @@ type ChatState = {
   /** 正在加载下一页摘要 */
   loadingMore: boolean
   sessionCache: Record<string, Session>
-  /** 每个会话的消息分页状态；hasMore 表示还能向上加载更早的消息 */
-  messagePages: Record<string, { hasMore: boolean; cursor: string | null; loading: boolean }>
+  /** 每个会话的消息分页状态；hasMore 表示还能向上加载更早，hasNewer 表示下面还有更晚 */
+  messagePages: Record<
+    string,
+    { hasMore: boolean; cursor: string | null; hasNewer: boolean; after: string | null; loading: boolean }
+  >
   sessionLoadErrors: Record<string, boolean>
   sessionSaveErrors: Record<string, boolean>
   /** null 表示新对话（欢迎页） */
@@ -145,6 +148,7 @@ let initTask: Promise<void> | undefined
 let loadMoreTask: Promise<void> | undefined
 const sessionLoads = new Map<string, { promise: Promise<void> }>()
 const olderLoads = new Map<string, Promise<void>>()
+const newerLoads = new Map<string, Promise<void>>()
 
 const touchSession = (id: string) => sessionAccess.set(id, ++accessSequence)
 
@@ -466,7 +470,7 @@ const ensureSessionLoaded = (id: string): Promise<void> => {
       if (!stored) {
         throw new Error(`Session ${id} is missing from local storage`)
       }
-      const { hasMore, nextCursor, ...payload } = stored
+      const { hasMore, nextCursor, hasNewer, ...payload } = stored
       const settled = settleInterrupted(normalizeSession(payload))
       // 读取期间可能已在列表重命名，保留最新元数据，不能让旧读取覆盖它。
       const session = sameSummary(settled, summary) ? settled : { ...settled, ...summary }
@@ -475,7 +479,13 @@ const ensureSessionLoaded = (id: string): Promise<void> => {
         sessionCache: { ...state.sessionCache, [id]: session },
         messagePages: {
           ...state.messagePages,
-          [id]: { hasMore: hasMore === true, cursor: nextCursor ?? null, loading: false },
+          [id]: {
+            hasMore: hasMore === true,
+            cursor: nextCursor ?? null,
+            hasNewer: hasNewer === true,
+            after: session.messages.at(-1)?.id ?? null,
+            loading: false,
+          },
         },
       }))
       if (session !== payload) {
@@ -558,6 +568,13 @@ export const loadOlderMessages = (sessionId: string): Promise<void> => {
           messagePages: {
             ...current.messagePages,
             [sessionId]: {
+              ...(current.messagePages[sessionId] ?? {
+                hasMore: false,
+                cursor: null,
+                hasNewer: false,
+                after: null,
+                loading: false,
+              }),
               hasMore: older.hasMore === true,
               cursor: older.nextCursor ?? null,
               loading: false,
@@ -592,6 +609,88 @@ export const loadOlderMessages = (sessionId: string): Promise<void> => {
 }
 
 /**
+ * 向下滚动到底部时加载更晚的一页消息（10 条），追加到当前窗口末尾。
+ * 只用于跳转后的中间窗口：窗口之后还有消息时（hasNewer）才会请求。
+ */
+export const loadNewerMessages = (sessionId: string): Promise<void> => {
+  const state = get()
+  const page = state.messagePages[sessionId]
+  if (!getSession(sessionId) || !page || !page.hasNewer || page.loading || !page.after) {
+    return Promise.resolve()
+  }
+  const pending = newerLoads.get(sessionId)
+  if (pending) {
+    return pending
+  }
+  const epoch = historyEpoch
+  const cursor = page.after
+  set((current) => ({
+    messagePages: { ...current.messagePages, [sessionId]: { ...page, loading: true } },
+  }))
+  const holder: { task?: Promise<void> } = {}
+  const task = (async () => {
+    try {
+      const newer = await db.loadSession(sessionId, { limit: MESSAGE_PAGE_SIZE, after: cursor })
+      if (epoch !== historyEpoch) {
+        return
+      }
+      set((current) => {
+        const existing = current.sessionCache[sessionId]
+        const currentPage = current.messagePages[sessionId]
+        if (!existing || !currentPage) {
+          return current
+        }
+        if (!newer) {
+          return {
+            messagePages: {
+              ...current.messagePages,
+              [sessionId]: { ...currentPage, loading: false },
+            },
+          }
+        }
+        const seen = new Set(existing.messages.map((message) => message.id))
+        const appended = newer.messages.filter((message) => !seen.has(message.id))
+        const messages = appended.length > 0 ? [...existing.messages, ...appended] : existing.messages
+        return {
+          sessionCache: { ...current.sessionCache, [sessionId]: { ...existing, messages } },
+          messagePages: {
+            ...current.messagePages,
+            [sessionId]: {
+              ...currentPage,
+              hasNewer: newer.hasNewer === true,
+              after: messages.at(-1)?.id ?? null,
+              loading: false,
+            },
+          },
+        }
+      })
+    } catch (error) {
+      db.reportStorageError('read newer messages')(error)
+      if (epoch === historyEpoch) {
+        set((current) => {
+          const currentPage = current.messagePages[sessionId]
+          return currentPage
+            ? {
+                messagePages: {
+                  ...current.messagePages,
+                  [sessionId]: { ...currentPage, loading: false },
+                },
+              }
+            : current
+        })
+      }
+    } finally {
+      if (newerLoads.get(sessionId) === holder.task) {
+        newerLoads.delete(sessionId)
+      }
+    }
+  })()
+  holder.task = task
+  newerLoads.set(sessionId, task)
+  return task
+}
+
+/**
  * 发送、编辑或重新生成前取回完整历史：上游接口需要完整上下文，
  * 以服务端顺序为基准合并本地未落盘的新消息与本地修改。
  */
@@ -599,6 +698,10 @@ const ensureFullHistory = async (sessionId: string): Promise<void> => {
   const pending = olderLoads.get(sessionId)
   if (pending) {
     await pending
+  }
+  const pendingNewer = newerLoads.get(sessionId)
+  if (pendingNewer) {
+    await pendingNewer
   }
   if (!get().messagePages[sessionId]?.hasMore) {
     return
@@ -632,7 +735,13 @@ const ensureFullHistory = async (sessionId: string): Promise<void> => {
       },
       messagePages: {
         ...current.messagePages,
-        [sessionId]: { hasMore: false, cursor: null, loading: false },
+        [sessionId]: {
+          hasMore: false,
+          cursor: null,
+          hasNewer: false,
+          after: merged.at(-1)?.id ?? null,
+          loading: false,
+        },
       },
     }
   })
@@ -802,7 +911,7 @@ export const openSession = async (id: string): Promise<void> => {
       syncSessionUrl(null, true)
       return
     }
-    const { hasMore, nextCursor, ...payload } = stored
+    const { hasMore, nextCursor, hasNewer, ...payload } = stored
     const session = settleInterrupted(normalizeSession(payload))
     touchSession(id)
     set((state) => ({
@@ -810,7 +919,13 @@ export const openSession = async (id: string): Promise<void> => {
       sessionCache: { ...state.sessionCache, [id]: session },
       messagePages: {
         ...state.messagePages,
-        [id]: { hasMore: hasMore === true, cursor: nextCursor ?? null, loading: false },
+        [id]: {
+          hasMore: hasMore === true,
+          cursor: nextCursor ?? null,
+          hasNewer: hasNewer === true,
+          after: session.messages.at(-1)?.id ?? null,
+          loading: false,
+        },
       },
       sessionLoadErrors: { ...state.sessionLoadErrors, [id]: false },
       activeId: id,
@@ -835,13 +950,19 @@ export const loadMessageWindow = async (sessionId: string, messageId: string): P
   if (epoch !== historyEpoch || !stored) {
     return
   }
-  const { hasMore, nextCursor, ...payload } = stored
+  const { hasMore, nextCursor, hasNewer, ...payload } = stored
   const session = normalizeSession(payload)
   set((state) => ({
     sessionCache: { ...state.sessionCache, [sessionId]: session },
     messagePages: {
       ...state.messagePages,
-      [sessionId]: { hasMore: hasMore === true, cursor: nextCursor ?? null, loading: false },
+      [sessionId]: {
+        hasMore: hasMore === true,
+        cursor: nextCursor ?? null,
+        hasNewer: hasNewer === true,
+        after: session.messages.at(-1)?.id ?? null,
+        loading: false,
+      },
     },
     sessionLoadErrors: { ...state.sessionLoadErrors, [sessionId]: false },
   }))

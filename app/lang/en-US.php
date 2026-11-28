@@ -182,6 +182,8 @@ return [
     'admin.shares.confirm_delete' => 'This cannot be undone. Delete the share?',
 
     'admin.settings.site_name' => 'Site name',
+    'admin.settings.group.site' => 'Site',
+    'admin.settings.group.api' => 'DeepSeek access and billing',
     'admin.settings.announcement' => 'Announcement (shown on the login page, optional)',
     'admin.settings.allow_register' => 'Allow registration',
     'admin.settings.max_upload' => 'Max attachment size (MB)',

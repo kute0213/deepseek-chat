@@ -98,14 +98,33 @@ a:hover {
     min-height: 100vh;
 }
 
+/* 侧边栏容器：桌面端通过宽度过渡收起，与聊天页侧边栏一致 */
+.side-slot {
+    position: relative;
+    flex-shrink: 0;
+    width: 248px;
+    overflow: hidden;
+    transition: width 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 861px) {
+    html[data-sider="collapsed"] .side-slot {
+        width: 0;
+    }
+}
+
+.side-mask {
+    display: none;
+}
+
 .side {
     position: sticky;
     top: 0;
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
     width: 248px;
     height: 100vh;
-    flex-shrink: 0;
     padding: 16px 12px;
     border-right: 1px solid var(--line-soft);
     background: var(--bg-soft);
@@ -151,8 +170,7 @@ a:hover {
     flex-direction: column;
     gap: 12px;
     margin-top: auto;
-    padding-top: 12px;
-    border-top: 1px solid var(--line-soft);
+    padding-top: 8px;
 }
 
 .user-chip {
@@ -227,13 +245,42 @@ a:hover {
     gap: 16px;
     height: 60px;
     padding: 0 32px;
-    border-bottom: 1px solid var(--line-soft);
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.side-toggle {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background: none;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.side-toggle:hover {
+    background: var(--hover);
+    color: var(--text);
 }
 
 .topbar h1 {
     margin: 0;
+    overflow: hidden;
     font-size: 16px;
     font-weight: 500;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .content {
@@ -594,6 +641,11 @@ tbody tr:last-child td {
     .modal {
         animation: none;
     }
+
+    .side-slot,
+    .side-mask {
+        transition: none;
+    }
 }
 
 .pager {
@@ -608,6 +660,22 @@ tbody tr:last-child td {
     flex-direction: column;
     gap: 16px;
     max-width: 720px;
+}
+
+/* 同一张卡片内的分组小标题：替代突兀的分隔线，把同类配置归在一起 */
+.form-group-title {
+    margin: 4px 0 -4px;
+    color: var(--text-3);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.form-hint {
+    margin: -4px 0 0;
+    color: var(--text-3);
+    font-size: 12px;
+    line-height: 1.55;
 }
 
 .form label {
@@ -753,28 +821,58 @@ details > summary {
         flex-direction: column;
     }
 
+    /* 移动端侧边栏改为覆盖式抽屉：从左侧滑入并带遮罩，与聊天页一致 */
+    .side-slot {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 900;
+        width: 272px;
+        overflow: visible;
+        background: var(--bg-soft);
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        will-change: transform;
+    }
+
+    html[data-mobile-sider="open"] .side-slot {
+        transform: translateX(0);
+        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.18);
+    }
+
+    .side-mask {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 899;
+        background: rgba(0, 0, 0, 0.32);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html[data-mobile-sider="open"] .side-mask {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
     .side {
         position: static;
-        width: 100%;
-        height: auto;
+        width: 272px;
+        height: 100%;
+        overflow-y: auto;
         border-right: none;
-        border-bottom: 1px solid var(--line-soft);
     }
 
     .side-title {
         padding-bottom: 10px;
     }
 
-    .side nav {
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-
     .side-foot {
-        flex-direction: row;
-        align-items: center;
-        flex-wrap: wrap;
-        margin-top: 12px;
+        flex-direction: column;
+        align-items: stretch;
+        margin-top: auto;
         padding-top: 12px;
     }
 

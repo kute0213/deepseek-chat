@@ -76,10 +76,19 @@ export const searchSessions = async (query: string): Promise<SearchResult[]> => 
   return data.results ?? []
 }
 
-/** 打开会话时分页返回的消息窗口：hasMore 表示还有更早的消息，nextCursor 用于继续加载。 */
-export type SessionMessagesPage = Session & { hasMore?: boolean; nextCursor?: string | null }
+/** 打开会话时分页返回的消息窗口：hasMore 表示还有更早的消息，hasNewer 表示后面还有更晚的消息。 */
+export type SessionMessagesPage = Session & {
+  hasMore?: boolean
+  nextCursor?: string | null
+  hasNewer?: boolean
+}
 
-export type LoadSessionOptions = { limit?: number; before?: string | null; around?: string | null }
+export type LoadSessionOptions = {
+  limit?: number
+  before?: string | null
+  after?: string | null
+  around?: string | null
+}
 
 export const loadSession = async (
   id: string,
@@ -91,6 +100,9 @@ export const loadSession = async (
   }
   if (options?.before) {
     params.set('before', options.before)
+  }
+  if (options?.after) {
+    params.set('after', options.after)
   }
   if (options?.around) {
     params.set('around', options.around)

@@ -352,8 +352,9 @@ final class SessionStore
     /**
      * 消息分页：不传 $before 返回最近 $limit 条，传 $before 返回它之前的 $limit 条。
      * 仍有更早消息时，把窗口首条消息作为临时根节点，保证前端能沿 selectedChildId 渲染。
+     * hasNewer 表示窗口之后是否还有更晚的消息（最新页为 false，向上翻页时为 true）。
      *
-     * @return array{session: array, hasMore: bool}
+     * @return array{session: array, hasMore: bool, hasNewer: bool}
      */
     public static function page(array $session, ?string $before, int $limit): array
     {
@@ -374,18 +375,55 @@ final class SessionStore
             // 游标对应消息已被删除时直接结束，避免重复返回同一页
             if ($index === null) {
                 $session['messages'] = [];
-                return ['session' => $session, 'hasMore' => false];
+                return ['session' => $session, 'hasMore' => false, 'hasNewer' => false];
             }
             $end = $index;
         }
         $start = max(0, $end - $limit);
         $slice = array_slice($messages, $start, $end - $start);
         $hasMore = $start > 0;
+        $hasNewer = $end < count($messages);
         $session['messages'] = $slice;
         if ($hasMore && $slice !== []) {
             $session['rootMessageId'] = (string) $slice[0]['id'];
         }
-        return ['session' => $session, 'hasMore' => $hasMore];
+        return ['session' => $session, 'hasMore' => $hasMore, 'hasNewer' => $hasNewer];
+    }
+
+    /**
+     * 向后分页：返回 $after 之后的 $limit 条消息，用于跳转到中间窗口后继续向下加载。
+     * 基于可见路径定位，保证追加的消息与前端当前分支一致。
+     *
+     * @return array{session: array, hasNewer: bool}
+     */
+    public static function pageAfter(array $session, string $after, int $limit): array
+    {
+        $limit = max(1, min(50, $limit));
+        $messages = array_values(array_filter(
+            is_array($session['messages'] ?? null) ? $session['messages'] : [],
+            static fn ($message): bool => is_array($message)
+        ));
+        $ordered = array_key_exists('rootMessageId', $session)
+            ? self::visiblePath($session, $messages)
+            : $messages;
+        if ($ordered === []) {
+            $ordered = $messages;
+        }
+        $index = null;
+        foreach ($ordered as $position => $message) {
+            if ((string) ($message['id'] ?? '') === $after) {
+                $index = $position;
+                break;
+            }
+        }
+        if ($index === null) {
+            $session['messages'] = [];
+            return ['session' => $session, 'hasNewer' => false];
+        }
+        $start = $index + 1;
+        $end = min(count($ordered), $start + $limit);
+        $session['messages'] = array_slice($ordered, $start, $end - $start);
+        return ['session' => $session, 'hasNewer' => $end < count($ordered)];
     }
 
     /**
@@ -446,7 +484,7 @@ final class SessionStore
      * （通常是 AI 消息）也进入窗口，避免跳转后只看到提问、看不到回答。
      * 搜索结果与右侧导航只需这一页，不再把它之后的全部内容一并返回。
      *
-     * @return array{session: array, hasMore: bool}
+     * @return array{session: array, hasMore: bool, hasNewer: bool}
      */
     public static function pageAround(array $session, string $messageId, int $limit): array
     {
@@ -469,7 +507,7 @@ final class SessionStore
             }
         }
         if ($index === null) {
-            return ['session' => $session, 'hasMore' => false];
+            return ['session' => $session, 'hasMore' => false, 'hasNewer' => false];
         }
         $count = count($ordered);
         $start = max(0, $index - intdiv($limit, 2));
@@ -485,7 +523,7 @@ final class SessionStore
         if ($slice !== []) {
             $session['rootMessageId'] = (string) $slice[0]['id'];
         }
-        return ['session' => $session, 'hasMore' => $start > 0];
+        return ['session' => $session, 'hasMore' => $start > 0, 'hasNewer' => $end < $count];
     }
 
     public static function save(string $userId, string $sessionId, array $session, bool $partial = false): void

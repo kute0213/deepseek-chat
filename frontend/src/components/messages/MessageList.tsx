@@ -8,6 +8,7 @@ import {
 } from '../../services/chat/branches.js'
 import {
   loadMessageWindow,
+  loadNewerMessages,
   loadOlderMessages,
   selectMessageVersion,
   useChatStore,
@@ -103,6 +104,7 @@ export const MessageList = ({
   const rolesRef = useRef(roles)
   rolesRef.current = roles
   const hasMore = useChatStore((state) => state.messagePages[session.id]?.hasMore ?? false)
+  const hasNewer = useChatStore((state) => state.messagePages[session.id]?.hasNewer ?? false)
   const loadingOlder = useChatStore((state) => state.messagePages[session.id]?.loading ?? false)
   const focusTarget = useMessageFocus((state) => state.target)
   const [previousVersions, setPreviousVersions] = useState(() =>
@@ -224,6 +226,18 @@ export const MessageList = ({
     void loadOlderMessages(session.id)
   }, [firstMessageId, hasMore, loadingOlder, session.id])
 
+  // 跳转后的中间窗口：已经贴底（含内容不足一屏、无法滚动）时继续加载更晚的消息
+  useLayoutEffect(() => {
+    if (!hasNewer || loadingOlder) {
+      return
+    }
+    const el = scrollRef.current
+    if (!el || el.scrollHeight - el.scrollTop - el.clientHeight > STICKY_THRESHOLD) {
+      return
+    }
+    void loadNewerMessages(session.id)
+  }, [hasNewer, loadingOlder, messages.length, session.id])
+
   useEffect(closeSearchPanel, [session.id, lastMessageId])
 
   // 搜索命中或右侧导航跳转到对应消息：当前窗口没有就先加载它所在的窗口，定位后短暂高亮。
@@ -288,11 +302,15 @@ export const MessageList = ({
         pendingPrependRef.current = { height: el.scrollHeight, top: el.scrollTop }
         void loadOlderMessages(session.id)
       }
+      // 跳转后的中间窗口：滚到底部时继续加载更晚的消息
+      if (hasNewer && !loadingOlder && nearBottom) {
+        void loadNewerMessages(session.id)
+      }
       scrollTopRef.current = el.scrollTop
     }
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
-  }, [isMobile, scrollToBottom, hasMore, loadingOlder, session.id])
+  }, [isMobile, scrollToBottom, hasMore, hasNewer, loadingOlder, session.id])
 
   const lastIndex = messages.length - 1
   const uploadRetryId = getUploadRetryId(messages, streaming)

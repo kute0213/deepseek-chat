@@ -42,9 +42,21 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
   const earlierRef = useRef(false)
   /** 前插更早条目后按高度差补偿滚动位置，避免预览与短横跳动 */
   const prependRef = useRef<{ height: number } | null>(null)
+  /** 延迟收起：鼠标在边缘移动时不至于反复收起，避免文字与省略号闪动 */
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   activeRef.current = active
   itemsRef.current = items
   totalRef.current = total
+
+  const openPanel = useCallback(() => {
+    clearTimeout(closeTimerRef.current)
+    setOpen(true)
+  }, [])
+  const closePanel = useCallback(() => {
+    clearTimeout(closeTimerRef.current)
+    closeTimerRef.current = setTimeout(() => setOpen(false), 160)
+  }, [])
+  useEffect(() => () => clearTimeout(closeTimerRef.current), [])
 
   // 面板一次性最多露出 7 行，行数不足时按实际条数收缩
   const rows = Math.max(1, Math.min(items.length, MAX_BARS))
@@ -242,35 +254,8 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
     panel.scrollTop = row.offsetTop - panel.clientHeight / 2 + row.offsetHeight / 2
   }, [active, open, panelHeight, pitch, items])
 
-  // 预览列表滚到距顶部还剩 5 轮提问时，自动加载更早的一页
-  useEffect(() => {
-    const panel = panelRef.current
-    if (!panel || !open) {
-      return
-    }
-    let frame = 0
-    const onScroll = () => {
-      if (frame !== 0) {
-        return
-      }
-      frame = requestAnimationFrame(() => {
-        frame = 0
-        if (panel.scrollTop > pitch * PRELOAD_ROUNDS) {
-          return
-        }
-        void loadEarlier()
-      })
-    }
-    panel.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      panel.removeEventListener('scroll', onScroll)
-      if (frame !== 0) {
-        cancelAnimationFrame(frame)
-      }
-    }
-  }, [open, pitch, loadEarlier])
-
-  // 展开后滚轮直接滚动预览列表，而不是切换选中的会话
+  // 展开后滚轮直接滚动预览列表，而不是切换选中的会话；
+  // 滚到距顶部还剩 5 轮提问时顺带加载更早的一页（只由用户滚轮触发，程序化滚动不会触发）
   useEffect(() => {
     const root = rootRef.current
     if (!root || !open) {
@@ -283,10 +268,13 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
       }
       event.preventDefault()
       panel.scrollTop += event.deltaY
+      if (panel.scrollTop <= pitch * PRELOAD_ROUNDS) {
+        void loadEarlier()
+      }
     }
     root.addEventListener('wheel', onWheel, { passive: false })
     return () => root.removeEventListener('wheel', onWheel)
-  }, [open])
+  }, [open, pitch, loadEarlier])
 
   if (isMobile || total <= 0) {
     return null
@@ -302,8 +290,8 @@ export const MessageNavigator = ({ session }: { session: Session }) => {
       ref={rootRef}
       className={styles.root}
       style={{ height: panelHeight }}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={openPanel}
+      onMouseLeave={closePanel}
     >
       <div
         ref={panelRef}

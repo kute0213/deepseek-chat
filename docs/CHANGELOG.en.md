@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-28 (load newer, scroll button, outline flicker, admin sidebar)
+
+- Loading newer messages: added `after` paging and `hasNewer` (`SessionStore::pageAfter`). After jumping to a middle window (search or outline), reaching the bottom — even when the window is shorter than one screen — loads the next 10 newer messages and keeps following.
+- The scroll-to-bottom button now matches the official style: solid background, thin border and a soft shadow instead of a translucent look.
+- Fixed the outline preview text and ellipsis flickering on mouse move: leaving the panel now collapses with a delay, and loading earlier items is triggered only by the user's wheel, not by programmatic centering.
+- Admin console: the sidebar now uses the same width-collapse animation as the chat page (collapsible, state restored before first paint); on mobile it becomes an overlay drawer with a mask that closes after navigation. Page switches still render locally and keep the address bar in sync.
+- Admin styling cleanup: removed the hard dividers under the top bar and above the sidebar footer; the settings page merges "auto-fetch max context" into the same card and groups site vs. DeepSeek access/billing fields with small headings.
+- Rebuilt static assets; `index.html` hashes updated.
+
 ## 2026-11-28 (earlier prefetch, session URLs)
 
 - Message list prefetches earlier: when fewer than 5 question rounds remain above the window, the previous 10 messages are requested before the view hits the very top, and the reading position is preserved.
